@@ -59,6 +59,10 @@ class BitgetWSClient:
     # Public API
     # ------------------------------------------------------------------
 
+    @property
+    def reconnect_count(self) -> int:
+        return self._reconnect_count
+
     def get_state(self, symbol: str) -> MarketState | None:
         return self._states.get(symbol)
 
@@ -161,10 +165,14 @@ class BitgetWSClient:
         data = msg.get("data", [])
         channel = arg.get("channel", "")
         symbol = arg.get("instId", "")
+        exchange_ts_ms: int = int(msg.get("ts", 0) or 0)
 
         state = self._states.get(symbol)
         if state is None:
             return
+
+        if exchange_ts_ms:
+            state.exchange_ts_ms = exchange_ts_ms
 
         try:
             if channel == _CHANNEL_BOOKS:

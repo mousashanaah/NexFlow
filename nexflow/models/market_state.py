@@ -59,6 +59,9 @@ class MarketState:
     volume_24h: float = 0.0
     base_volume_24h: float = 0.0
 
+    # Exchange-reported message timestamp (ms) — set by the transport layer
+    exchange_ts_ms: int = 0
+
     # Last update timestamps (unix epoch, seconds)
     orderbook_updated_at: float = 0.0
     trades_updated_at: float = 0.0
