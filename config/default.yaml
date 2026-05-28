@@ -1,0 +1,19 @@
+app:
+  env: development          # development | staging | production
+  log_level: INFO           # DEBUG | INFO | WARNING | ERROR
+
+exchange:
+  name: bitget
+  ws_url: wss://ws.bitget.com/v2/ws/public
+  ws_ping_interval: 20       # seconds
+  ws_reconnect_delay: 5      # seconds between reconnect attempts
+  ws_max_reconnect_attempts: 10
+  ws_connect_timeout: 10     # seconds
+
+market_data:
+  symbols:
+    - BTCUSDT
+    - ETHUSDT
+  product_type: USDT-FUTURES  # USDT-FUTURES | COIN-FUTURES | USDC-FUTURES
+  orderbook_depth: 20         # levels to track per side
+  max_trade_history: 100      # recent trades to keep in memory
