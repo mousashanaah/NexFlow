@@ -366,8 +366,8 @@ def _c(v: float) -> str:
     return _G if v > 0 else (_R if v < 0 else "")
 
 
-def _col(v: float, w: int, fmt: str = "+.2f") -> str:
-    return f"{_c(v)}{v:{fmt}>{w}}{_RST}"
+def _col(v: float, w: int) -> str:
+    return f"{_c(v)}{v:>+{w}.2f}{_RST}"
 
 
 def _print_per_trade(records: list[AuditRecord]) -> None:
