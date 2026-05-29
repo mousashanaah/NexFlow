@@ -133,11 +133,10 @@ class PaperTrader:
                 is_spike = self._risk_monitor.on_latency(latency_ms)
                 if is_spike:
                     self._journal.log_latency_spike("feed", latency_ms)
-            # Update mid prices from MarketState
+            # Update mid price for this specific symbol only
             mp = state.mid_price
-            if mp is not None:
-                for sym in self._symbols:
-                    self._mid_prices[sym] = mp  # best approximation without per-symbol state
+            if mp and mp > 0:
+                self._mid_prices[state.symbol] = mp
 
         ws_client.on_update(_on_state)
         candle_engine.attach(ws_client)
