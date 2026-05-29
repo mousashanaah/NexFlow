@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+import traceback
 from collections.abc import Callable, Coroutine
 from typing import Any
 
@@ -92,6 +93,7 @@ class BitgetWSClient:
                 _log.warning(
                     "market_data.reconnecting",
                     error=str(exc),
+                    traceback=traceback.format_exc(),
                     attempt=self._reconnect_count,
                     delay_s=delay,
                 )
