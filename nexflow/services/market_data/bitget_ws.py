@@ -109,18 +109,24 @@ class BitgetWSClient:
         url = self._ex.ws_url
         _log.info("market_data.connecting", url=url)
 
+        # ping_interval=None disables websockets' built-in keepalive, which
+        # calls an internal _nop() handler incompatible with Bitget's server.
+        # Bitget uses application-level text "ping"/"pong" heartbeats instead
+        # of WebSocket protocol-level ping frames; we handle them in _handle_message.
         async with websockets.connect(
             url,
             open_timeout=self._ex.ws_connect_timeout,
-            ping_interval=self._ex.ws_ping_interval,
-            ping_timeout=self._ex.ws_ping_interval * 2,
+            ping_interval=None,
         ) as ws:
             self._ws = ws
             self._reconnect_count = 0
             _log.info("market_data.connected", url=url)
 
             await self._subscribe(ws)
-            await self._receive_loop(ws)
+            await asyncio.gather(
+                self._receive_loop(ws),
+                self._heartbeat_loop(ws),
+            )
 
     async def _subscribe(self, ws: Any) -> None:
         args: list[dict[str, str]] = []
@@ -138,15 +144,28 @@ class BitgetWSClient:
         async for raw in ws:
             if not self._running:
                 break
-            await self._handle_message(raw)
+            await self._handle_message(ws, raw)
+
+    async def _heartbeat_loop(self, ws: Any) -> None:
+        """Send application-level 'ping' to Bitget every 20 s to keep the connection alive."""
+        while self._running:
+            await asyncio.sleep(self._ex.ws_ping_interval)
+            try:
+                await ws.send("ping")
+            except Exception:
+                break
 
     # ------------------------------------------------------------------
     # Message handling
     # ------------------------------------------------------------------
 
-    async def _handle_message(self, raw: str | bytes) -> None:
-        # Bitget heartbeat response
-        if raw == "pong":
+    async def _handle_message(self, ws: Any, raw: str | bytes) -> None:
+        # Bitget heartbeat: server sends "ping", we reply "pong";
+        # server also echoes our "ping" back as "pong" which we discard.
+        if raw in ("ping", b"ping"):
+            await ws.send("pong")
+            return
+        if raw in ("pong", b"pong"):
             return
 
         try:
