@@ -77,6 +77,7 @@ class LiveSignalRouter:
         equity_tracker: EquityCurveTracker,
         perf_tracker: PerformanceTracker,
         mid_prices: dict[str, float] | None = None,
+        trade_symbols: set[str] | None = None,
     ) -> None:
         self._strategy = strategy
         self._risk = risk
@@ -87,6 +88,8 @@ class LiveSignalRouter:
         self._equity_tracker = equity_tracker
         self._perf_tracker = perf_tracker
         self._mid_prices: dict[str, float] = mid_prices if mid_prices is not None else {}
+        # None means all symbols allowed; explicit set restricts entries to listed symbols
+        self._trade_symbols: set[str] | None = trade_symbols
         self._bar_counts: dict[str, int] = {}  # symbol → 1m bar count for risk tick
 
     # ------------------------------------------------------------------
@@ -136,6 +139,12 @@ class LiveSignalRouter:
             atr=signal.features.get("atr", 0.0),
             features=signal.features,
         )
+
+        # Symbol filter: allow candles through for warmup but block entry if symbol
+        # is not in the trade_symbols allow-list (diagnostic / ETH-only mode).
+        if self._trade_symbols is not None and symbol not in self._trade_symbols:
+            self._journal.log_rejected(signal.symbol, signal.direction.value, "symbol_not_in_trade_filter")
+            return
 
         # Kill-switch check
         if self._risk_monitor.is_killed:

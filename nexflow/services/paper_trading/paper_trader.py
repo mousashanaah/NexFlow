@@ -75,9 +75,13 @@ class PaperTrader:
         self,
         cfg: PaperTraderConfig | None = None,
         symbols: list[str] | None = None,
+        trade_symbols: list[str] | None = None,
     ) -> None:
         self._cfg = cfg or PaperTraderConfig()
         self._symbols = symbols or ["BTCUSDT"]
+        # trade_symbols: subset that are allowed to take entries.
+        # Others still receive candles (for strategy warmup) but are blocked.
+        self._trade_symbols = set(trade_symbols) if trade_symbols else set(self._symbols)
         self._mid_prices: dict[str, float] = {}
 
         # Build shared subsystems
@@ -106,6 +110,7 @@ class PaperTrader:
             equity_tracker=self._equity_tracker,
             perf_tracker=self._perf_tracker,
             mid_prices=self._mid_prices,
+            trade_symbols=self._trade_symbols,
         )
 
         self._running = False

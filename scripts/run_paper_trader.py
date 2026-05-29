@@ -68,6 +68,10 @@ def _parse_args() -> argparse.Namespace:
                    help="Parquet directory (replay mode only)")
     p.add_argument("--symbols", type=str, default=None,
                    help="Comma-separated, e.g. BTCUSDT,ETHUSDT")
+    p.add_argument("--trade-symbols", type=str, default=None,
+                   help="Subset of --symbols to actually trade. Others receive candles "
+                        "but are blocked from entry. E.g. --symbols BTCUSDT,ETHUSDT "
+                        "--trade-symbols ETHUSDT")
     p.add_argument("--equity", type=float, default=100_000.0)
     p.add_argument("--risk", type=float, default=0.005)
     p.add_argument("--rel-vol", type=float, default=1.5)
@@ -99,7 +103,12 @@ def main() -> None:
         enable_dashboard=not args.no_dashboard,
     )
 
-    trader = PaperTrader(cfg=pt_cfg, symbols=symbols)
+    trade_symbols = (
+        [s.strip() for s in args.trade_symbols.split(",") if s.strip()]
+        if args.trade_symbols else symbols
+    )
+
+    trader = PaperTrader(cfg=pt_cfg, symbols=symbols, trade_symbols=trade_symbols)
 
     if args.mode == "live":
         log.info("paper_trader.mode", mode="live", symbols=symbols)
