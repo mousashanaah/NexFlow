@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NexFlow Paper Trading Report</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0f1117; color: #e8eaf0; font-family: 'Segoe UI', system-ui, sans-serif;
+       font-size: 14px; line-height: 1.6; padding: 24px; }
+h1 { font-size: 22px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+h2 { font-size: 15px; font-weight: 600; color: #a8abbe; text-transform: uppercase;
+     letter-spacing: 0.08em; margin: 28px 0 12px; }
+.subtitle { color: #5a5e78; font-size: 13px; margin-bottom: 24px; }
+.card { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px; padding: 16px 20px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 28px; }
+.card-label { font-size: 11px; color: #5a5e78; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.card-value { font-size: 22px; font-weight: 700; color: #fff; }
+.card-value.green { color: #00d97e; }
+.card-value.red { color: #ff4d4d; }
+.card-value.yellow { color: #ffb547; }
+.chart-wrap { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px;
+              padding: 16px; margin-bottom: 16px; }
+.chart-title { font-size: 12px; color: #5a5e78; text-transform: uppercase;
+               letter-spacing: 0.08em; margin-bottom: 10px; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: 11px; color: #5a5e78; text-transform: uppercase;
+     letter-spacing: 0.06em; padding: 8px 12px; border-bottom: 1px solid #2a2d3a; }
+td { padding: 8px 12px; border-bottom: 1px solid #1e2130; font-size: 13px; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #1e2234; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.pos { color: #00d97e; }
+.neg { color: #ff4d4d; }
+.neu { color: #8b8fa8; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px;
+       font-size: 11px; font-weight: 600; }
+.tag-green { background: rgba(0,217,126,0.15); color: #00d97e; }
+.tag-red   { background: rgba(255,77,77,0.15);  color: #ff4d4d; }
+.tag-blue  { background: rgba(77,159,255,0.15); color: #4d9fff; }
+.tag-yellow{ background: rgba(255,181,71,0.15); color: #ffb547; }
+.no-data { color: #5a5e78; font-style: italic; text-align: center; padding: 40px; }
+.kill-row td { color: #ff4d4d; }
+hr { border: none; border-top: 1px solid #2a2d3a; margin: 24px 0; }
+footer { margin-top: 40px; color: #3a3d4a; font-size: 11px; text-align: center; }
+</style>
+</head>
+<body>
+
+<h1>NexFlow Paper Trading Report</h1>
+<div class="subtitle">
+  2026-05-29 12:31 UTC → 2026-05-29 12:31 UTC &nbsp;·&nbsp;
+  1 session &nbsp;·&nbsp;
+  1 journal file &nbsp;·&nbsp;
+  18 events &nbsp;·&nbsp;
+  Generated 2026-05-29 12:31 UTC
+</div>
+
+<div class="cards"><div class="card"><div class="card-label">Total Trades</div><div class="card-value ">4</div></div><div class="card"><div class="card-label">Win Rate</div><div class="card-value green">100.0%</div></div><div class="card"><div class="card-label">Profit Factor</div><div class="card-value green">∞</div></div><div class="card"><div class="card-label">Net PnL</div><div class="card-value green">+782 USD</div></div><div class="card"><div class="card-label">Max Drawdown</div><div class="card-value green">0.0%</div></div><div class="card"><div class="card-label">Avg R Multiple</div><div class="card-value green">+0.673</div></div><div class="card"><div class="card-label">Expectancy (R)</div><div class="card-value green">+0.673</div></div><div class="card"><div class="card-label">Kill Switches</div><div class="card-value green">0</div></div></div>
+
+<h2>Equity Curve</h2>
+<div class="chart-wrap">
+  <div class="chart-title">Portfolio Value (USDT) — Initial: 100,000 → Final: 100,782
+  &nbsp; <span class="pos">+782 (+0.78%)</span></div>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 242" width="100%" style="max-width:760px;display:block;margin:0 auto;"><text x="380.0" y="110" text-anchor="middle" font-size="14" fill="#8b8fa8" font-style="italic">No data available</text></svg>
+</div>
+
+<h2>Drawdown</h2>
+<div class="chart-wrap">
+  <div class="chart-title">Drawdown from Peak Equity — Max: 0.0% &nbsp; Avg: 0.0%</div>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 242" width="100%" style="max-width:760px;display:block;margin:0 auto;"><text x="380.0" y="110" text-anchor="middle" font-size="14" fill="#8b8fa8" font-style="italic">No data available</text></svg>
+</div>
+
+<hr>
+
+<div class="two-col">
+  <div>
+    <h2>Trade Statistics</h2>
+    <div class="card">
+    <table>
+      <tr><td>Total trades</td><td class="num ">4</td></tr>
+      <tr><td>Wins / Losses</td><td class="num ">4 / 0</td></tr>
+      <tr><td>Win rate</td><td class="num pos">100.0%</td></tr>
+      <tr><td>Profit factor</td><td class="num pos">∞</td></tr>
+      <tr><td>Expectancy (R)</td><td class="num pos">+0.6730</td></tr>
+      <tr><td>Avg R multiple</td><td class="num pos">+0.6730</td></tr>
+      <tr><td>Avg hold time</td><td class="num ">0.0 min</td></tr>
+      <tr><td>Avg win</td><td class="num pos">+195.42 USD</td></tr>
+      <tr><td>Avg loss</td><td class="num neg">-0.00 USD</td></tr>
+      <tr><td>Best trade</td><td class="num pos">+309.25 USD</td></tr>
+      <tr><td>Worst trade</td><td class="num neg">+60.59 USD</td></tr>
+      <tr><td>TP exits</td><td class="num ">1</td></tr>
+      <tr><td>Stop exits</td><td class="num ">3</td></tr>
+      <tr><td>Forced closes</td><td class="num ">0</td></tr>
+      <tr><td>Net PnL</td><td class="num pos">+781.66 USD</td></tr>
+      <tr><td>Gross profit</td><td class="num pos">+781.66 USD</td></tr>
+      <tr><td>Gross loss</td><td class="num neg">0.00 USD</td></tr>
+    </table></div>
+  </div>
+  <div>
+    <h2>Risk Statistics</h2>
+    <div class="card">
+    <table>
+      <tr><td>Max drawdown</td><td class="num pos">0.0%</td></tr>
+      <tr><td>Avg drawdown</td><td class="num ">0.0%</td></tr>
+      <tr><td>Drawdown p50</td><td class="num ">0.0%</td></tr>
+      <tr><td>Drawdown p95</td><td class="num neu">0.0%</td></tr>
+      <tr><td>Kill switch events</td><td class="num pos">0</td></tr>
+      <tr><td>Rejected signals</td><td class="num ">0</td></tr>
+      <tr><td>Max consec. losses</td><td class="num neu">0</td></tr>
+      <tr><td>Stale feed events</td><td class="num ">0</td></tr>
+      <tr><td>Latency spikes</td><td class="num ">0</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<hr>
+
+<h2>Execution Quality</h2>
+<div class="cards"><div class="card"><div class="card-label">Avg Slippage</div><div class="card-value ">0.1428%</div></div><div class="card"><div class="card-label">Total Fees</div><div class="card-value ">50.24 USD</div></div><div class="card"><div class="card-label">Fee Drag</div><div class="card-value ">6.43%</div></div><div class="card"><div class="card-label">Avg Fee / Trade</div><div class="card-value ">12.56 USD</div></div><div class="card"><div class="card-label">Total Slippage</div><div class="card-value ">42.90 USD</div></div><div class="card"><div class="card-label">Spread Anomalies</div><div class="card-value ">0</div></div></div>
+
+<hr>
+
+<h2>PnL Distribution</h2>
+<div class="chart-wrap">
+  <div class="chart-title">Trade PnL Histogram — 4 trades &nbsp; Median: +205.91 USD</div>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 242" width="100%" style="max-width:760px;display:block;margin:0 auto;"><rect x="58.0" y="108.0" width="32.6" height="90.0" fill="#00d97e" fill-opacity="0.85"/><rect x="92.1" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="126.2" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="160.3" y="108.0" width="32.6" height="90.0" fill="#00d97e" fill-opacity="0.85"/><rect x="194.4" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="228.5" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="262.6" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="296.7" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="330.8" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="364.9" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="399.0" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="433.1" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="467.2" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="501.3" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="535.4" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="569.5" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="603.6" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="637.7" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="671.8" y="198.0" width="32.6" height="0.0" fill="#00d97e" fill-opacity="0.85"/><rect x="705.9" y="18.0" width="32.6" height="180.0" fill="#00d97e" fill-opacity="0.85"/><text x="58.0" y="214" text-anchor="middle" font-size="10" fill="#8b8fa8">61</text><text x="740.0" y="214" text-anchor="middle" font-size="10" fill="#8b8fa8">309</text><text x="52" y="22" text-anchor="end" font-size="10" fill="#8b8fa8">2</text><text x="52" y="202" text-anchor="end" font-size="10" fill="#8b8fa8">0</text><line x1="58" y1="18" x2="58" y2="198" stroke="#3a3d4a" stroke-width="1"/><line x1="58" y1="198" x2="740" y2="198" stroke="#3a3d4a" stroke-width="1"/></svg>
+</div>
+
+<hr>
+
+<h2>Monthly Performance</h2>
+<div class="chart-wrap">
+  <div class="chart-title">Monthly Net PnL (USDT)</div>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 262" width="100%" style="max-width:760px;display:block;margin:0 auto;"><line x1="58" y1="108.0" x2="740" y2="108.0" stroke="#3a3d4a" stroke-width="1"/><rect x="60.0" y="18.0" width="678.0" height="90.0" fill="#00d97e" fill-opacity="0.85"/><text x="399.0" y="214" text-anchor="middle" font-size="9" fill="#8b8fa8" transform="rotate(-30,399.0,214)">2026-05</text><text x="52" y="22" text-anchor="end" font-size="10" fill="#8b8fa8">+782</text><text x="52" y="112.0" text-anchor="end" font-size="10" fill="#8b8fa8">0</text><text x="52" y="202" text-anchor="end" font-size="10" fill="#8b8fa8">-782</text><line x1="58" y1="18" x2="58" y2="198" stroke="#3a3d4a" stroke-width="1"/></svg>
+</div>
+<div class="card" style="margin-top:12px">
+    <table>
+      <thead><tr><th>Month</th><th class='num'>PnL</th><th class='num'>Cumulative</th></tr></thead>
+      <tbody><tr><td>2026-05</td><td class='num pos'>+781.66 USD</td><td class='num pos'>+781.66 USD</td></tr></tbody>
+    </table></div>
+
+<hr>
+
+<h2>Market Breakdown</h2>
+<div class="two-col">
+  <div>
+    <h2>By Symbol</h2>
+    <div class="card">
+    <table>
+      <thead><tr><th>Symbol</th><th class='num'>Trades</th><th class='num'>Win Rate</th>
+      <th class='num'>Net PnL</th><th class='num'>Avg R</th></tr></thead>
+      <tbody><tr><td>ETHUSDT</td><td class='num'>2</td><td class='num'>100.0%</td><td class='num pos'>+613.82 USD</td><td class='num'>+0.595</td></tr><tr><td>BTCUSDT</td><td class='num'>2</td><td class='num'>100.0%</td><td class='num pos'>+167.85 USD</td><td class='num'>+0.751</td></tr></tbody>
+    </table></div>
+  </div>
+  <div>
+    <h2>Long vs Short</h2>
+    <div class="card">
+    <table>
+      <thead><tr><th>Direction</th><th class='num'>Trades</th><th class='num'>Win Rate</th><th class='num'>Net PnL</th></tr></thead>
+      <tbody>
+        <tr><td>Long</td><td class='num'>2</td>
+            <td class='num'>100.0%</td>
+            <td class='num pos'>+411.82 USD</td></tr>
+        <tr><td>Short</td><td class='num'>2</td>
+            <td class='num'>100.0%</td>
+            <td class='num pos'>+369.85 USD</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<h2>By Session</h2>
+<div class="two-col">
+  <div class="card">
+    <table>
+      <thead><tr><th>Session</th><th class='num'>Trades</th><th class='num'>Win Rate</th><th class='num'>Net PnL</th></tr></thead>
+      <tbody><tr><td>London</td><td class='num'>4</td><td class='num'>100.0%</td><td class='num pos'>+781.66 USD</td></tr></tbody>
+    </table></div>
+  <div class="chart-wrap"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 56" width="100%" style="max-width:760px;display:block;margin:0 auto;"><text x="52" y="24" text-anchor="end" font-size="11" fill="#e8eaf0">London</text><rect x="58" y="12" width="622.0" height="22" rx="3" fill="#4d9fff" fill-opacity="0.5"/><rect x="58" y="12" width="622.0" height="22" rx="3" fill="#4d9fff" fill-opacity="0.9"/><text x="688.0" y="24" font-size="11" fill="#8b8fa8">4 trades  100% WR  782 USD</text></svg></div>
+</div>
+
+<h2>By Volatility Regime</h2>
+<div class="card">
+    <table>
+      <thead><tr><th>Vol. Regime</th><th class='num'>Trades</th><th class='num'>Win Rate</th><th class='num'>Net PnL</th></tr></thead>
+      <tbody><tr><td><span class='tag tag-blue'>LOW</span></td><td class='num'>1</td><td class='num'>100.0%</td><td class='num pos'>+304.57 USD</td></tr><tr><td><span class='tag tag-yellow'>MEDIUM</span></td><td class='num'>1</td><td class='num'>100.0%</td><td class='num pos'>+107.25 USD</td></tr><tr><td><span class='tag tag-red'>HIGH</span></td><td class='num'>2</td><td class='num'>100.0%</td><td class='num pos'>+369.85 USD</td></tr></tbody>
+    </table></div>
+
+<hr>
+
+<h2>Risk Events</h2>
+<div class="two-col">
+  <div>
+    <div style="font-size:12px;color:#5a5e78;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Kill Switch Activations</div>
+    <div class="card">
+    <table>
+      <thead><tr><th>Kill Reason</th><th class='num'>Count</th></tr></thead>
+      <tbody><tr><td colspan='2' style='color:#5a5e78;text-align:center;padding:20px'>No kill switch events</td></tr></tbody>
+    </table></div>
+  </div>
+  <div>
+    <div style="font-size:12px;color:#5a5e78;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Signal Rejections</div>
+    <div class="card">
+    <table>
+      <thead><tr><th>Rejection Reason</th><th class='num'>Count</th></tr></thead>
+      <tbody><tr><td colspan='2' style='color:#5a5e78;text-align:center;padding:20px'>No rejections</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<footer>NexFlow &nbsp;·&nbsp; Evidence-first paper trading analysis &nbsp;·&nbsp; Generated 2026-05-29 12:31 UTC</footer>
+</body>
+</html>

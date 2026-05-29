@@ -274,6 +274,7 @@ class _OpenTrade:
     partial_fees: float = 0.0
     partial_exit_count: int = 0
     last_tp_idx: int = -1
+    last_partial_ts: float = 0.0
 
 
 def _reconstruct_trades(events: list[dict]) -> list[TradeRecord]:
@@ -290,6 +291,17 @@ def _reconstruct_trades(events: list[dict]) -> list[TradeRecord]:
             pending_signals[sym] = ev
 
         elif etype == "FILL":
+            # If there's already an open trade for this symbol (e.g., previous trade
+            # was fully closed via 3 partial TPs but no STOP_HIT was logged), flush it.
+            existing = open_trades.pop(sym, None)
+            if existing and existing.partial_exit_count > 0:
+                tp_labels = ["TP1", "TP2", "TP3"]
+                exit_type = tp_labels[min(existing.last_tp_idx, 2)] if existing.partial_exit_count >= 3 else "PARTIAL"
+                close_ts = existing.last_partial_ts or existing.fill_time
+                completed.append(_make_record(
+                    existing, existing.partial_pnl, existing.partial_fees + existing.fee,
+                    close_ts, exit_type, existing.fill_price,
+                ))
             sig = pending_signals.get(sym, {})
             fill_price = ev.get("fill_price", 0.0)
             equity_after = ev.get("equity_after", 0.0)
@@ -298,7 +310,7 @@ def _reconstruct_trades(events: list[dict]) -> list[TradeRecord]:
             equity_before = equity_after + fee
             open_trades[sym] = _OpenTrade(
                 symbol=sym,
-                direction=ev.get("direction", "LONG"),
+                direction=ev.get("direction", "long").upper(),
                 fill_price=fill_price,
                 fill_time=ev.get("ts_epoch", 0.0),
                 size=ev.get("size", 0.0),
@@ -317,6 +329,7 @@ def _reconstruct_trades(events: list[dict]) -> list[TradeRecord]:
                 t.partial_fees += ev.get("fee", 0.0)
                 t.partial_exit_count += 1
                 t.last_tp_idx = max(t.last_tp_idx, ev.get("tp_idx", 0))
+                t.last_partial_ts = ev.get("ts_epoch", t.fill_time)
                 # If the position is now fully closed (tp_idx==2 or all partials done)
                 # we detect full closure when a follow-up event doesn't see the position
                 # The router calls portfolio.close_position after all TPs → we rely on
@@ -349,8 +362,9 @@ def _reconstruct_trades(events: list[dict]) -> list[TradeRecord]:
         if t.partial_exit_count >= 3:
             tp_labels = ["TP1", "TP2", "TP3"]
             exit_type = tp_labels[min(t.last_tp_idx, 2)]
+            close_ts = t.last_partial_ts or t.fill_time
             completed.append(_make_record(t, t.partial_pnl, t.partial_fees + t.fee,
-                                          t.fill_time, exit_type, t.fill_price))
+                                          close_ts, exit_type, t.fill_price))
             open_trades.pop(sym)
         elif t.partial_exit_count > 0:
             # Partial TPs hit but not fully closed — include as PARTIAL record
