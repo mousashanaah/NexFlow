@@ -39,6 +39,7 @@ _FROZEN_OB_THRESHOLD_S: float = 30.0     # orderbook top unchanged for this long
 _LATENCY_SPIKE_MS: float = 2_000.0       # single-message latency above this
 _MAX_SPREAD_PCT: float = 1.0             # spread > 1% of mid → invalid
 _MSG_GAP_SPIKE_S: float = 5.0            # gap between consecutive messages
+_OOO_MIN_DELTA_MS: int = 50             # ignore out-of-order deltas smaller than this (clock jitter)
 
 # Number of latency samples kept for percentile computation
 _LATENCY_WINDOW = 1_000
@@ -275,9 +276,10 @@ class TelemetryMonitor:
                         threshold_pct=_MAX_SPREAD_PCT,
                     )
 
-        # Out-of-order exchange timestamp
+        # Out-of-order exchange timestamp (ignore small clock jitter)
         if state.exchange_ts_ms and m.last_exchange_ts_ms:
-            if state.exchange_ts_ms < m.last_exchange_ts_ms:
+            delta_ms = m.last_exchange_ts_ms - state.exchange_ts_ms
+            if delta_ms > _OOO_MIN_DELTA_MS:
                 m.anomalies["out_of_order_ts"] += 1
                 flags.append("out_of_order_ts")
                 _log.warning(
@@ -285,7 +287,7 @@ class TelemetryMonitor:
                     symbol=state.symbol,
                     current_ts=state.exchange_ts_ms,
                     prev_ts=m.last_exchange_ts_ms,
-                    delta_ms=m.last_exchange_ts_ms - state.exchange_ts_ms,
+                    delta_ms=delta_ms,
                 )
 
         # Message gap between consecutive messages for this symbol

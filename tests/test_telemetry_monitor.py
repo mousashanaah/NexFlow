@@ -202,7 +202,7 @@ def test_detect_out_of_order_timestamp() -> None:
     m = _SymbolMetrics(symbol="X")
     m.last_exchange_ts_ms = 1_000_000
     state = _make_state()
-    state.exchange_ts_ms = 999_999   # earlier than last seen
+    state.exchange_ts_ms = 999_899   # 101ms earlier than last seen (above jitter threshold)
 
     flags = monitor._detect_anomalies(state, m, latency_ms=0.0, now=time.time())
     assert "out_of_order_ts" in flags
