@@ -71,6 +71,7 @@ class AuditRecord:
     gross_pnl: float        # from Model-A simulation (no fees)
     net_pnl: float          # Model-A with actual fee rates
     fees_paid: float        # entry + exit fees
+    entry_fee: float        # entry-side fee only
     mfe: float              # max favorable excursion vs entry (price units)
     mae: float              # max adverse excursion vs entry (price units)
     mfe_r: float            # MFE / initial_risk_R
@@ -332,6 +333,7 @@ def _build_audit(
             gross_pnl=gross,
             net_pnl=net,
             fees_paid=fees,
+            entry_fee=entry.entry_fee,
             mfe=mfe,
             mae=mae,
             mfe_r=mfe_r,
@@ -436,15 +438,8 @@ def _print_counterfactuals(records: list[AuditRecord]) -> None:
     cf3_total    = sum(r.cf3_20bar     for r in records)
     cf4_total    = sum(r.cf4_no_tp     for r in records)
 
-    def _fees_implied(net, gross):
-        return gross - net
-
-    cf1_fees  = 0.0
-    cf2_fees  = actual_gross - cf2_total  # implies this many fees
-    cf3_gross = sum(r.cf3_20bar + r.entry_fee +
-                    r.entry_price * r.total_size * TAKER_FEE for r in records)
-    cf4_gross = sum(r.cf4_no_tp + r.entry_fee +
-                    r.entry_price * r.total_size * TAKER_FEE for r in records)
+    cf1_fees = 0.0
+    cf2_fees = actual_gross - cf2_total
 
     print(f"{_B}COUNTERFACTUAL ANALYSIS  ({n} ETH trades){_RST}")
     print(bar)
