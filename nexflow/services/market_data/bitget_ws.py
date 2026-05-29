@@ -3,6 +3,10 @@
 Subscribes to orderbook, trade, and ticker channels for configured symbols
 and keeps MarketState objects up to date.
 
+Uses aiohttp for the WebSocket transport — aiohttp is already a dependency
+and its WS client is stable across Python 3.11–3.14, unlike the websockets
+library whose legacy asyncio.Protocol backend is broken on Python 3.14.
+
 Usage:
     client = BitgetWSClient(config)
     await client.start()          # runs until cancelled
@@ -17,8 +21,7 @@ import time
 from collections.abc import Callable, Coroutine
 from typing import Any
 
-import websockets
-from websockets.exceptions import ConnectionClosed, WebSocketException
+import aiohttp
 
 from nexflow.config import NexFlowConfig
 from nexflow.logging import get_logger
@@ -48,10 +51,8 @@ class BitgetWSClient:
             for sym in self._md.symbols
         }
 
-        # Optional callbacks invoked after each state update
         self._callbacks: list[StateCallback] = []
-
-        self._ws: Any = None
+        self._ws: aiohttp.ClientWebSocketResponse | None = None
         self._running = False
         self._reconnect_count = 0
 
@@ -109,26 +110,30 @@ class BitgetWSClient:
         url = self._ex.ws_url
         _log.info("market_data.connecting", url=url)
 
-        # ping_interval=None disables websockets' built-in keepalive, which
-        # calls an internal _nop() handler incompatible with Bitget's server.
-        # Bitget uses application-level text "ping"/"pong" heartbeats instead
-        # of WebSocket protocol-level ping frames; we handle them in _handle_message.
-        async with websockets.connect(
-            url,
-            open_timeout=self._ex.ws_connect_timeout,
-            ping_interval=None,
-        ) as ws:
-            self._ws = ws
-            self._reconnect_count = 0
-            _log.info("market_data.connected", url=url)
+        timeout = aiohttp.ClientTimeout(
+            connect=self._ex.ws_connect_timeout,
+            total=None,  # no total timeout — connection stays open indefinitely
+        )
 
-            await self._subscribe(ws)
-            await asyncio.gather(
-                self._receive_loop(ws),
-                self._heartbeat_loop(ws),
-            )
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.ws_connect(
+                url,
+                heartbeat=None,      # disable aiohttp's own ping; we send Bitget's text ping
+                receive_timeout=None,
+                autoclose=True,
+                autoping=False,      # we handle pong ourselves
+            ) as ws:
+                self._ws = ws
+                self._reconnect_count = 0
+                _log.info("market_data.connected", url=url)
 
-    async def _subscribe(self, ws: Any) -> None:
+                await self._subscribe(ws)
+                await asyncio.gather(
+                    self._receive_loop(ws),
+                    self._heartbeat_loop(ws),
+                )
+
+    async def _subscribe(self, ws: aiohttp.ClientWebSocketResponse) -> None:
         args: list[dict[str, str]] = []
         inst_type = _product_type_to_inst_type(self._md.product_type)
 
@@ -137,21 +142,32 @@ class BitgetWSClient:
                 args.append({"instType": inst_type, "channel": channel, "instId": symbol})
 
         payload = {"op": "subscribe", "args": args}
-        await ws.send(json.dumps(payload))
-        _log.info("market_data.subscribed", symbols=self._md.symbols, channels=list({a["channel"] for a in args}))
+        await ws.send_str(json.dumps(payload))
+        _log.info(
+            "market_data.subscribed",
+            symbols=self._md.symbols,
+            channels=list({a["channel"] for a in args}),
+        )
 
-    async def _receive_loop(self, ws: Any) -> None:
-        async for raw in ws:
+    async def _receive_loop(self, ws: aiohttp.ClientWebSocketResponse) -> None:
+        async for msg in ws:
             if not self._running:
                 break
-            await self._handle_message(ws, raw)
+            if msg.type == aiohttp.WSMsgType.TEXT:
+                await self._handle_message(ws, msg.data)
+            elif msg.type == aiohttp.WSMsgType.BINARY:
+                await self._handle_message(ws, msg.data)
+            elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
+                raise aiohttp.ClientConnectionError(
+                    f"WebSocket closed: {msg.type} {msg.data}"
+                )
 
-    async def _heartbeat_loop(self, ws: Any) -> None:
-        """Send application-level 'ping' to Bitget every 20 s to keep the connection alive."""
+    async def _heartbeat_loop(self, ws: aiohttp.ClientWebSocketResponse) -> None:
+        """Send Bitget application-level 'ping' every 20 s to keep the connection alive."""
         while self._running:
             await asyncio.sleep(self._ex.ws_ping_interval)
             try:
-                await ws.send("ping")
+                await ws.send_str("ping")
             except Exception:
                 break
 
@@ -159,19 +175,21 @@ class BitgetWSClient:
     # Message handling
     # ------------------------------------------------------------------
 
-    async def _handle_message(self, ws: Any, raw: str | bytes) -> None:
-        # Bitget heartbeat: server sends "ping", we reply "pong";
-        # server also echoes our "ping" back as "pong" which we discard.
+    async def _handle_message(
+        self, ws: aiohttp.ClientWebSocketResponse, raw: str | bytes
+    ) -> None:
+        # Bitget heartbeat: server sends "ping" → we reply "pong".
+        # Our heartbeat_loop sends "ping" → server replies "pong" → discard.
         if raw in ("ping", b"ping"):
-            await ws.send("pong")
+            await ws.send_str("pong")
             return
         if raw in ("pong", b"pong"):
             return
 
         try:
             msg = json.loads(raw)
-        except json.JSONDecodeError:
-            _log.warning("market_data.bad_json", raw=raw[:200])
+        except (json.JSONDecodeError, ValueError):
+            _log.warning("market_data.bad_json", raw=str(raw)[:200])
             return
 
         # Subscription ack / error responses
@@ -216,7 +234,6 @@ class BitgetWSClient:
                 asks = asks[: self._md.orderbook_depth]
                 state.apply_orderbook_snapshot(bids, asks)
             else:
-                # "update" — apply delta, then trim to depth
                 state.apply_orderbook_delta(bids, asks)
                 state.bids = state.bids[: self._md.orderbook_depth]
                 state.asks = state.asks[: self._md.orderbook_depth]
