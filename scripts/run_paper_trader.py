@@ -66,12 +66,11 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--mode", choices=["live", "replay"], default="replay")
     p.add_argument("--data-dir", type=Path, default=Path("data/candles"),
                    help="Parquet directory (replay mode only)")
-    p.add_argument("--symbols", type=str, default=None,
-                   help="Comma-separated, e.g. BTCUSDT,ETHUSDT")
+    p.add_argument("--symbols", type=str, default="ETHUSDT",
+                   help="Comma-separated symbols to subscribe (default: ETHUSDT)")
     p.add_argument("--trade-symbols", type=str, default=None,
-                   help="Subset of --symbols to actually trade. Others receive candles "
-                        "but are blocked from entry. E.g. --symbols BTCUSDT,ETHUSDT "
-                        "--trade-symbols ETHUSDT")
+                   help="Subset of --symbols allowed to take entries. "
+                        "Defaults to all of --symbols.")
     p.add_argument("--equity", type=float, default=100_000.0)
     p.add_argument("--risk", type=float, default=0.005)
     p.add_argument("--rel-vol", type=float, default=1.5)
@@ -88,10 +87,7 @@ def main() -> None:
     log = get_logger(__name__)
 
     cfg = get_config()
-    symbols = (
-        [s.strip() for s in args.symbols.split(",") if s.strip()]
-        if args.symbols else cfg.market_data.symbols
-    )
+    symbols = [s.strip() for s in args.symbols.split(",") if s.strip()]
 
     pt_cfg = PaperTraderConfig(
         initial_equity=args.equity,

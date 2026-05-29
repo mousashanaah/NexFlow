@@ -49,6 +49,14 @@ class RouterState:
     is_killed: bool = False
     kill_reasons: list[str] = field(default_factory=list)
     last_candle_ts: dict[str, int] = field(default_factory=dict)
+    # Maker fill tracking
+    maker_attempts: int = 0
+    maker_fills: int = 0
+    tp1_hit_rate: float = 0.0
+    tp2_hit_rate: float = 0.0
+    tp3_hit_rate: float = 0.0
+    stop_hit_rate: float = 0.0
+    avg_maker_latency_bars: float = 0.0
 
 
 class LiveSignalRouter:
@@ -90,7 +98,8 @@ class LiveSignalRouter:
         self._mid_prices: dict[str, float] = mid_prices if mid_prices is not None else {}
         # None means all symbols allowed; explicit set restricts entries to listed symbols
         self._trade_symbols: set[str] | None = trade_symbols
-        self._bar_counts: dict[str, int] = {}  # symbol → 1m bar count for risk tick
+        self._bar_counts: dict[str, int] = {}          # symbol → 1m bar count for risk tick
+        self._entry_bar: dict[str, int] = {}           # symbol → bar count at position open
 
     # ------------------------------------------------------------------
     # Primary entry point — called by CandleEngine or ReplayEngine
@@ -208,6 +217,16 @@ class LiveSignalRouter:
             realized_fees=entry_fee,
         )
         self._portfolio.open_position(pos)
+        self._entry_bar[symbol] = self._bar_counts.get(symbol, 0)
+
+        # Log TP limit orders placed (maker limit semantics for all TPs)
+        self._journal.log_tp_limits_placed(
+            symbol=symbol,
+            tp_prices=signal.tp_prices,
+            tp_sizes=[size * f for f in _TP_FRACTIONS],
+            entry_bar=self._entry_bar[symbol],
+        )
+        self._perf_tracker.on_maker_attempts(n=len(tp_levels))
 
         self._journal.log_fill(
             symbol=symbol,
@@ -264,11 +283,13 @@ class LiveSignalRouter:
                     fee=fee,
                     equity_after=self._portfolio.current_equity,
                 )
+                self._perf_tracker.on_stop_hit()
                 self._finalize_trade(trade)
             return
 
         for idx in tps_hit:
             tp = pos.tp_levels[idx]
+            latency_bars = self._bar_counts.get(pos.symbol, 0) - self._entry_bar.get(pos.symbol, 0)
             fill = self._execution.simulate_tp(tp.price)
             fee = self._execution.compute_fee(fill.fill_price, tp.size, is_maker=True)
             pnl_before = pos.realized_pnl
@@ -276,6 +297,16 @@ class LiveSignalRouter:
             tp.hit = True
             partial_pnl = pos.realized_pnl - pnl_before
 
+            self._journal.log_tp_maker_fill(
+                symbol=pos.symbol,
+                tp_idx=idx,
+                fill_price=fill.fill_price,
+                size=tp.size,
+                pnl=partial_pnl,
+                fee=fee,
+                latency_bars=latency_bars,
+                equity_after=self._portfolio.current_equity,
+            )
             self._journal.log_partial_tp(
                 symbol=pos.symbol,
                 tp_idx=idx,
@@ -285,6 +316,7 @@ class LiveSignalRouter:
                 fee=fee,
                 equity_after=self._portfolio.current_equity,
             )
+            self._perf_tracker.on_tp_hit(tp_idx=idx, latency_bars=latency_bars)
 
         if pos.is_closed():
             last_idx = max(tps_hit) if tps_hit else -1
@@ -316,22 +348,30 @@ class LiveSignalRouter:
     # Dashboard state
     # ------------------------------------------------------------------
 
-    def get_state(self) -> RouterState:
+    def get_state(self) -> RouterState:  # noqa: PLR0912
         unrealized = self._equity_tracker.compute_unrealized(
             self._portfolio.positions, self._mid_prices
         )
+        pt = self._perf_tracker
         return RouterState(
             equity=round(self._portfolio.current_equity, 2),
             unrealized_pnl=round(unrealized, 2),
-            realized_pnl=round(self._perf_tracker.total_pnl, 2),
+            realized_pnl=round(pt.total_pnl, 2),
             open_positions=self._portfolio.open_position_count(),
             drawdown=round(self._equity_tracker.current_drawdown, 4),
             rolling_sharpe=round(self._equity_tracker.rolling_sharpe(), 3),
-            total_trades=self._perf_tracker.total_trades,
-            win_rate=round(self._perf_tracker.win_rate, 3),
+            total_trades=pt.total_trades,
+            win_rate=round(pt.win_rate, 3),
             is_killed=self._risk_monitor.is_killed,
             kill_reasons=[r.value for r in self._risk_monitor.kill_reasons],
             last_candle_ts=dict(self._risk_monitor._last_candle_ts),
+            maker_attempts=pt.maker_attempts,
+            maker_fills=pt.maker_fills,
+            tp1_hit_rate=round(pt.tp1_hit_rate, 3),
+            tp2_hit_rate=round(pt.tp2_hit_rate, 3),
+            tp3_hit_rate=round(pt.tp3_hit_rate, 3),
+            stop_hit_rate=round(pt.stop_hit_rate, 3),
+            avg_maker_latency_bars=round(pt.avg_maker_latency_bars, 1),
         )
 
     def force_close_all(self, reason: str = "engine_shutdown") -> None:

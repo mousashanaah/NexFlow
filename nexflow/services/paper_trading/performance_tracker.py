@@ -51,6 +51,22 @@ class PerformanceTracker:
         self._total_hold_bars: int = 0
         self._exit_counts: dict[str, int] = {}
 
+        # Maker fill tracking
+        self._maker_attempts: int = 0          # total TP limit orders placed
+        self._tp_hits: dict[int, int] = {0: 0, 1: 0, 2: 0}   # tp_idx → fill count
+        self._stop_hits: int = 0
+        self._maker_latencies: list[int] = []  # bars-to-fill for each TP hit
+
+    def on_maker_attempts(self, n: int) -> None:
+        self._maker_attempts += n
+
+    def on_tp_hit(self, tp_idx: int, latency_bars: int) -> None:
+        self._tp_hits[tp_idx] = self._tp_hits.get(tp_idx, 0) + 1
+        self._maker_latencies.append(latency_bars)
+
+    def on_stop_hit(self) -> None:
+        self._stop_hits += 1
+
     def on_trade_closed(self, trade: ClosedTrade) -> None:
         self._trades.append(trade)
         self._total_pnl += trade.pnl
@@ -130,6 +146,46 @@ class PerformanceTracker:
         if not self._trades:
             return 0.0
         return self._total_hold_bars / len(self._trades)
+
+    # ------------------------------------------------------------------
+    # Maker fill properties
+    # ------------------------------------------------------------------
+
+    @property
+    def maker_attempts(self) -> int:
+        return self._maker_attempts
+
+    @property
+    def maker_fills(self) -> int:
+        return sum(self._tp_hits.values())
+
+    @property
+    def tp1_hit_rate(self) -> float:
+        n = len(self._trades)
+        return self._tp_hits.get(0, 0) / n if n else 0.0
+
+    @property
+    def tp2_hit_rate(self) -> float:
+        n = len(self._trades)
+        return self._tp_hits.get(1, 0) / n if n else 0.0
+
+    @property
+    def tp3_hit_rate(self) -> float:
+        n = len(self._trades)
+        return self._tp_hits.get(2, 0) / n if n else 0.0
+
+    @property
+    def stop_hit_rate(self) -> float:
+        n = len(self._trades)
+        return self._stop_hits / n if n else 0.0
+
+    @property
+    def avg_maker_latency_bars(self) -> float:
+        return sum(self._maker_latencies) / len(self._maker_latencies) if self._maker_latencies else 0.0
+
+    @property
+    def maker_fill_rate(self) -> float:
+        return self.maker_fills / self._maker_attempts if self._maker_attempts else 0.0
 
     def snapshot(self) -> PerformanceSnapshot:
         return PerformanceSnapshot(

@@ -33,6 +33,8 @@ class EventType(str, Enum):
     PARTIAL_TP      = "PARTIAL_TP"       # one TP level hit
     STOP_HIT        = "STOP_HIT"         # stop loss triggered
     FORCE_CLOSE     = "FORCE_CLOSE"      # engine shutdown forced close
+    TP_LIMITS_PLACED = "TP_LIMITS_PLACED" # maker limit orders placed at position open
+    TP_MAKER_FILL    = "TP_MAKER_FILL"    # TP limit filled; includes bars-to-fill latency
 
     # Risk events
     KILL_SWITCH     = "KILL_SWITCH"      # hard kill engaged
@@ -162,6 +164,43 @@ class ExecutionJournal:
             "size": size,
             "pnl": pnl,
             "fee": fee,
+            "equity_after": equity_after,
+        })
+
+    def log_tp_limits_placed(
+        self,
+        symbol: str,
+        tp_prices: list[float],
+        tp_sizes: list[float],
+        entry_bar: int,
+    ) -> None:
+        self._write(EventType.TP_LIMITS_PLACED, {
+            "symbol": symbol,
+            "tp_prices": tp_prices,
+            "tp_sizes": tp_sizes,
+            "entry_bar": entry_bar,
+            "n_limits": len(tp_prices),
+        })
+
+    def log_tp_maker_fill(
+        self,
+        symbol: str,
+        tp_idx: int,
+        fill_price: float,
+        size: float,
+        pnl: float,
+        fee: float,
+        latency_bars: int,
+        equity_after: float,
+    ) -> None:
+        self._write(EventType.TP_MAKER_FILL, {
+            "symbol": symbol,
+            "tp_idx": tp_idx,
+            "fill_price": fill_price,
+            "size": size,
+            "pnl": pnl,
+            "fee": fee,
+            "latency_bars": latency_bars,
             "equity_after": equity_after,
         })
 
