@@ -42,14 +42,15 @@ StateCallback = Callable[[MarketState], Coroutine[Any, Any, None]]
 class BitgetWSClient:
     """Async WebSocket client that maintains live MarketState for each symbol."""
 
-    def __init__(self, config: NexFlowConfig) -> None:
+    def __init__(self, config: NexFlowConfig, symbols: list[str] | None = None) -> None:
         self._cfg = config
         self._ex = config.exchange
         self._md = config.market_data
+        self._symbols = symbols if symbols is not None else list(self._md.symbols)
 
         self._states: dict[str, MarketState] = {
             sym: MarketState(symbol=sym, product_type=self._md.product_type)
-            for sym in self._md.symbols
+            for sym in self._symbols
         }
 
         self._callbacks: list[StateCallback] = []
@@ -138,7 +139,7 @@ class BitgetWSClient:
         args: list[dict[str, str]] = []
         inst_type = _product_type_to_inst_type(self._md.product_type)
 
-        for symbol in self._md.symbols:
+        for symbol in self._symbols:
             for channel in (_CHANNEL_BOOKS, _CHANNEL_TRADE, _CHANNEL_TICKER):
                 args.append({"instType": inst_type, "channel": channel, "instId": symbol})
 
@@ -146,7 +147,7 @@ class BitgetWSClient:
         await ws.send_str(json.dumps(payload))
         _log.info(
             "market_data.subscribed",
-            symbols=self._md.symbols,
+            symbols=self._symbols,
             channels=list({a["channel"] for a in args}),
         )
 

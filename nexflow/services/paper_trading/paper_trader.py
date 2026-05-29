@@ -129,7 +129,7 @@ class PaperTrader:
 
         telemetry = TelemetryMonitor(config=cfg)
 
-        ws_client = BitgetWSClient(config=cfg)
+        ws_client = BitgetWSClient(config=cfg, symbols=self._symbols)
 
         async def _on_state(state):
             # Track WS latency for risk monitor

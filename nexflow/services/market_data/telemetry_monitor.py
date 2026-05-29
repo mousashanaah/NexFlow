@@ -72,6 +72,7 @@ class _SymbolMetrics:
     last_exchange_ts_ms: int = 0       # for out-of-order detection
     last_ob_fingerprint: tuple[float, float] | None = None  # (bid_px, ask_px)
     last_ob_changed_at: float = field(default_factory=time.time)
+    frozen_warning_emitted_at: float = 0.0
 
     # Latency samples (ms), capped at _LATENCY_WINDOW
     latencies_ms: deque[float] = field(default_factory=lambda: deque(maxlen=_LATENCY_WINDOW))
@@ -146,7 +147,7 @@ class TelemetryMonitor:
         """Register callbacks on a BitgetWSClient. Call before client.start()."""
         self._client = client
         client.on_update(self._on_update)
-        _log.info("telemetry.attached", symbols=client._md.symbols)
+        _log.info("telemetry.attached", symbols=getattr(client, "_symbols", client._md.symbols))
 
     async def start(self) -> None:
         self._open_csv()
@@ -239,15 +240,17 @@ class TelemetryMonitor:
                 threshold_ms=_LATENCY_SPIKE_MS,
             )
 
-        # Frozen orderbook
+        # Frozen orderbook — warn once per freeze episode (not on every message)
         if m.last_ob_fingerprint is not None and (now - m.last_ob_changed_at) > _FROZEN_OB_THRESHOLD_S:
             m.anomalies["frozen_orderbook"] += 1
             flags.append("frozen_orderbook")
-            _log.warning(
-                "telemetry.anomaly.frozen_orderbook",
-                symbol=state.symbol,
-                frozen_s=round(now - m.last_ob_changed_at, 1),
-            )
+            if now - m.frozen_warning_emitted_at > _FROZEN_OB_THRESHOLD_S:
+                m.frozen_warning_emitted_at = now
+                _log.warning(
+                    "telemetry.anomaly.frozen_orderbook",
+                    symbol=state.symbol,
+                    frozen_s=round(now - m.last_ob_changed_at, 1),
+                )
 
         # Invalid / crossed spread
         if state.spread is not None and state.mid_price:
