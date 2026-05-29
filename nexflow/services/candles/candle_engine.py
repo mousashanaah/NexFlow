@@ -186,12 +186,19 @@ class _TimeframeAggregator:
         self.timeframe = timeframe
         self.timeframe_s = timeframe_s
         self._live: _LiveCandle | None = None
+        self._last_finalized_open: int = 0  # open_time of most recently closed bar
 
     # ------------------------------------------------------------------
 
     def ingest_trade(self, trade: Trade, spread: float | None) -> Candle | None:
         """Feed one trade. Returns a finalized Candle if the bar rolled over."""
         bar_open = _bar_open(trade.timestamp_ms // 1000, self.timeframe_s)
+
+        # Discard late-arriving trades that belong to a bar already finalized.
+        # Without this, a late trade re-opens a past bar which the wall-clock
+        # check then immediately closes, producing micro-candles with 1-2 trades.
+        if bar_open <= self._last_finalized_open:
+            return None
 
         finalized: Candle | None = None
         if self._live is not None and bar_open > self._live.open_time:
@@ -232,6 +239,7 @@ class _TimeframeAggregator:
         if self._live is None:
             return None
         candle = self._live.to_candle(is_final=True)
+        self._last_finalized_open = self._live.open_time
         self._live = None
         return candle
 
