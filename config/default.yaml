@@ -12,7 +12,6 @@ exchange:
 
 market_data:
   symbols:
-    - BTCUSDT
     - ETHUSDT
   product_type: USDT-FUTURES  # USDT-FUTURES | COIN-FUTURES | USDC-FUTURES
   orderbook_depth: 20         # levels to track per side
