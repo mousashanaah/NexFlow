@@ -63,17 +63,39 @@ _SCHEMA = pa.schema([
     pa.field("is_final",            pa.bool_()),
 ])
 
-_BASE_URL = "https://api.bitget.com/api/v2/mix/market/history-candles"
-_BARS_PER_REQUEST = 200
-_REQUEST_DELAY_S  = 0.25    # 4 req/s — well within Bitget public rate limits
+# Two Bitget endpoints:
+#   /candles         — forward pagination (startTime→endTime), limit 1000, FAST
+#   /history-candles — backward pagination (endTime only), limit 200, for deep history
+# Strategy: try /candles first (1000 bars/req). If it returns nothing for the requested
+# date range, fall back to /history-candles (200 bars/req).
+_URL_CANDLES  = "https://api.bitget.com/api/v2/mix/market/candles"
+_URL_HISTORY  = "https://api.bitget.com/api/v2/mix/market/history-candles"
+_REQUEST_DELAY_S = 0.12   # ~8 req/s — safe for Bitget public limits
 
 
-def _fetch_chunk(symbol: str, end_ms: int) -> list[dict]:
-    """Fetch up to 200 bars ending at end_ms (exclusive). Returns newest-first list."""
+def _fetch_forward(symbol: str, start_ms: int, end_ms: int) -> list:
+    """Fetch up to 1000 bars in [start_ms, end_ms] using forward-paginating /candles."""
     url = (
-        f"{_BASE_URL}"
+        f"{_URL_CANDLES}"
         f"?symbol={symbol}&productType=USDT-FUTURES&granularity=1m"
-        f"&endTime={end_ms}&limit={_BARS_PER_REQUEST}"
+        f"&startTime={start_ms}&endTime={end_ms}&limit=1000"
+    )
+    req = urllib.request.Request(
+        url, headers={"User-Agent": "NexFlow/1.0", "Accept": "application/json"}
+    )
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        data = json.loads(resp.read())
+    if data.get("code") != "00000":
+        raise RuntimeError(f"API error: {data.get('msg', data)}")
+    return data.get("data", [])
+
+
+def _fetch_backward(symbol: str, end_ms: int) -> list:
+    """Fetch up to 200 bars ending at end_ms using /history-candles (backward fallback)."""
+    url = (
+        f"{_URL_HISTORY}"
+        f"?symbol={symbol}&productType=USDT-FUTURES&granularity=1m"
+        f"&endTime={end_ms}&limit=200"
     )
     req = urllib.request.Request(
         url, headers={"User-Agent": "NexFlow/1.0", "Accept": "application/json"}
@@ -118,68 +140,69 @@ def download_1m(
 ) -> list[Candle]:
     """Fetch all 1m candles in [start_s, end_s].
 
-    Paginates backwards from end_s using the history-candles endpoint.
+    Strategy: forward-paginate with /candles (1000 bars/req, fast).
+    If a chunk returns nothing (endpoint lacks data for that date),
+    fall back to /history-candles (200 bars/req, backwards) for that window.
     Skips bars already in existing_close_times (for --resume mode).
     """
-    existing = existing_close_times or set()
+    existing  = existing_close_times or set()
     all_candles: list[Candle] = []
-    cursor_ms = end_s * 1000
-    start_ms  = start_s * 1000
+    cursor_ms = start_s * 1000
+    end_ms    = end_s   * 1000
+    total_bars   = max((end_s - start_s) // 60, 1)
     total_fetched = 0
-    empty_retries = 0
+    errors = 0
 
-    print(f"  Fetching {symbol} 1m  "
-          f"{datetime.fromtimestamp(start_s, tz=timezone.utc).strftime('%Y-%m-%d')} → "
-          f"{datetime.fromtimestamp(end_s,   tz=timezone.utc).strftime('%Y-%m-%d')}")
+    start_str = datetime.fromtimestamp(start_s, tz=timezone.utc).strftime('%Y-%m-%d')
+    end_str   = datetime.fromtimestamp(end_s,   tz=timezone.utc).strftime('%Y-%m-%d')
+    print(f"  Fetching {symbol} 1m  {start_str} → {end_str}  (~{total_bars:,} bars)")
 
-    while cursor_ms > start_ms:
+    while cursor_ms < end_ms:
+        chunk_end_ms = min(cursor_ms + 1000 * 60_000, end_ms)
+
         try:
-            rows = _fetch_chunk(symbol, cursor_ms)
+            rows = _fetch_forward(symbol, cursor_ms, chunk_end_ms)
+            if not rows:
+                # /candles returned nothing — try /history-candles as fallback
+                rows = _fetch_backward(symbol, chunk_end_ms)
+                rows = [r for r in rows if int(r[0]) >= cursor_ms]
         except Exception as exc:
-            print(f"\n  [WARN] fetch error at cursor={cursor_ms}: {exc}")
-            time.sleep(2.0)
-            empty_retries += 1
-            if empty_retries >= 5:
-                print("  [WARN] Too many errors — stopping early.")
+            errors += 1
+            if errors >= 8:
+                print(f"\n  [WARN] Too many errors, stopping early: {exc}")
                 break
+            time.sleep(2.0)
             continue
 
         if not rows:
-            empty_retries += 1
-            if empty_retries >= 3:
-                break
-            time.sleep(1.0)
+            # No data for this window — advance past it
+            cursor_ms = chunk_end_ms + 1
+            errors = 0
             continue
-        empty_retries = 0
+        errors = 0
 
-        # rows are newest-first; filter to our time range and skip duplicates
-        added = 0
-        oldest_ms = cursor_ms
+        newest_in_chunk = cursor_ms
         for r in rows:
-            ts_ms = int(r[0])
-            if ts_ms < start_ms:
-                continue
+            ts_ms   = int(r[0])
             close_s = ts_ms // 1000 + 60
             if close_s in existing:
                 continue
-            c = _row_to_candle(r, symbol)
-            all_candles.append(c)
+            all_candles.append(_row_to_candle(r, symbol))
             existing.add(close_s)
-            added += 1
-            if ts_ms < oldest_ms:
-                oldest_ms = ts_ms
+            total_fetched += 1
+            if ts_ms > newest_in_chunk:
+                newest_in_chunk = ts_ms
 
-        total_fetched += added
-        # Move cursor to 1ms before the oldest bar in this chunk
-        cursor_ms = oldest_ms - 1
+        # Advance cursor past the newest bar we received
+        cursor_ms = newest_in_chunk + 60_000
 
-        # Progress
-        dt = datetime.fromtimestamp(oldest_ms / 1000, tz=timezone.utc)
-        print(f"\r  {dt.strftime('%Y-%m-%d %H:%M')}  bars={total_fetched:>7,}", end="", flush=True)
+        pct = min((cursor_ms - start_s * 1000) / (end_ms - start_s * 1000) * 100, 100)
+        dt  = datetime.fromtimestamp(cursor_ms / 1000, tz=timezone.utc)
+        print(f"\r  {dt.strftime('%Y-%m-%d')}  {pct:5.1f}%  bars={total_fetched:>7,}", end="", flush=True)
 
         time.sleep(_REQUEST_DELAY_S)
 
-    print(f"\r  Done. {total_fetched:,} bars fetched.                          ")
+    print(f"\r  Done. {total_fetched:,} bars fetched.                              ")
     all_candles.sort(key=lambda c: c.close_time)
     return all_candles
 
