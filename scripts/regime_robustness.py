@@ -114,13 +114,17 @@ def _load_cache(path: Path) -> list[_Bar] | None:
 def _fetch_rest_month(
     symbol: str, year: int, month: int, cache_dir: Path
 ) -> list[_Bar]:
-    """Fetch one month of 1m bars. Returns cached data if available."""
+    """Fetch one month of 1m bars. Returns cached data if available.
+
+    Uses /history-candles (backwards pagination from month end) — this is
+    the correct Bitget endpoint for deep historical data.
+    /candles only serves recent data and silently returns nothing for old dates.
+    """
     path = _cache_path(cache_dir, symbol, year, month)
     cached = _load_cache(path)
     if cached is not None:
         return cached
 
-    # Compute start/end epoch ms for the month
     from calendar import monthrange
     days_in_month = monthrange(year, month)[1]
     start_dt = datetime(year, month, 1, 0, 0, 0, tzinfo=timezone.utc)
@@ -129,13 +133,15 @@ def _fetch_rest_month(
     end_ms   = int(end_dt.timestamp() * 1000)
 
     bars: list[_Bar] = []
-    cursor = start_ms
-    while cursor < end_ms:
-        chunk_end = min(cursor + 999 * 60_000, end_ms)
+    seen_ts: set[int] = set()
+    cursor_ms = end_ms        # paginate BACKWARDS from end of month
+    empty_streak = 0
+
+    while cursor_ms > start_ms:
         url = (
-            f"https://api.bitget.com/api/v2/mix/market/candles"
+            f"https://api.bitget.com/api/v2/mix/market/history-candles"
             f"?symbol={symbol}&productType=USDT-FUTURES&granularity=1m"
-            f"&startTime={cursor}&endTime={chunk_end}&limit=1000"
+            f"&endTime={cursor_ms}&limit=200"
         )
         try:
             req = urllib.request.Request(
@@ -147,17 +153,28 @@ def _fetch_rest_month(
                 break
             rows = data.get("data", [])
             if not rows:
-                break
+                empty_streak += 1
+                if empty_streak >= 3:
+                    break
+                time.sleep(1.0)
+                continue
+            empty_streak = 0
+            oldest_ms_in_chunk = cursor_ms
             for r in rows:
                 ts_ms = int(r[0])
+                if ts_ms < start_ms or ts_ms in seen_ts:
+                    continue
+                seen_ts.add(ts_ms)
                 bars.append(_Bar(
-                    ts_s=ts_ms // 1000 + 60,   # close_time = open + 60s
+                    ts_s=ts_ms // 1000 + 60,
                     open=float(r[1]),  high=float(r[2]),
                     low=float(r[3]),   close=float(r[4]),
                     volume=float(r[5]) if len(r) > 5 else 0.0,
                 ))
-            cursor = int(rows[-1][0]) + 60_000
-            time.sleep(0.15)
+                if ts_ms < oldest_ms_in_chunk:
+                    oldest_ms_in_chunk = ts_ms
+            cursor_ms = oldest_ms_in_chunk - 1
+            time.sleep(0.25)
         except Exception as exc:
             print(f"    [WARN] REST fetch error: {exc}")
             break
