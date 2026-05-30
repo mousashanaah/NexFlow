@@ -30,9 +30,8 @@ class _DayStats:
     stops: int = 0
     tps: int = 0
     force_closes: int = 0
-    gross_pnl: float = 0.0       # sum of pnl from STOP_HIT + PARTIAL_TP + FORCE_CLOSE
-    total_fees: float = 0.0      # sum of fee fields across all exit events
-    entry_fees: float = 0.0      # fee from FILL events
+    gross_pnl: float = 0.0       # price-movement pnl before fees
+    total_fees: float = 0.0      # all fees: entry + partial exits + stop/force
     maker_attempts: int = 0      # TP_LIMITS_PLACED n_limits sum
     maker_fills: int = 0         # TP_MAKER_FILL count
     latencies: list[int] = field(default_factory=list)
@@ -70,8 +69,11 @@ def _day_key(ts_epoch: float) -> str:
 def _build_days(events: list[dict]) -> dict[str, _DayStats]:
     days: dict[str, _DayStats] = defaultdict(_DayStats)
 
-    # Track open trade pnl accumulation: symbol → running pnl (entry fee already negative)
-    open_trade_pnl: dict[str, float] = {}
+    # Per-symbol fee accumulator: entry_fee + partial_fees, cleared on trade close.
+    # Used to derive gross = net + total_fees for closed trades.
+    open_fees: dict[str, float] = {}    # symbol → accumulated fees for open trade
+    entry_prices: dict[str, float] = {}
+    entry_sides: dict[str, str] = {}
 
     for ev in events:
         evt = ev.get("event", "")
@@ -81,36 +83,38 @@ def _build_days(events: list[dict]) -> dict[str, _DayStats]:
         if evt == "FILL":
             sym = ev.get("symbol", "")
             fee = ev.get("fee", 0.0)
-            d.entry_fees += fee
             d.fills += 1
-            open_trade_pnl[sym] = -fee  # start with entry fee as cost
+            open_fees[sym] = fee
+            entry_prices[sym] = ev.get("fill_price", 0.0)
+            entry_sides[sym] = ev.get("direction", "long")
 
         elif evt == "PARTIAL_TP":
             sym = ev.get("symbol", "")
-            pnl = ev.get("pnl", 0.0)
-            fee = ev.get("fee", 0.0)
-            d.gross_pnl += pnl
-            d.total_fees += fee
+            # Accumulate exit-side fees; gross will be derived when trade closes.
+            open_fees[sym] = open_fees.get(sym, 0.0) + ev.get("fee", 0.0)
             d.tps += 1
-            open_trade_pnl[sym] = open_trade_pnl.get(sym, 0.0) + pnl - fee
 
         elif evt == "STOP_HIT":
+            # STOP_HIT.pnl = trade.pnl = authoritative total net pnl for the whole trade.
             sym = ev.get("symbol", "")
-            pnl = ev.get("pnl", 0.0)
-            fee = ev.get("fee", 0.0)
-            d.gross_pnl += pnl
-            d.total_fees += fee
+            stop_fee = ev.get("fee", 0.0)
+            net = ev.get("pnl", 0.0)
+            total_fees = open_fees.pop(sym, 0.0) + stop_fee
+            gross = net + total_fees
+            d.gross_pnl += gross
+            d.total_fees += total_fees
             d.stops += 1
-            trade_pnl = open_trade_pnl.pop(sym, 0.0) + pnl - fee
-            d.closed_pnls.append(trade_pnl)
+            d.closed_pnls.append(net)
 
         elif evt == "FORCE_CLOSE":
             sym = ev.get("symbol", "")
-            pnl = ev.get("pnl", 0.0)
-            d.gross_pnl += pnl
+            net = ev.get("pnl", 0.0)
+            total_fees = open_fees.pop(sym, 0.0)
+            gross = net + total_fees
+            d.gross_pnl += gross
+            d.total_fees += total_fees
             d.force_closes += 1
-            trade_pnl = open_trade_pnl.pop(sym, 0.0) + pnl
-            d.closed_pnls.append(trade_pnl)
+            d.closed_pnls.append(net)
 
         elif evt == "TP_LIMITS_PLACED":
             d.maker_attempts += ev.get("n_limits", 0)
@@ -142,10 +146,10 @@ def _print_table(days: dict[str, _DayStats], last_n: int, csv_mode: bool) -> Non
             d = days[k]
             trades = len(d.closed_pnls)
             wr = d.wins / trades * 100 if trades else 0.0
-            net = d.gross_pnl - d.entry_fees - d.total_fees
+            net = d.gross_pnl - d.total_fees
             mfr = d.maker_fills / d.maker_attempts * 100 if d.maker_attempts else 0.0
             avg_lat = sum(d.latencies) / len(d.latencies) if d.latencies else 0.0
-            print(f"{k},{trades},{d.wins},{wr:.1f},{d.gross_pnl:.2f},{d.entry_fees+d.total_fees:.2f},{net:.2f},{d.maker_attempts},{d.maker_fills},{mfr:.1f},{avg_lat:.1f}")
+            print(f"{k},{trades},{d.wins},{wr:.1f},{d.gross_pnl:.2f},{d.total_fees:.2f},{net:.2f},{d.maker_attempts},{d.maker_fills},{mfr:.1f},{avg_lat:.1f}")
         return
 
     bar = "═" * 95
@@ -167,7 +171,7 @@ def _print_table(days: dict[str, _DayStats], last_n: int, csv_mode: bool) -> Non
         d = days[k]
         trades = len(d.closed_pnls)
         wr = d.wins / trades * 100 if trades else 0.0
-        all_fees = d.entry_fees + d.total_fees
+        all_fees = d.total_fees
         net = d.gross_pnl - all_fees
         mfr = d.maker_fills / d.maker_attempts * 100 if d.maker_attempts else 0.0
         avg_lat = sum(d.latencies) / len(d.latencies) if d.latencies else 0.0
