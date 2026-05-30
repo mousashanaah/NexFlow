@@ -355,7 +355,7 @@ def main() -> None:
     print(f"\nDownloading {args.symbol} 1m candles")
     print(f"  {start_dt.strftime('%Y-%m-%d')} → {end_dt.strftime('%Y-%m-%d')}"
           f"  (~{span_days:.0f} days, ~{expected_bars:,} bars expected)")
-    print(f"  Endpoint: {_BASE_URL}")
+    print(f"  Endpoint: {_URL_CANDLES} (fallback: {_URL_HISTORY})")
     print(f"  Output:   {out_dir}")
     print()
 
