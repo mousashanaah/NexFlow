@@ -1,0 +1,5 @@
+trade_id,symbol,direction,ts,fill_price,total_size,n_partials,has_stop_hit,is_force_close,integrity_score,missing_events,incorrect_events,reconstructed_pnl,journal_pnl,pnl_diff,bug_strategy,bug_engine,bug_journal,bug_analysis,violation_details
+1,ETHUSDT,long,2026-05-29T12:31:50.195838+00:00,6196.2381084400195,1.48,1,1,0,100,0,0,148.156,148.156,0.0,0,0,0,0,
+2,BTCUSDT,long,2026-05-29T12:31:50.195519+00:00,69989.70441074175,0.285,3,0,0,100,0,0,95.284,95.284,0.0,0,0,0,0,
+3,BTCUSDT,short,2026-05-29T12:31:50.206812+00:00,67511.30381583613,0.296,1,1,0,100,0,0,21.3049,21.3049,0.0,0,0,0,0,
+4,ETHUSDT,short,2026-05-29T12:31:50.207130+00:00,4372.077096394709,1.17,1,1,0,100,0,0,152.3236,152.3236,0.0,0,0,0,0,
