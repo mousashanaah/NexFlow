@@ -73,14 +73,8 @@ BREAKEVEN_RT = TAKER * 2   # 0.12% — minimum forward return to cover fees
 # Data loading
 # ---------------------------------------------------------------------------
 
-def _load_candles(candle_dir: Path, symbol: str,
-                  start_s: int, end_s: int) -> list[Candle]:
-    path = candle_dir / f"{symbol}_1m.parquet"
-    if not path.exists():
-        print(f"[ERROR] {path} not found. Run download_candles.py first.")
-        sys.exit(1)
-    rows = pq.read_table(path).to_pylist()
-    candles = [
+def _rows_to_candles(rows: list[dict], start_s: int, end_s: int) -> list[Candle]:
+    return [
         Candle(
             symbol=r["symbol"], timeframe=r["timeframe"],
             open_time=r["open_time"], close_time=r["close_time"],
@@ -95,8 +89,75 @@ def _load_candles(candle_dir: Path, symbol: str,
         for r in rows
         if r.get("is_final") and start_s <= r.get("close_time", 0) <= end_s
     ]
-    candles.sort(key=lambda c: c.close_time)
-    return candles
+
+
+def _load_candles(candle_dir: Path, symbol: str,
+                  start_s: int, end_s: int) -> tuple[list[Candle], list[Candle], list[Candle]]:
+    """Return (candles_1m, candles_5m, merged_sorted_all).
+
+    merged_sorted_all interleaves 1m and 5m candles sorted by close_time so
+    that MomentumStrategy.on_candle() receives both timeframes in order,
+    which is required for the 5m momentum window to be populated.
+    """
+    path_1m = candle_dir / f"{symbol}_1m.parquet"
+    path_5m = candle_dir / f"{symbol}_5m.parquet"
+
+    if not path_1m.exists():
+        print(f"[ERROR] {path_1m} not found. Run download_candles.py first.")
+        sys.exit(1)
+
+    rows_1m = pq.read_table(path_1m).to_pylist()
+    candles_1m = sorted(_rows_to_candles(rows_1m, start_s, end_s),
+                        key=lambda c: c.close_time)
+
+    candles_5m: list[Candle] = []
+    if path_5m.exists():
+        rows_5m = pq.read_table(path_5m).to_pylist()
+        candles_5m = sorted(_rows_to_candles(rows_5m, start_s, end_s),
+                            key=lambda c: c.close_time)
+    else:
+        print(f"  [WARN] {path_5m} not found — aggregating 5m from 1m bars")
+        candles_5m = _aggregate_5m(candles_1m)
+
+    # Interleave both timeframes sorted by close_time for strategy replay
+    merged = sorted(candles_1m + candles_5m, key=lambda c: c.close_time)
+    return candles_1m, candles_5m, merged
+
+
+def _aggregate_5m(candles_1m: list[Candle]) -> list[Candle]:
+    """Aggregate 1m candles into 5m candles by grouping on floor(close_time / 300)."""
+    from collections import defaultdict
+    buckets: dict[int, list[Candle]] = defaultdict(list)
+    for c in candles_1m:
+        # Each 5m bucket key = open_time of the 5m bar (floor to 5-min boundary)
+        key = (c.open_time // 300) * 300
+        buckets[key].append(c)
+
+    result: list[Candle] = []
+    for key in sorted(buckets):
+        bars = sorted(buckets[key], key=lambda c: c.open_time)
+        sym = bars[0].symbol
+        o   = bars[0].open
+        h   = max(b.high for b in bars)
+        lo  = min(b.low  for b in bars)
+        cl  = bars[-1].close
+        vol = sum(b.volume for b in bars)
+        bvol = sum(b.buy_volume for b in bars)
+        svol = sum(b.sell_volume for b in bars)
+        tc  = sum(b.trade_count for b in bars)
+        result.append(Candle(
+            symbol=sym, timeframe="5m",
+            open_time=bars[0].open_time,
+            close_time=bars[-1].close_time,
+            open=o, high=h, low=lo, close=cl,
+            volume=vol, buy_volume=bvol, sell_volume=svol,
+            trade_count=tc,
+            vwap=cl,        # proxy: true VWAP needs price×vol per bar
+            spread_avg=0.0, spread_max=0.0,
+            volatility_estimate=0.0,
+            is_final=True,
+        ))
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -120,23 +181,36 @@ class Entry:
 # Strategy signals
 # ---------------------------------------------------------------------------
 
-def collect_signal_entries(candles: list[Candle], symbol: str) -> list[Entry]:
-    """Run MomentumStrategy, record every emitted signal."""
+def collect_signal_entries(candles_1m: list[Candle],
+                           merged: list[Candle],
+                           symbol: str) -> list[Entry]:
+    """Run MomentumStrategy on interleaved 1m+5m candles.
+
+    The strategy requires both 1m and 5m timeframes to fire signals.
+    `merged` contains both sorted by close_time so on_candle() populates
+    both internal windows correctly. We only record signal entries at 1m
+    bars, using the 1m bar index for forward-return computation.
+    """
+    # Build a lookup: 1m close_time → index in candles_1m
+    idx_by_close: dict[int, int] = {c.close_time: i for i, c in enumerate(candles_1m)}
+
     strategy = MomentumStrategy()
     entries: list[Entry] = []
-    for i, c in enumerate(candles):
+    for c in merged:
         sig = strategy.on_candle(c)
-        if sig is not None:
+        if sig is not None and c.timeframe == "1m":
             direction = 1 if sig.direction.value == "long" else -1
             dt = datetime.fromtimestamp(c.close_time, tz=timezone.utc)
-            entries.append(Entry(
-                bar_idx=i,
-                direction=direction,
-                close_at_entry=c.close,
-                atr=sig.atr,
-                year_month=f"{dt.year:04d}-{dt.month:02d}",
-                entry_type="signal",
-            ))
+            bar_idx = idx_by_close.get(c.close_time, -1)
+            if bar_idx >= 0:
+                entries.append(Entry(
+                    bar_idx=bar_idx,
+                    direction=direction,
+                    close_at_entry=c.close,
+                    atr=sig.atr,
+                    year_month=f"{dt.year:04d}-{dt.month:02d}",
+                    entry_type="signal",
+                ))
     return entries
 
 
@@ -274,17 +348,33 @@ class FilteredEntry:
     returns: dict[int, float] = field(default_factory=dict)
 
 
-def collect_filter_contributions(candles: list[Candle]) -> list[FilteredEntry]:
-    """Record each bar's filter outcomes independently for attribution."""
-    cfg     = MomentumConfig()
-    entries: list[FilteredEntry] = []
-    win1m: list[Candle] = []
-    win5m: list[Candle] = []
+def collect_filter_contributions(candles_1m: list[Candle],
+                                  candles_5m: list[Candle]) -> list[FilteredEntry]:
+    """Record each breakout bar's filter pass/fail independently for attribution.
 
-    for i, c in enumerate(candles):
+    Uses real 5m candles (from parquet or aggregated from 1m) so that the
+    momentum filter is computed identically to the live strategy.
+    """
+    cfg      = MomentumConfig()
+    entries: list[FilteredEntry] = []
+
+    # Build a pointer into candles_5m that advances as 1m time advances
+    p5 = 0
+    n5 = len(candles_5m)
+
+    win1m: list[Candle] = []
+    win5m_buf: list[Candle] = []
+
+    for i, c in enumerate(candles_1m):
         win1m.append(c)
-        if c.close_time % 300 == 0:
-            win5m.append(c)
+
+        # Advance 5m window: include all 5m bars whose close_time <= current 1m close_time
+        while p5 < n5 and candles_5m[p5].close_time <= c.close_time:
+            win5m_buf.append(candles_5m[p5])
+            p5 += 1
+        # Keep only the most recent window (strategy uses deque with maxlen)
+        win5m = win5m_buf[-(cfg.min_bars_5m + 10):]
+
         if len(win1m) < cfg.min_bars_1m:
             continue
 
@@ -297,7 +387,8 @@ def collect_filter_contributions(candles: list[Candle]) -> list[FilteredEntry]:
         range_exp = compute_range_expansion(trigger, atr)
         imbalance = compute_buy_sell_imbalance(trigger)
         rh, rl    = compute_breakout_level(win1m, cfg.vol_period)
-        momentum  = compute_momentum_slope(list(win5m), cfg.momentum_period_5m) if len(win5m) >= cfg.min_bars_5m else 0.0
+        momentum  = (compute_momentum_slope(win5m, cfg.momentum_period_5m)
+                     if len(win5m) >= cfg.min_bars_5m else 0.0)
 
         long_breakout  = trigger.close > rh
         short_breakout = trigger.close < rl
@@ -307,10 +398,8 @@ def collect_filter_contributions(candles: list[Candle]) -> list[FilteredEntry]:
 
         direction = +1 if long_breakout else -1
 
-        # Momentum must align with breakout direction
         mom_ok = (direction == +1 and momentum > 0) or (direction == -1 and momentum < 0)
 
-        # Imbalance must align
         if direction == +1:
             imb_ok = imbalance >= cfg.imbalance_min
         else:
@@ -676,41 +765,46 @@ def main() -> None:
 
     print(f"\nSignal forensic audit — {args.symbol}")
     print(f"Loading candles from {candle_dir} …")
-    candles = _load_candles(candle_dir, args.symbol, start_s, end_s)
-    print(f"  {len(candles):,} bars loaded")
+    candles_1m, candles_5m, merged = _load_candles(candle_dir, args.symbol, start_s, end_s)
+    print(f"  {len(candles_1m):,} × 1m bars  |  {len(candles_5m):,} × 5m bars loaded")
 
-    if len(candles) < 1000:
-        print("[ERROR] Too few bars. Run download_candles.py first.")
+    if len(candles_1m) < 1000:
+        print("[ERROR] Too few 1m bars. Run download_candles.py first.")
         sys.exit(1)
 
-    print("Collecting signal entries …")
-    signal_entries = collect_signal_entries(candles, args.symbol)
+    print("Collecting signal entries (1m + 5m feed into strategy) …")
+    signal_entries = collect_signal_entries(candles_1m, merged, args.symbol)
     print(f"  {len(signal_entries):,} signal entries")
 
+    if len(signal_entries) == 0:
+        print("[WARN] Zero signal entries — check that 5m parquet exists or 1m data "
+              "covers enough history for the 5m window to fill.")
+
     print("Collecting breakout entries …")
-    breakout_entries = collect_breakout_entries(candles, args.symbol)
+    breakout_entries = collect_breakout_entries(candles_1m, args.symbol)
     print(f"  {len(breakout_entries):,} simple breakout entries")
 
     print("Collecting random entries …")
-    random_entries = collect_random_entries(candles, n=len(signal_entries))
+    n_random = max(len(signal_entries), 500)
+    random_entries = collect_random_entries(candles_1m, n=n_random)
     print(f"  {len(random_entries):,} random entries")
 
     anti_entries = collect_anti_signal_entries(signal_entries)
 
     print("Collecting filter contribution data …")
-    filter_entries = collect_filter_contributions(candles)
+    filter_entries = collect_filter_contributions(candles_1m, candles_5m)
     print(f"  {len(filter_entries):,} breakout bars for filter analysis")
 
     print("Computing forward returns …")
-    fill_forward_returns(signal_entries,  candles)
-    fill_forward_returns(random_entries,  candles)
-    fill_forward_returns(breakout_entries, candles)
-    fill_forward_returns(anti_entries,    candles)
-    fill_filter_returns(filter_entries,   candles)
+    fill_forward_returns(signal_entries,   candles_1m)
+    fill_forward_returns(random_entries,   candles_1m)
+    fill_forward_returns(breakout_entries, candles_1m)
+    fill_forward_returns(anti_entries,     candles_1m)
+    fill_filter_returns(filter_entries,    candles_1m)
 
     print_report(
         signal_entries, random_entries, breakout_entries, anti_entries,
-        filter_entries, candles, args.symbol,
+        filter_entries, candles_1m, args.symbol,
     )
 
     if args.csv:
