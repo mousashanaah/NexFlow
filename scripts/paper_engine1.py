@@ -426,6 +426,14 @@ def _sync_from_exchange(state: dict, adapter: ExecutionAdapter) -> None:
             }
 
         elif ex_pos is not None and local_pos is not None:
+            # Direction mismatch: local state and exchange disagree
+            if ex_pos.direction != local_pos.get("direction"):
+                _log(f"  [{symbol}] WARNING direction mismatch — "
+                     f"local={local_pos.get('direction')} exchange={ex_pos.direction}. "
+                     f"Trusting exchange; overwriting local state.")
+                local_pos["direction"]   = ex_pos.direction
+                local_pos["entry_price"] = ex_pos.entry_price
+                local_pos["size"]        = ex_pos.size
             if ex_pos.stop_order_id and ex_pos.stop_order_id != local_pos.get("stop_order_id"):
                 local_pos["stop_order_id"] = ex_pos.stop_order_id
                 _log(f"  [{symbol}] updated stop_order_id from exchange: {ex_pos.stop_order_id}")
