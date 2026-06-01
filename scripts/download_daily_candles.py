@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Download daily (1D) candles for BTCUSDT and ETHUSDT from Bitget.
 
-Uses /api/v2/mix/market/candles with granularity=1D, forward-paginating
-from start_date to today. Saves to data/candles/{SYMBOL}_1D.parquet.
+Uses /api/v2/mix/market/history-candles with backward pagination
+(endTime → startTime), same proven pattern as download_candles.py.
+Saves to data/candles/{SYMBOL}_1D.parquet.
 
 Usage:
   python scripts/download_daily_candles.py
@@ -30,12 +31,13 @@ except ImportError:
     print("[ERROR] pyarrow is required: pip install pyarrow")
     sys.exit(1)
 
-_URL = "https://api.bitget.com/api/v2/mix/market/candles"
 _URL_HISTORY = "https://api.bitget.com/api/v2/mix/market/history-candles"
 _LIMIT = 200
 _DELAY_S = 0.15
+_DAY_MS = 86_400_000
 _DEFAULT_START = "2021-01-01"
 _DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT"]
+_HEADERS = {"User-Agent": "NexFlow/1.0", "Accept": "application/json"}
 
 _SCHEMA = pa.schema([
     pa.field("symbol",    pa.string()),
@@ -50,55 +52,57 @@ _SCHEMA = pa.schema([
 ])
 
 
-def _fetch_page(symbol: str, start_ms: int, end_ms: int, use_history: bool = False) -> list:
-    url_base = _URL_HISTORY if use_history else _URL
-    if use_history:
-        url = (
-            f"{url_base}?symbol={symbol}&productType=USDT-FUTURES"
-            f"&granularity=1D&endTime={end_ms}&limit={_LIMIT}"
-        )
-    else:
-        url = (
-            f"{url_base}?symbol={symbol}&productType=USDT-FUTURES"
-            f"&granularity=1D&startTime={start_ms}&endTime={end_ms}&limit={_LIMIT}"
-        )
-    try:
-        with urllib.request.urlopen(url, timeout=15) as resp:
-            data = json.loads(resp.read())
-        if data.get("code") != "00000":
-            print(f"  [WARN] API error: {data.get('msg')}")
-            return []
-        return data.get("data", [])
-    except Exception as e:
-        print(f"  [WARN] Request failed: {e}")
-        return []
+def _fetch_backward(symbol: str, end_ms: int) -> list:
+    """Fetch up to 200 daily bars ending at end_ms (backward pagination)."""
+    url = (
+        f"{_URL_HISTORY}?symbol={symbol}&productType=USDT-FUTURES"
+        f"&granularity=1D&endTime={end_ms}&limit={_LIMIT}"
+    )
+    req = urllib.request.Request(url, headers=_HEADERS)
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        data = json.loads(resp.read())
+    if data.get("code") != "00000":
+        raise RuntimeError(f"API error: {data.get('msg', data)}")
+    return data.get("data", [])
 
 
 def _download_symbol(symbol: str, start_ms: int, end_ms: int) -> list[dict]:
-    bars = []
-    seen = set()
-    cursor_start = start_ms
+    """Paginate backward from end_ms to start_ms, collecting all daily bars."""
+    bars: list[dict] = []
+    seen: set[int] = set()
+    cursor_end = end_ms
+    errors = 0
 
-    while cursor_start < end_ms:
-        page = _fetch_page(symbol, cursor_start, end_ms, use_history=False)
-        if not page:
-            # Fall back to history endpoint
-            page = _fetch_page(symbol, cursor_start, end_ms, use_history=True)
-        if not page:
+    while cursor_end > start_ms:
+        try:
+            rows = _fetch_backward(symbol, cursor_end)
+        except Exception as exc:
+            errors += 1
+            if errors >= 5:
+                print(f"\n  [ERROR] Too many failures: {exc}")
+                break
+            print(f"\n  [WARN] Retrying after error: {exc}")
+            time.sleep(2.0 * errors)
+            continue
+        errors = 0
+
+        if not rows:
             break
 
+        oldest_in_page = cursor_end
         new_count = 0
-        last_ts = cursor_start
-        for row in page:
+        for row in rows:
             ts = int(row[0])
-            if ts in seen or ts < start_ms or ts > end_ms:
+            if ts in seen or ts > end_ms:
                 continue
             seen.add(ts)
             new_count += 1
-            last_ts = max(last_ts, ts)
+            oldest_in_page = min(oldest_in_page, ts)
+            if ts < start_ms:
+                continue  # collect but don't advance past start
             bars.append({
                 "open_time":  ts,
-                "close_time": ts + 86_400_000 - 1,  # daily bar: open_time + 24h - 1ms
+                "close_time": ts + _DAY_MS - 1,
                 "open":   float(row[1]),
                 "high":   float(row[2]),
                 "low":    float(row[3]),
@@ -106,14 +110,17 @@ def _download_symbol(symbol: str, start_ms: int, end_ms: int) -> list[dict]:
                 "volume": float(row[5]),
             })
 
-        print(f"  {symbol}: fetched {len(bars)} bars total", end="\r")
+        print(f"  {symbol}: {len(bars)} bars collected ...", end="\r")
 
-        if new_count == 0:
+        if new_count == 0 or oldest_in_page <= start_ms:
             break
-        cursor_start = last_ts + 86_400_000  # advance one day
+
+        cursor_end = oldest_in_page - 1
         time.sleep(_DELAY_S)
 
     print()
+    # Filter to requested range and sort ascending
+    bars = [b for b in bars if b["open_time"] >= start_ms]
     return sorted(bars, key=lambda b: b["open_time"])
 
 
