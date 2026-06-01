@@ -109,7 +109,7 @@ def _log(msg: str) -> None:
     line = f"[{ts}] {msg}"
     print(line)
     _LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(_LOG_FILE, "a") as f:
+    with open(_LOG_FILE, "a", encoding="utf-8") as f:
         f.write(line + "\n")
 
 
