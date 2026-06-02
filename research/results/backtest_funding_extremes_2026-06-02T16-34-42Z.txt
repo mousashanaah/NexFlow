@@ -1,0 +1,124 @@
+
+======================================================================
+  FUNDING-RATE EXTREMES BACKTEST (contrarian fade) — 1H timeframe
+======================================================================
+  Hypothesis: extreme POSITIVE funding (crowded longs) → fade SHORT;
+              extreme NEGATIVE funding (crowded shorts) → fade LONG.
+  Parameters used (pre-committed):
+    extreme    = top/bottom 90/10 pct of TRAILING 90d window
+    min obs    = 30 in trailing window (else skip — no lookahead)
+    entry      = bar open at/after funding settlement (no lookahead)
+    hold       = 24 bars (24h)  OR  stop, whichever first
+    stop_mult  = 2.0x ATR(14)
+    fee        = 0.0600% taker (entry + exit)
+    risk_pct   = 1.0% per trade
+    capital    = $100,000
+    symbols    = BTCUSDT, ETHUSDT
+
+Acquiring funding-rate history (cache dir: /home/runner/work/NexFlow/NexFlow/data/funding) ...
+  BTCUSDT: loaded 7,508 funding rows from /home/runner/work/NexFlow/NexFlow/data/funding/BTCUSDT_funding.parquet
+  ETHUSDT: loaded 6,497 funding rows from /home/runner/work/NexFlow/NexFlow/data/funding/ETHUSDT_funding.parquet
+
+Loading 1H candles from /home/runner/work/NexFlow/NexFlow/data/candles ...
+  BTCUSDT: 47,252 hourly bars
+  ETHUSDT: 47,252 hourly bars
+
+Building extreme-funding events (trailing-90d percentile rule) ...
+  BTCUSDT: 3,218 events  (2021-01-01 → 2026-06-02)
+  ETHUSDT: 2,615 events  (2021-01-01 → 2026-06-02)
+
+======================================================================
+  SECTION A — MECHANISM VALIDITY (pre-fee, event-level analysis)
+======================================================================
+  Extreme rule    : funding in top/bottom 10%/10% of TRAILING 90d window (>= 30 obs)
+  Positive extreme→ SHORT (crowded longs);  Negative extreme→ LONG (crowded shorts)
+
+  Event counts (extreme funding settlements):
+  Symbol      Pos-extreme(short)   Neg-extreme(long)   FundingObs   %Extreme    Ev/mo
+  ────────── ─────────────────── ─────────────────── ──────────── ────────── ────────
+  BTCUSDT                   1847                1371        7,508      42.9%     40.0
+  ETHUSDT                   1391                1224        6,497      40.2%     37.6
+  ────────── ─────────────────── ─────────────────── ──────────── ────────── ────────
+  COMBINED                  3238                2595       14,005      41.6%     72.4
+
+  Forward price return from aligned entry (entry = bar open after funding):
+  Extreme type                    N          +8h         +24h         +48h
+  ────────────────────────── ────── ──────────── ──────────── ────────────
+  POS-extreme (fade=short)     3238     -0.0101%     -0.0015%     +5.9195%
+  NEG-extreme (fade=long)      2595     +0.0689%     +0.1559%     +4.1261%
+
+  (POS-extreme: NEGATIVE forward return supports the fade.
+   NEG-extreme: POSITIVE forward return supports the fade.)
+
+  Fade hit-rate (+24h):
+    POS-extreme (price LOWER after 24h) : 44.2%  (1430/3233)
+    NEG-extreme (price HIGHER after 24h): 46.6%  (1209/2595)
+    COMBINED fade hit-rate              : 45.3%  (2639/5828)
+
+  Mechanism assessment: WEAK  (combined fade hit-rate 45.3%, pos +24h -0.0015%, neg +24h +0.1559%)
+    Only one of {hit-rate>52%, predicted forward-return signs} holds.
+======================================================================
+
+======================================================================
+  SECTION B — MONETIZATION BACKTEST (after fees)
+======================================================================
+  Parameters    : extreme=10/90pct trailing-90d  hold=24bars  stop=2.0×ATR(14)
+  Period        : 2021-01-02 → 2026-06-02
+  Initial equity: $100,000
+  Final equity  : $15,142
+  Net PnL       : $-84,858  (-84.9%)
+  CAGR          : -29.4%
+  Max drawdown  : 89.7%
+  Profit factor : 0.97
+  Total trades  : 2669  (L:1270  S:1399)
+  Win rate      : 39.4%
+  Exit reasons  : HOLD=1291  STOP=1378
+  Total fees    : $109,646
+
+  ──────────────────────────────────────────────────────────────────────
+  Symbol      Trades     WR%      PF         Net$
+  ────────── ─────── ─────── ─────── ────────────
+  BTCUSDT       1304   40.0%    0.98 $    -6,868
+  ETHUSDT       1365   38.9%    0.95 $   -23,178
+
+  ──────────────────────────────────────────────────────────────────────
+  Year      Trades     WR%      PF         Net$  Status
+  ──────── ─────── ─────── ─────── ────────────  ──────────
+  2021         500   40.6%    0.96 $   -12,096  -
+  2022         484   40.7%    1.07 $   +13,971  +
+  2023         576   37.8%    0.91 $   -19,233  -
+  2024         483   40.6%    1.01 $      +753  +
+  2025         424   39.2%    0.86 $    -9,052  -
+  2026         202   35.6%    0.79 $    -4,390  -
+
+  ──────────────────────────────────────────────────────────────────────
+  Top 5 trades by PnL:
+    BTCUSDT  LONG  entry 2023-03-12 17:00  exit=HOLD  $+8,400
+    ETHUSDT  LONG  entry 2021-05-02 17:00  exit=HOLD  $+7,323
+    ETHUSDT  SHORT entry 2021-09-07 01:00  exit=HOLD  $+6,048
+    ETHUSDT  LONG  entry 2024-05-20 08:00  exit=HOLD  $+4,997
+    ETHUSDT  SHORT entry 2023-08-16 16:00  exit=HOLD  $+4,867
+  Bottom 5 trades by PnL:
+    BTCUSDT  LONG  entry 2021-05-17 01:00  exit=STOP  $-1,180
+    BTCUSDT  LONG  entry 2021-05-13 08:00  exit=STOP  $-1,202
+    ETHUSDT  LONG  entry 2021-05-14 17:00  exit=STOP  $-1,206
+    BTCUSDT  LONG  entry 2021-05-15 01:00  exit=STOP  $-1,213
+    ETHUSDT  LONG  entry 2021-05-12 01:00  exit=STOP  $-1,218
+
+  ──────────────────────────────────────────────────────────────────────
+  OOS split (IS = <2023, OOS = 2023+):
+    IS  (2021–2022): 984 trades, PF 1.00
+    OOS (2023–2026): 1685 trades, PF 0.92
+======================================================================
+
+======================================================================
+  VERDICT
+======================================================================
+
+  KILL -- Strategy fails one or more kill criteria:
+
+     * Profit factor 0.97 < kill threshold 1.10
+     * Max drawdown 89.7% > kill threshold 40%
+
+  Action: do NOT deploy. Move to next hypothesis.
+======================================================================
