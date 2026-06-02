@@ -1,0 +1,125 @@
+
+======================================================================
+  HIGHER-TIMEFRAME TREND-FOLLOWING BACKTEST — 4H timeframe
+======================================================================
+  Hypothesis: crypto perps trend; breakouts run far enough that a
+              trailing stop banks more than losers + fees cost.
+  Pre-committed rule:
+    entry = close beyond prior 30-bar 4H channel (next-bar open)
+    stop  = 3.0×ATR(14), chandelier trailing (ratchets favorably)
+    fee   = 0.0600% taker/side  risk = 1.0%  capital = $100,000
+    symbols = BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT, ADAUSDT, DOGEUSDT, AVAXUSDT, LINKUSDT, LTCUSDT, DOTUSDT, TRXUSDT
+
+Loading 1H candles and aggregating to 4H ...
+  BTCUSDT: 47,253 1H → 11,873 4H bars, 809 breakout signals
+  ETHUSDT: 47,253 1H → 11,873 4H bars, 845 breakout signals
+  SOLUSDT: 42,403 1H → 10,655 4H bars, 847 breakout signals
+  BNBUSDT: 47,253 1H → 11,873 4H bars, 772 breakout signals
+  XRPUSDT: 47,253 1H → 11,873 4H bars, 685 breakout signals
+  ADAUSDT: 47,253 1H → 11,873 4H bars, 846 breakout signals
+  DOGEUSDT: 43,904 1H → 11,032 4H bars, 651 breakout signals
+  AVAXUSDT: 40,780 1H → 10,247 4H bars, 766 breakout signals
+  LINKUSDT: 47,253 1H → 11,873 4H bars, 866 breakout signals
+  LTCUSDT: 47,253 1H → 11,873 4H bars, 755 breakout signals
+  DOTUSDT: 47,253 1H → 11,873 4H bars, 851 breakout signals
+  TRXUSDT: 47,253 1H → 11,873 4H bars, 1,010 breakout signals
+
+======================================================================
+  SECTION A — MECHANISM VALIDITY (pre-fee, event-level analysis)
+======================================================================
+  Breakout = close beyond prior 30-bar (4H) channel high/low.
+  R = 3.0×ATR(14) at entry. We measure how far breakouts run.
+  Forward MFE/MAE over the next 30 bars (5 days) from next-bar open.
+
+  LONG breakouts: 5,583 events
+    Median MFE: 0.93 R    Median MAE: 0.87 R
+    Mean   MFE: 1.37 R    Mean   MAE: 1.05 R
+    Reached +2R before -1R: 20.1%  (1123/5583)
+
+  SHORT breakouts: 4,120 events
+    Median MFE: 0.76 R    Median MAE: 0.77 R
+    Mean   MFE: 1.11 R    Mean   MAE: 1.00 R
+    Reached +2R before -1R: 13.6%  (562/4120)
+
+  Mechanism assessment: NO EDGE
+    (breakeven needs >33.3% reaching +2R-before-1R given the 2:1 payoff)
+    Breakouts do not run far enough often enough to pay the 2:1 structure.
+======================================================================
+
+======================================================================
+  SECTION B — MONETIZATION BACKTEST (after fees)
+======================================================================
+  Parameters    : breakout=30bar(4H) channel  trail=3.0×ATR(14)
+  Period        : 2021-01-06 → 2026-06-02
+  Initial equity: $100,000
+  Final equity  : $30,568
+  Net PnL       : $-69,432  (-69.4%)
+  CAGR          : -19.7%
+  Max drawdown  : 71.9%
+  Profit factor : 0.92
+  Total trades  : 3228  (L:1730  S:1498)
+  Win rate      : 37.3%
+  Avg hold      : 22.9 bars (92h)
+  Total fees    : $32,261
+
+  ──────────────────────────────────────────────────────────────────────
+  Symbol      Trades     WR%      PF         Net$
+  ────────── ─────── ─────── ─────── ────────────
+  BTCUSDT        269   35.7%    1.07 $    +4,216
+  ETHUSDT        285   35.4%    0.95 $    -3,152
+  SOLUSDT        243   41.2%    1.39 $   +16,360
+  BNBUSDT        249   36.9%    0.99 $      -599
+  XRPUSDT        269   34.2%    0.86 $    -8,249
+  ADAUSDT        283   37.5%    0.91 $    -5,469
+  DOGEUSDT       245   38.4%    0.84 $    -8,467
+  AVAXUSDT       242   45.9%    0.91 $    -4,162
+  LINKUSDT       289   34.6%    0.72 $   -18,411
+  LTCUSDT        270   35.2%    0.76 $   -14,516
+  DOTUSDT        287   36.6%    0.83 $   -10,728
+  TRXUSDT        297   37.7%    1.00 $      -126
+
+  ──────────────────────────────────────────────────────────────────────
+  Year      Trades     WR%      PF         Net$  Status
+  ──────── ─────── ─────── ─────── ────────────  ──────────
+  2021         492   37.0%    0.83 $   -27,250  -
+  2022         630   35.9%    0.83 $   -28,523  -
+  2023         580   37.4%    1.03 $    +2,627  +
+  2024         639   40.1%    1.21 $   +19,380  +
+  2025         625   39.0%    0.95 $    -7,075  -
+  2026         262   30.2%    0.76 $   -12,462  -
+
+  ──────────────────────────────────────────────────────────────────────
+  Top 5 trades by PnL:
+    ADAUSDT  LONG  entry 2021-02-02 00:00  held=75b  $+5,517
+    SOLUSDT  LONG  entry 2023-10-16 08:00  held=104b  $+5,032
+    XRPUSDT  LONG  entry 2024-11-12 00:00  held=75b  $+4,943
+    ETHUSDT  LONG  entry 2024-02-06 20:00  held=167b  $+4,786
+    TRXUSDT  LONG  entry 2024-08-14 08:00  held=45b  $+3,469
+  Bottom 5 trades by PnL:
+    BTCUSDT  SHORT entry 2021-01-11 16:00  held=15b  $-928
+    DOTUSDT  LONG  entry 2021-09-07 08:00  held=1b  $-948
+    BTCUSDT  SHORT entry 2021-08-19 04:00  held=4b  $-953
+    DOTUSDT  LONG  entry 2021-05-28 04:00  held=9b  $-953
+    TRXUSDT  LONG  entry 2021-09-12 12:00  held=6b  $-953
+
+  ──────────────────────────────────────────────────────────────────────
+  OOS split (IS = <2023, OOS = 2023+):
+    IS : 1122 trades, PF 0.83
+    OOS: 2106 trades, PF 1.01
+======================================================================
+
+======================================================================
+  VERDICT
+======================================================================
+
+  KILL -- Strategy fails one or more kill criteria:
+
+     * Profit factor 0.92 < kill threshold 1.10
+     * Max drawdown 71.9% > kill threshold 40%
+
+  Action: do NOT deploy. Move to next hypothesis.
+======================================================================
+
+======================================================================
+  Backtest complete.
+======================================================================
