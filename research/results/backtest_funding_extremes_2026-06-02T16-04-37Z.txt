@@ -1,0 +1,45 @@
+
+======================================================================
+  FUNDING-RATE EXTREMES BACKTEST (contrarian fade) — 1H timeframe
+======================================================================
+  Hypothesis: extreme POSITIVE funding (crowded longs) → fade SHORT;
+              extreme NEGATIVE funding (crowded shorts) → fade LONG.
+  Parameters used (pre-committed):
+    extreme    = top/bottom 90/10 pct of TRAILING 90d window
+    min obs    = 30 in trailing window (else skip — no lookahead)
+    entry      = bar open at/after funding settlement (no lookahead)
+    hold       = 24 bars (24h)  OR  stop, whichever first
+    stop_mult  = 2.0x ATR(14)
+    fee        = 0.0600% taker (entry + exit)
+    risk_pct   = 1.0% per trade
+    capital    = $100,000
+    symbols    = BTCUSDT, ETHUSDT
+
+Acquiring funding-rate history (cache dir: /home/runner/work/NexFlow/NexFlow/data/funding) ...
+  BTCUSDT: no cache — downloading funding from Bybit (2021-01-01 → now) ...
+
+  [WARN] Retrying BTCUSDT: HTTP Error 403: Forbidden
+
+  [WARN] Retrying BTCUSDT: HTTP Error 403: Forbidden
+
+  [WARN] Retrying BTCUSDT: HTTP Error 403: Forbidden
+
+  [WARN] Retrying BTCUSDT: HTTP Error 403: Forbidden
+
+  [ERROR] Too many failures for BTCUSDT: HTTP Error 403: Forbidden
+
+  [ERROR] No funding data downloaded for BTCUSDT.
+  ETHUSDT: no cache — downloading funding from Bybit (2021-01-01 → now) ...
+
+  [WARN] Retrying ETHUSDT: HTTP Error 403: Forbidden
+
+  [WARN] Retrying ETHUSDT: HTTP Error 403: Forbidden
+
+  [WARN] Retrying ETHUSDT: HTTP Error 403: Forbidden
+
+  [WARN] Retrying ETHUSDT: HTTP Error 403: Forbidden
+
+  [ERROR] Too many failures for ETHUSDT: HTTP Error 403: Forbidden
+
+  [ERROR] No funding data downloaded for ETHUSDT.
+[ERROR] Funding data missing for one or more symbols. Cannot continue.
