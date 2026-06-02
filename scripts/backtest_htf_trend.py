@@ -489,11 +489,17 @@ def _print_verdict(trades, pf_full, mdd, initial_equity, final_equity,
 
 
 def main():
+    global _SYMBOLS
     parser = argparse.ArgumentParser(description="Higher-Timeframe Trend-Following Backtest (4H)")
     parser.add_argument("--data", default="data/candles")
     parser.add_argument("--capital", type=float, default=100_000.0)
     parser.add_argument("--lookback", type=int, default=_LOOKBACK)
+    parser.add_argument("--symbols", nargs="+", default=None,
+                        help="Override the symbol universe (default BTCUSDT ETHUSDT)")
     args = parser.parse_args()
+
+    if args.symbols:
+        _SYMBOLS = args.symbols
 
     data_dir = _REPO_ROOT / args.data
     lookback = args.lookback
@@ -511,7 +517,12 @@ def main():
 
     print(f"\nLoading 1H candles and aggregating to 4H ...")
     candles_by = {}; atr_by = {}; signals_by = {}
+    available = []
     for symbol in _SYMBOLS:
+        if not (data_dir / f"{symbol}_1H.parquet").exists():
+            print(f"  {symbol}: [SKIP] no 1H parquet (download may have failed)")
+            continue
+        available.append(symbol)
         c1h = _load_1h(symbol, data_dir)
         c4h = _aggregate_4h(c1h)
         candles_by[symbol] = c4h
@@ -519,6 +530,11 @@ def main():
         signals_by[symbol] = _build_signals(symbol, c4h, lookback)
         print(f"  {symbol}: {len(c1h['close']):,} 1H → {len(c4h['close']):,} 4H bars, "
               f"{len(signals_by[symbol]):,} breakout signals")
+
+    _SYMBOLS = available
+    if not _SYMBOLS:
+        print("[ERROR] No symbols available. Aborting.")
+        sys.exit(1)
 
     _section_a(signals_by, candles_by, atr_by)
     _section_b(signals_by, candles_by, atr_by, args.capital)
