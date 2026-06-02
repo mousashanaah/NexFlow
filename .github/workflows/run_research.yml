@@ -1,0 +1,69 @@
+name: NexFlow Research Runner
+
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: "Script to run (e.g. backtest_lead_lag, backtest_weekly_range, engine2_compression_audit)"
+        required: true
+        default: "backtest_lead_lag"
+      symbols:
+        description: "Symbols (space-separated)"
+        required: false
+        default: "BTCUSDT ETHUSDT"
+      extra_args:
+        description: "Extra arguments passed to the script"
+        required: false
+        default: ""
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: claude/gallant-mendel-vJRA6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pyarrow
+
+      - name: Download 1H candles
+        run: |
+          python scripts/download_1h_candles.py --symbols ${{ github.event.inputs.symbols }}
+
+      - name: Download daily candles
+        run: |
+          python scripts/download_daily_candles.py --symbols ${{ github.event.inputs.symbols }}
+
+      - name: Run script
+        id: run_script
+        run: |
+          python scripts/${{ github.event.inputs.script }}.py \
+            ${{ github.event.inputs.extra_args }} \
+            2>&1 | tee research_output.txt
+
+      - name: Save results
+        run: |
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H-%M-%SZ")
+          OUTFILE="research/results/${{ github.event.inputs.script }}_${TIMESTAMP}.txt"
+          mkdir -p research/results
+          cp research_output.txt "$OUTFILE"
+          echo "result_file=$OUTFILE" >> $GITHUB_OUTPUT
+
+      - name: Commit results
+        run: |
+          git config user.name  "NexFlow Research Bot"
+          git config user.email "research@nexflow.local"
+          git add research/results/
+          git commit -m "Research result: ${{ github.event.inputs.script }} $(date -u +%Y-%m-%d)" \
+            || echo "Nothing to commit"
+          git push origin claude/gallant-mendel-vJRA6
