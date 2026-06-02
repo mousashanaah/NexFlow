@@ -46,8 +46,6 @@ jobs:
 
       - name: Run script
         id: run_script
-        env:
-          COINALYZE_API_KEY: ${{ secrets.COINALYZE_API_KEY }}
         run: |
           python scripts/${{ github.event.inputs.script }}.py \
             ${{ github.event.inputs.extra_args }} \

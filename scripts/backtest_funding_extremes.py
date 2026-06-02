@@ -312,20 +312,50 @@ def _save_funding(symbol: str, rows: list[dict], out_dir: Path) -> Path:
 def _load_funding(symbol: str, funding_dir: Path) -> list[dict]:
     """Load funding from cache, else download and cache it.
 
+    Cache priority:
+      1. data/funding/{SYMBOL}_funding.parquet        — from download_funding_rates.py (Binance)
+      2. data/funding/{SYMBOL}_funding_coinalyze.parquet — from previous Coinalyze run
+      3. Download live from Coinalyze (requires COINALYZE_API_KEY env var)
+
     Returns a list of {timestamp_ms, funding_rate} sorted ascending.
     """
-    path = funding_dir / f"{symbol}_funding_coinalyze.parquet"
-    if path.exists():
-        tbl = pq.read_table(path).to_pydict()
+    # Priority 1: standard Binance-sourced parquet (committed to repo)
+    std_path = funding_dir / f"{symbol}_funding.parquet"
+    if std_path.exists():
+        tbl = pq.read_table(std_path).to_pydict()
         rows = [
             {"timestamp_ms": tbl["timestamp_ms"][i], "funding_rate": tbl["funding_rate"][i]}
             for i in range(len(tbl["timestamp_ms"]))
         ]
         rows.sort(key=lambda r: r["timestamp_ms"])
-        print(f"  {symbol}: loaded {len(rows):,} cached funding rows from {path}")
+        print(f"  {symbol}: loaded {len(rows):,} funding rows from {std_path}")
         return rows
 
-    _require_api_key()
+    # Priority 2: Coinalyze parquet cache from a previous run
+    cz_path = funding_dir / f"{symbol}_funding_coinalyze.parquet"
+    if cz_path.exists():
+        tbl = pq.read_table(cz_path).to_pydict()
+        rows = [
+            {"timestamp_ms": tbl["timestamp_ms"][i], "funding_rate": tbl["funding_rate"][i]}
+            for i in range(len(tbl["timestamp_ms"]))
+        ]
+        rows.sort(key=lambda r: r["timestamp_ms"])
+        print(f"  {symbol}: loaded {len(rows):,} funding rows from {cz_path}")
+        return rows
+
+    # Priority 3: live download via Coinalyze (requires API key)
+    if not _API_KEY:
+        print(f"\n[ERROR] No funding-rate cache found for {symbol}.")
+        print(f"        Expected: {std_path}")
+        print()
+        print("        To fix, run this on your LOCAL machine (no API key needed):")
+        print("          python scripts\\download_funding_rates.py")
+        print("        Then commit and push the result:")
+        print("          git add data/funding/")
+        print("          git commit -m 'add funding rate cache'")
+        print("          git push")
+        sys.exit(1)
+
     start_dt = datetime.strptime(_FUNDING_START, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     start_ms = int(start_dt.timestamp() * 1000)
     end_ms   = int(datetime.now(timezone.utc).timestamp() * 1000)
