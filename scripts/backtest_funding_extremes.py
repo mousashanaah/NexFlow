@@ -27,7 +27,7 @@ Kill criteria:
   OOS PF (2023+) < 0.85 × full-period PF   ("regime-specific")
 
 Self-contained: downloads its own funding-rate history from Binance (free,
-no key) and caches it to data/funding/{SYMBOL}_funding_binance.parquet, then
+no key) and caches it to data/funding/{SYMBOL}_funding_okx.parquet, then
 loads existing 1H candles from data/candles/{SYMBOL}_1H.parquet.
 
 Usage:
@@ -84,17 +84,23 @@ _GO_PF   = 1.30
 _GO_CAGR = 0.20
 _GO_DD   = 0.40
 
-# Symbols (same tickers on Binance and Bitget)
+# Symbols
 _SYMBOLS = ["BTCUSDT", "ETHUSDT"]
 
-# Funding download (Binance USDT-M futures — free, no key, full history)
-_FUNDING_URL   = "https://fapi.binance.com/fapi/v1/fundingRate"
-_FUNDING_LIMIT = 1000
+# Funding download — OKX public funding-rate-history (free, no key, full history,
+# reachable from US GitHub Actions runners; Binance fapi returns HTTP 451 there).
+# Funding rates are tightly correlated across venues, so OKX is a valid proxy for
+# the mechanism-validity question on a Bitget-traded book.
+_FUNDING_URL   = "https://www.okx.com/api/v5/public/funding-rate-history"
+_FUNDING_LIMIT = 100
 _FUNDING_DELAY = 0.2
 _FUNDING_START = "2021-01-01"
 _HEADERS       = {"User-Agent": "NexFlow/1.0", "Accept": "application/json"}
 _HOUR_MS       = 3_600_000
 _DAY_MS        = 86_400_000
+
+# Map Bitget USDT-perp tickers to OKX swap instIds
+_OKX_INST = {"BTCUSDT": "BTC-USDT-SWAP", "ETHUSDT": "ETH-USDT-SWAP"}
 
 _FUNDING_SCHEMA = pa.schema([
     pa.field("symbol",       pa.string()),
@@ -107,26 +113,34 @@ _FUNDING_SCHEMA = pa.schema([
 # Funding-rate download (inline, cached)
 # ---------------------------------------------------------------------------
 
-def _fetch_funding_page(symbol: str, start_ms: int) -> list:
-    url = (
-        f"{_FUNDING_URL}?symbol={symbol}"
-        f"&startTime={start_ms}&limit={_FUNDING_LIMIT}"
-    )
+def _fetch_funding_page(inst_id: str, before_ms: int | None) -> list:
+    """OKX funding-rate-history page. `before_ms` (if set) returns rows OLDER than it."""
+    url = f"{_FUNDING_URL}?instId={inst_id}&limit={_FUNDING_LIMIT}"
+    if before_ms is not None:
+        url += f"&after={before_ms}"  # OKX 'after' = records with ts < after (older)
     req = urllib.request.Request(url, headers=_HEADERS)
     with urllib.request.urlopen(req, timeout=20) as resp:
-        return json.loads(resp.read())
+        payload = json.loads(resp.read())
+    if payload.get("code") not in ("0", 0):
+        raise RuntimeError(f"OKX error: {payload.get('msg', payload)}")
+    return payload.get("data", [])
 
 
 def _download_funding(symbol: str, start_ms: int, end_ms: int) -> list[dict]:
-    """Forward-paginate Binance funding history.  Returns sorted list of dicts."""
+    """Backward-paginate OKX funding history (newest→oldest).  Returns sorted dicts."""
+    inst_id = _OKX_INST.get(symbol)
+    if inst_id is None:
+        print(f"\n  [ERROR] No OKX instId mapping for {symbol}")
+        return []
+
     rows: list[dict] = []
     seen: set[int]   = set()
-    cursor = start_ms
+    cursor: int | None = None  # None = most recent page
     errors = 0
 
-    while cursor < end_ms:
+    while True:
         try:
-            page = _fetch_funding_page(symbol, cursor)
+            page = _fetch_funding_page(inst_id, cursor)
         except Exception as exc:
             errors += 1
             if errors >= 5:
@@ -140,29 +154,29 @@ def _download_funding(symbol: str, start_ms: int, end_ms: int) -> list[dict]:
         if not page:
             break
 
-        newest = cursor
+        oldest = cursor if cursor is not None else end_ms
         new = 0
         for item in page:
             ts = int(item["fundingTime"])
             if ts in seen or ts > end_ms:
                 continue
             seen.add(ts)
-            new += 1
-            newest = max(newest, ts)
-            rows.append({
-                "symbol":       symbol,
-                "timestamp_ms": ts,
-                "funding_rate": float(item["fundingRate"]),
-            })
+            oldest = min(oldest, ts)
+            if ts >= start_ms:
+                new += 1
+                rows.append({
+                    "symbol":       symbol,
+                    "timestamp_ms": ts,
+                    "funding_rate": float(item["fundingRate"]),
+                })
 
         total = len(rows)
-        pct   = (newest - start_ms) / max(end_ms - start_ms, 1) * 100
+        pct   = (end_ms - oldest) / max(end_ms - start_ms, 1) * 100
         print(f"  {symbol}: {total:,} funding rows  ({pct:.0f}% complete) ...", end="\r")
 
-        # Stop when the API returned a short page (caught up) or no progress.
-        if len(page) < _FUNDING_LIMIT or new == 0:
+        if len(page) < _FUNDING_LIMIT or oldest <= start_ms:
             break
-        cursor = newest + 1
+        cursor = oldest  # next page: older than the oldest we've seen
         time.sleep(_FUNDING_DELAY)
 
     print()
@@ -171,7 +185,7 @@ def _download_funding(symbol: str, start_ms: int, end_ms: int) -> list[dict]:
 
 def _save_funding(symbol: str, rows: list[dict], out_dir: Path) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / f"{symbol}_funding_binance.parquet"
+    path = out_dir / f"{symbol}_funding_okx.parquet"
     table = pa.table({
         "symbol":       [r["symbol"]       for r in rows],
         "timestamp_ms": [r["timestamp_ms"] for r in rows],
@@ -186,7 +200,7 @@ def _load_funding(symbol: str, funding_dir: Path) -> list[dict]:
 
     Returns a list of {timestamp_ms, funding_rate} sorted ascending.
     """
-    path = funding_dir / f"{symbol}_funding_binance.parquet"
+    path = funding_dir / f"{symbol}_funding_okx.parquet"
     if path.exists():
         tbl = pq.read_table(path).to_pydict()
         rows = [
