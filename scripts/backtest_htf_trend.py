@@ -149,16 +149,40 @@ class _Signal:
     symbol: str; side: str; signal_idx: int; entry_idx: int; entry_ms: int
 
 
-def _build_signals(symbol, candles, lookback) -> list[_Signal]:
+def _sma_series(values, period) -> list[Optional[float]]:
+    """Trailing simple moving average over `period` bars ending at i (inclusive)."""
+    n = len(values)
+    out: list[Optional[float]] = [None] * n
+    run = 0.0
+    for i in range(n):
+        run += values[i]
+        if i >= period:
+            run -= values[i - period]
+        if i >= period - 1:
+            out[i] = run / period
+    return out
+
+
+def _build_signals(symbol, candles, lookback, regime_ma=0) -> list[_Signal]:
+    """Donchian breakout signals, optionally gated by a trend-regime filter.
+
+    regime_ma > 0: only take LONG breakouts when close > SMA(regime_ma), and only
+    SHORT breakouts when close < SMA(regime_ma). This is the standard trend-
+    following regime overlay (take breakouts only with the prevailing trend).
+    """
     highs, lows, closes, ot = candles["high"], candles["low"], candles["close"], candles["open_time"]
     n = len(closes)
+    sma = _sma_series(closes, regime_ma) if regime_ma > 0 else None
     out: list[_Signal] = []
     for i in range(lookback, n - 1):
         prior_high = max(highs[i-lookback:i])
         prior_low = min(lows[i-lookback:i])
-        if closes[i] > prior_high:
+        ma = sma[i] if sma is not None else None
+        if regime_ma > 0 and ma is None:
+            continue
+        if closes[i] > prior_high and (regime_ma == 0 or closes[i] > ma):
             out.append(_Signal(symbol, "LONG", i, i+1, ot[i+1]))
-        elif closes[i] < prior_low:
+        elif closes[i] < prior_low and (regime_ma == 0 or closes[i] < ma):
             out.append(_Signal(symbol, "SHORT", i, i+1, ot[i+1]))
     return out
 
@@ -496,6 +520,9 @@ def main():
     parser.add_argument("--lookback", type=int, default=_LOOKBACK)
     parser.add_argument("--symbols", nargs="+", default=None,
                         help="Override the symbol universe (default BTCUSDT ETHUSDT)")
+    parser.add_argument("--regime-ma", type=int, default=0,
+                        help="Trend-regime filter: only take breakouts aligned with "
+                             "SMA(regime_ma) on 4H closes. 0 = off (default).")
     args = parser.parse_args()
 
     if args.symbols:
@@ -527,7 +554,7 @@ def main():
         c4h = _aggregate_4h(c1h)
         candles_by[symbol] = c4h
         atr_by[symbol] = _wilder_atr_series(c4h["high"], c4h["low"], c4h["close"], _ATR_PERIOD)
-        signals_by[symbol] = _build_signals(symbol, c4h, lookback)
+        signals_by[symbol] = _build_signals(symbol, c4h, lookback, regime_ma=args.regime_ma)
         print(f"  {symbol}: {len(c1h['close']):,} 1H → {len(c4h['close']):,} 4H bars, "
               f"{len(signals_by[symbol]):,} breakout signals")
 
