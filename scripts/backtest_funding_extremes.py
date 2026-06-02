@@ -27,7 +27,7 @@ Kill criteria:
   OOS PF (2023+) < 0.85 × full-period PF   ("regime-specific")
 
 Self-contained: downloads its own funding-rate history from Binance (free,
-no key) and caches it to data/funding/{SYMBOL}_funding_okx.parquet, then
+no key) and caches it to data/funding/{SYMBOL}_funding_bybit.parquet, then
 loads existing 1H candles from data/candles/{SYMBOL}_1H.parquet.
 
 Usage:
@@ -87,20 +87,21 @@ _GO_DD   = 0.40
 # Symbols
 _SYMBOLS = ["BTCUSDT", "ETHUSDT"]
 
-# Funding download — OKX public funding-rate-history (free, no key, full history,
-# reachable from US GitHub Actions runners; Binance fapi returns HTTP 451 there).
-# Funding rates are tightly correlated across venues, so OKX is a valid proxy for
-# the mechanism-validity question on a Bitget-traded book.
-_FUNDING_URL   = "https://www.okx.com/api/v5/public/funding-rate-history"
-_FUNDING_LIMIT = 100
+# Funding download — Bybit v5 public funding-history (free, no key, FULL history
+# back to listing). Bitget and OKX public endpoints both cap at ~90 days; Binance
+# has full history but returns HTTP 451 from US GitHub Actions runners. Bybit's
+# public market-data endpoints are reachable from US cloud IPs (only trading is
+# geo-restricted). Funding rates are tightly correlated across venues, so Bybit
+# is a valid proxy for the mechanism-validity question on a Bitget-traded book.
+_FUNDING_URL   = "https://api.bybit.com/v5/market/funding/history"
+_FUNDING_LIMIT = 200
 _FUNDING_DELAY = 0.2
 _FUNDING_START = "2021-01-01"
 _HEADERS       = {"User-Agent": "NexFlow/1.0", "Accept": "application/json"}
 _HOUR_MS       = 3_600_000
 _DAY_MS        = 86_400_000
 
-# Map Bitget USDT-perp tickers to OKX swap instIds
-_OKX_INST = {"BTCUSDT": "BTC-USDT-SWAP", "ETHUSDT": "ETH-USDT-SWAP"}
+# Bybit linear-perp symbols match Bitget tickers directly (BTCUSDT, ETHUSDT)
 
 _FUNDING_SCHEMA = pa.schema([
     pa.field("symbol",       pa.string()),
@@ -113,34 +114,30 @@ _FUNDING_SCHEMA = pa.schema([
 # Funding-rate download (inline, cached)
 # ---------------------------------------------------------------------------
 
-def _fetch_funding_page(inst_id: str, before_ms: int | None) -> list:
-    """OKX funding-rate-history page. `before_ms` (if set) returns rows OLDER than it."""
-    url = f"{_FUNDING_URL}?instId={inst_id}&limit={_FUNDING_LIMIT}"
-    if before_ms is not None:
-        url += f"&after={before_ms}"  # OKX 'after' = records with ts < after (older)
+def _fetch_funding_page(symbol: str, end_ms: int) -> list:
+    """Bybit funding-history page ending at end_ms (returns rows with ts <= end_ms)."""
+    url = (
+        f"{_FUNDING_URL}?category=linear&symbol={symbol}"
+        f"&endTime={end_ms}&limit={_FUNDING_LIMIT}"
+    )
     req = urllib.request.Request(url, headers=_HEADERS)
     with urllib.request.urlopen(req, timeout=20) as resp:
         payload = json.loads(resp.read())
-    if payload.get("code") not in ("0", 0):
-        raise RuntimeError(f"OKX error: {payload.get('msg', payload)}")
-    return payload.get("data", [])
+    if payload.get("retCode") not in (0, "0"):
+        raise RuntimeError(f"Bybit error: {payload.get('retMsg', payload)}")
+    return payload.get("result", {}).get("list", [])
 
 
 def _download_funding(symbol: str, start_ms: int, end_ms: int) -> list[dict]:
-    """Backward-paginate OKX funding history (newest→oldest).  Returns sorted dicts."""
-    inst_id = _OKX_INST.get(symbol)
-    if inst_id is None:
-        print(f"\n  [ERROR] No OKX instId mapping for {symbol}")
-        return []
-
+    """Backward-paginate Bybit funding history (newest→oldest).  Returns sorted dicts."""
     rows: list[dict] = []
     seen: set[int]   = set()
-    cursor: int | None = None  # None = most recent page
+    cursor = end_ms
     errors = 0
 
-    while True:
+    while cursor > start_ms:
         try:
-            page = _fetch_funding_page(inst_id, cursor)
+            page = _fetch_funding_page(symbol, cursor)
         except Exception as exc:
             errors += 1
             if errors >= 5:
@@ -154,10 +151,10 @@ def _download_funding(symbol: str, start_ms: int, end_ms: int) -> list[dict]:
         if not page:
             break
 
-        oldest = cursor if cursor is not None else end_ms
+        oldest = cursor
         new = 0
         for item in page:
-            ts = int(item["fundingTime"])
+            ts = int(item["fundingRateTimestamp"])
             if ts in seen or ts > end_ms:
                 continue
             seen.add(ts)
@@ -174,9 +171,9 @@ def _download_funding(symbol: str, start_ms: int, end_ms: int) -> list[dict]:
         pct   = (end_ms - oldest) / max(end_ms - start_ms, 1) * 100
         print(f"  {symbol}: {total:,} funding rows  ({pct:.0f}% complete) ...", end="\r")
 
-        if len(page) < _FUNDING_LIMIT or oldest <= start_ms:
+        if new == 0 or oldest <= start_ms:
             break
-        cursor = oldest  # next page: older than the oldest we've seen
+        cursor = oldest - 1  # next page: strictly older
         time.sleep(_FUNDING_DELAY)
 
     print()
@@ -185,7 +182,7 @@ def _download_funding(symbol: str, start_ms: int, end_ms: int) -> list[dict]:
 
 def _save_funding(symbol: str, rows: list[dict], out_dir: Path) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / f"{symbol}_funding_okx.parquet"
+    path = out_dir / f"{symbol}_funding_bybit.parquet"
     table = pa.table({
         "symbol":       [r["symbol"]       for r in rows],
         "timestamp_ms": [r["timestamp_ms"] for r in rows],
@@ -200,7 +197,7 @@ def _load_funding(symbol: str, funding_dir: Path) -> list[dict]:
 
     Returns a list of {timestamp_ms, funding_rate} sorted ascending.
     """
-    path = funding_dir / f"{symbol}_funding_okx.parquet"
+    path = funding_dir / f"{symbol}_funding_bybit.parquet"
     if path.exists():
         tbl = pq.read_table(path).to_pydict()
         rows = [
@@ -214,7 +211,7 @@ def _load_funding(symbol: str, funding_dir: Path) -> list[dict]:
     start_dt = datetime.strptime(_FUNDING_START, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     start_ms = int(start_dt.timestamp() * 1000)
     end_ms   = int(datetime.now(timezone.utc).timestamp() * 1000)
-    print(f"  {symbol}: no cache — downloading funding from Binance "
+    print(f"  {symbol}: no cache — downloading funding from Bybit "
           f"({_FUNDING_START} → now) ...")
     dicts = _download_funding(symbol, start_ms, end_ms)
     if not dicts:
