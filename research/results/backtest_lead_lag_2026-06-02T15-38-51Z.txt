@@ -1,0 +1,109 @@
+
+======================================================================
+  BTC→ETH LEAD-LAG BACKTEST — 1H timeframe
+======================================================================
+  Parameters used:
+    threshold = 0.50%  (abs BTC 1H return)
+    hold      = 4 bars
+    stop_mult = 1.5x ATR(14)
+    fee       = 0.0600% taker (entry + exit)
+    risk_pct  = 1.0% per trade
+    capital   = $100,000
+
+Loading data from /home/runner/work/NexFlow/NexFlow/data/candles ...
+  BTC: 47,251 hourly bars
+  ETH: 47,251 hourly bars
+  Aligned: 47,251 common bars
+  Date range: 2021-01-01 → 2026-06-02
+
+======================================================================
+  SECTION A — MECHANISM VALIDITY (pre-fee, bar-level analysis)
+======================================================================
+  BTC signal threshold : abs(return) > 0.50%
+  Aligned bar count    : 47,251
+  Total BTC signals    : 11,324  (up: 5753, down: 5571)
+  No-signal bars       : 35,925
+
+  Condition                         N  Hit-Rate  Mean ETH next-bar ret
+  ──────────────────────────── ────── ───────── ──────────────────────
+  BTC up signal                  5753     47.4%               +0.0314%
+  BTC down signal                5571     43.5%               +0.0251%
+  All signals combined          11324     45.5%               +0.0283%
+  No signal (baseline)          35925         ─               -0.0018%
+
+  Signal strength breakdown:
+  Bucket     Dir        N  Hit-Rate   Mean ETH ret
+  ────────── ───── ────── ───────── ──────────────
+  0.5-1%     UP      3825     47.2%       +0.0179%
+  0.5-1%     DN      3651     42.9%       +0.0317%
+  1-2%       UP      1533     47.6%       +0.0365%
+  1-2%       DN      1503     44.4%       -0.0107%
+  >2%        UP       395     48.6%       +0.1427%
+  >2%        DN       417     45.8%       +0.0966%
+
+  Average ETH move AFTER strong BTC signal (entry = next-bar open):
+    +1H       n=11324  mean=+0.0283%
+    +4H       n=11323  mean=+0.0762%
+    +8H       n=11322  mean=+0.1358%
+
+  Mechanism assessment: WEAK / NO CORRELATION
+    Hit rate 45.5% — near-random; monetization unlikely to pass.
+======================================================================
+
+======================================================================
+  SECTION B — MONETIZATION BACKTEST (after fees)
+======================================================================
+  Parameters    : threshold=0.50%  hold=4bars  stop=1.5×ATR(14)
+  Period        : 2021-01-02 → 2026-06-02
+  Initial equity: $100,000
+  Final equity  : $1,484
+  Net PnL       : $-98,516  (-98.5%)
+  CAGR          : -54.1%
+  Max drawdown  : 98.5%
+  Profit factor : 0.88
+  Total trades  : 6071  (L:3037  S:3034)
+  Win rate      : 42.7%
+  Exit reasons  : HOLD=4637  STOP=1434
+  Total fees    : $80,498
+
+  ──────────────────────────────────────────────────────────────────────
+  Year      Trades     WR%      PF         Net$  Status
+  ──────── ─────── ─────── ─────── ────────────  ──────────
+  2021        1662   43.7%    0.86 $   -45,595  -
+  2022        1225   43.4%    0.94 $    -6,424  -
+  2023         765   37.5%    0.90 $    -3,737  -
+  2024        1114   42.5%    0.85 $    -2,741  -
+  2025         897   44.6%    1.05 $      +302  +
+  2026         408   42.9%    0.97 $       -87  -
+
+  ──────────────────────────────────────────────────────────────────────
+  Top 5 trades by PnL:
+    LONG  entry 2021-01-18 23:00  exit=HOLD  $+2,828
+    LONG  entry 2021-01-04 02:00  exit=HOLD  $+2,361
+    LONG  entry 2021-01-02 13:00  exit=HOLD  $+2,092
+    LONG  entry 2021-02-20 01:00  exit=HOLD  $+2,084
+    SHORT entry 2021-03-24 17:00  exit=HOLD  $+2,057
+  Bottom 5 trades by PnL:
+    SHORT entry 2021-01-04 06:00  exit=STOP  $-1,025
+    SHORT entry 2021-01-03 14:00  exit=STOP  $-1,028
+    LONG  entry 2021-01-02 17:00  exit=STOP  $-1,040
+    SHORT entry 2021-01-02 10:00  exit=STOP  $-1,040
+    SHORT entry 2021-01-03 10:00  exit=STOP  $-1,042
+
+  ──────────────────────────────────────────────────────────────────────
+  OOS split (IS = <2023, OOS = 2023+):
+    IS  (2021–2022): 2887 trades, PF 0.88
+    OOS (2023–2026): 3184 trades, PF 0.90
+======================================================================
+
+======================================================================
+  VERDICT
+======================================================================
+
+  KILL -- Strategy fails one or more kill criteria:
+
+     * Profit factor 0.88 < kill threshold 1.10
+     * Max drawdown 98.5% > kill threshold 40%
+
+  Action: do NOT deploy. Move to next hypothesis.
+======================================================================
