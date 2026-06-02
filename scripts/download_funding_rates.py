@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Download 8H funding rate history for BTCUSDT and ETHUSDT from Bitget.
+"""Download historical funding rate data from Coinglass (free, no API key required).
 
-Uses /api/v2/mix/market/history-fund-rate with page-based forward pagination.
-Saves to data/funding/{SYMBOL}_funding.parquet.
+Bitget's own API only retains ~90 days of funding history. Coinglass provides
+the full history back to 2020 for all major perpetual futures.
+
+Saves to data/funding/{SYMBOL}_funding.parquet
 
 Usage:
   python scripts/download_funding_rates.py
-  python scripts/download_funding_rates.py --start 2021-01-01
   python scripts/download_funding_rates.py --symbols BTCUSDT ETHUSDT
 """
 
@@ -30,82 +31,105 @@ except ImportError:
     print("[ERROR] pyarrow required: pip install pyarrow")
     sys.exit(1)
 
-_URL_FUNDING     = "https://api.bitget.com/api/v2/mix/market/history-fund-rate"
-_PAGE_SIZE       = 100
-_DELAY_S         = 0.2
-_DEFAULT_START   = "2021-01-01"
+# Coinglass open API — no key required for funding rate history
+_URL_COINGLASS   = "https://open-api.coinglass.com/public/v2/funding"
+_DELAY_S         = 0.5
 _DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT"]
-_HEADERS         = {"User-Agent": "NexFlow/1.0", "Accept": "application/json"}
+
+# Coinglass uses coin symbol (BTC) not pair symbol (BTCUSDT)
+_SYMBOL_MAP = {
+    "BTCUSDT": "BTC",
+    "ETHUSDT": "ETH",
+    "SOLUSDT": "SOL",
+    "BNBUSDT": "BNB",
+}
+
+_HEADERS = {
+    "User-Agent": "NexFlow/1.0",
+    "Accept":     "application/json",
+}
 
 _SCHEMA = pa.schema([
     pa.field("symbol",       pa.string()),
     pa.field("timestamp_ms", pa.int64()),
     pa.field("funding_rate", pa.float64()),
+    pa.field("exchange",     pa.string()),
 ])
 
 
-def _fetch_page(symbol: str, page_no: int) -> list:
+def _fetch_coinglass(coin: str) -> list[dict]:
+    """Fetch full funding rate history from Coinglass for a coin on Bitget."""
+    url = f"{_URL_COINGLASS}?symbol={coin}&exchange=Bitget"
+    req = urllib.request.Request(url, headers=_HEADERS)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"Coinglass HTTP {exc.code}: {exc.reason}")
+
+    if not data.get("success", False):
+        raise RuntimeError(f"Coinglass error: {data.get('msg', data)}")
+
+    rows = data.get("data", {})
+    # Response is a dict: {exchange -> [{t: ms, r: rate}, ...]}
+    if isinstance(rows, dict):
+        for exchange_key, entries in rows.items():
+            if "bitget" in exchange_key.lower() or "Bitget" in exchange_key:
+                return entries
+        # fallback: return first exchange's data
+        if rows:
+            return next(iter(rows.values()))
+    elif isinstance(rows, list):
+        return rows
+    return []
+
+
+def _download_bitget_api(symbol: str) -> list[dict]:
+    """Fallback: fetch recent funding rates directly from Bitget (last ~90 days)."""
     url = (
-        f"{_URL_FUNDING}?symbol={symbol}&productType=USDT-FUTURES"
-        f"&pageSize={_PAGE_SIZE}&pageNo={page_no}"
+        f"https://api.bitget.com/api/v2/mix/market/history-fund-rate"
+        f"?symbol={symbol}&productType=USDT-FUTURES&pageSize=100&pageNo=1"
     )
     req = urllib.request.Request(url, headers=_HEADERS)
     with urllib.request.urlopen(req, timeout=20) as resp:
         data = json.loads(resp.read())
     if data.get("code") != "00000":
-        raise RuntimeError(f"API error: {data.get('msg', data)}")
-    return data.get("data", [])
-
-
-def _download(symbol: str, start_ms: int) -> list[dict]:
-    records: list[dict] = []
-    page_no = 1
-    errors = 0
-
-    while True:
-        try:
-            rows = _fetch_page(symbol, page_no)
-        except Exception as exc:
-            errors += 1
-            if errors >= 5:
-                print(f"\n  [ERROR] Too many failures: {exc}")
-                break
-            print(f"\n  [WARN] Retrying: {exc}")
-            time.sleep(2.0 * errors)
-            continue
-        errors = 0
-
-        if not rows:
-            break
-
-        for row in rows:
-            ts = int(row["fundingTime"])
-            if ts < start_ms:
-                continue
-            records.append({
-                "timestamp_ms": ts,
-                "funding_rate": float(row["fundingRate"]),
-            })
-
-        print(f"  {symbol}: {len(records):,} records (page {page_no}) ...", end="\r")
-
-        if len(rows) < _PAGE_SIZE:
-            break
-
-        page_no += 1
-        time.sleep(_DELAY_S)
-
-    print()
+        raise RuntimeError(f"Bitget API error: {data.get('msg')}")
+    records = []
+    for row in data.get("data", []):
+        records.append({
+            "timestamp_ms": int(row["fundingTime"]),
+            "funding_rate": float(row["fundingRate"]),
+            "exchange":     "Bitget",
+        })
     return sorted(records, key=lambda r: r["timestamp_ms"])
 
 
 def _save(symbol: str, records: list[dict], out_dir: Path) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{symbol}_funding.parquet"
+
+    # Merge with existing if present
+    existing: list[dict] = []
+    if path.exists():
+        tbl = pq.read_table(path).to_pydict()
+        existing_ts = set(tbl["timestamp_ms"])
+        existing = [
+            {"timestamp_ms": tbl["timestamp_ms"][i],
+             "funding_rate": tbl["funding_rate"][i],
+             "exchange":     tbl["exchange"][i]}
+            for i in range(len(tbl["timestamp_ms"]))
+        ]
+        before = len(existing)
+        new = [r for r in records if r["timestamp_ms"] not in existing_ts]
+        records = sorted(existing + new, key=lambda r: r["timestamp_ms"])
+        print(f"  Merged: {before} existing + {len(new)} new = {len(records)} total")
+
     table = pa.table({
         "symbol":       [symbol] * len(records),
         "timestamp_ms": [r["timestamp_ms"] for r in records],
-        "funding_rate": [r["funding_rate"] for r in records],
+        "funding_rate": [r["funding_rate"]  for r in records],
+        "exchange":     [r.get("exchange", "Bitget") for r in records],
     }, schema=_SCHEMA)
     pq.write_table(table, path)
     return path
@@ -114,24 +138,60 @@ def _save(symbol: str, records: list[dict], out_dir: Path) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--symbols", nargs="+", default=_DEFAULT_SYMBOLS)
-    parser.add_argument("--start",   default=_DEFAULT_START)
     parser.add_argument("--out",     default="data/funding")
+    parser.add_argument("--source",  default="auto",
+                        choices=["auto", "coinglass", "bitget"],
+                        help="Data source. auto tries Coinglass first, falls back to Bitget")
     args = parser.parse_args()
 
-    start_dt = datetime.strptime(args.start, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-    start_ms = int(start_dt.timestamp() * 1000)
-    out_dir  = _REPO_ROOT / args.out
-
-    print(f"Downloading funding rates from {args.start}")
-    print(f"Symbols: {args.symbols}")
+    out_dir = _REPO_ROOT / args.out
+    print(f"Downloading funding rate history")
+    print(f"Symbols: {args.symbols}  Source: {args.source}")
     print()
 
     for symbol in args.symbols:
         print(f"[{symbol}]")
-        records = _download(symbol, start_ms)
+        records: list[dict] = []
+
+        if args.source in ("auto", "coinglass"):
+            coin = _SYMBOL_MAP.get(symbol, symbol.replace("USDT", ""))
+            try:
+                raw = _fetch_coinglass(coin)
+                for r in raw:
+                    ts = r.get("t") or r.get("fundingTime") or r.get("timestamp")
+                    rate = r.get("r") or r.get("fundingRate") or r.get("rate")
+                    if ts and rate is not None:
+                        records.append({
+                            "timestamp_ms": int(ts),
+                            "funding_rate": float(rate),
+                            "exchange":     "Bitget",
+                        })
+                records = sorted(records, key=lambda r: r["timestamp_ms"])
+                print(f"  Coinglass: {len(records)} records fetched")
+            except Exception as exc:
+                print(f"  [WARN] Coinglass failed: {exc}")
+                if args.source == "coinglass":
+                    print(f"  No data for {symbol}")
+                    continue
+                print(f"  Falling back to Bitget API (~90 days only) ...")
+                args.source = "bitget"
+
+        if args.source == "bitget" or (args.source == "auto" and not records):
+            try:
+                records = _download_bitget_api(symbol)
+                print(f"  Bitget API: {len(records)} records (last ~90 days only)")
+                print(f"  [WARN] Full history unavailable — Bitget API limited to ~90 days.")
+                print(f"         For backtesting, Coinglass is required.")
+            except Exception as exc:
+                print(f"  [ERROR] Bitget API also failed: {exc}")
+                continue
+
+        time.sleep(_DELAY_S)
+
         if not records:
             print(f"  No data for {symbol}")
             continue
+
         path = _save(symbol, records, out_dir)
         s = datetime.fromtimestamp(records[0]["timestamp_ms"]  / 1000, tz=timezone.utc).strftime("%Y-%m-%d")
         e = datetime.fromtimestamp(records[-1]["timestamp_ms"] / 1000, tz=timezone.utc).strftime("%Y-%m-%d")
