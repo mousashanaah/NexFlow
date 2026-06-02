@@ -26,8 +26,9 @@ Kill criteria:
   n_trades < 60
   OOS PF (2023+) < 0.85 × full-period PF   ("regime-specific")
 
-Self-contained: downloads its own funding-rate history from Binance (free,
-no key) and caches it to data/funding/{SYMBOL}_funding_bybit.parquet, then
+Self-contained: downloads its own funding-rate history from Coinalyze (free
+API key, full history, no geoblock) and caches it to
+data/funding/{SYMBOL}_funding_coinalyze.parquet, then
 loads existing 1H candles from data/candles/{SYMBOL}_1H.parquet.
 
 Usage:
@@ -41,6 +42,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 import time
 import urllib.request
@@ -87,21 +89,49 @@ _GO_DD   = 0.40
 # Symbols
 _SYMBOLS = ["BTCUSDT", "ETHUSDT"]
 
-# Funding download — Bybit v5 public funding-history (free, no key, FULL history
-# back to listing). Bitget and OKX public endpoints both cap at ~90 days; Binance
-# has full history but returns HTTP 451 from US GitHub Actions runners. Bybit's
-# public market-data endpoints are reachable from US cloud IPs (only trading is
-# geo-restricted). Funding rates are tightly correlated across venues, so Bybit
-# is a valid proxy for the mechanism-validity question on a Bitget-traded book.
-_FUNDING_URL   = "https://api.bybit.com/v5/market/funding/history"
-_FUNDING_LIMIT = 200
-_FUNDING_DELAY = 0.2
-_FUNDING_START = "2021-01-01"
-_HEADERS       = {"User-Agent": "NexFlow/1.0", "Accept": "application/json"}
-_HOUR_MS       = 3_600_000
-_DAY_MS        = 86_400_000
+# Funding download — Coinalyze (https://coinalyze.net) is a crypto-derivatives
+# data AGGREGATOR that relays full funding-rate history with a free API key and
+# is NOT geo-blocked from US GitHub Actions runners. We switched to it because
+# every direct-exchange endpoint fails from US cloud IPs: Binance returns HTTP
+# 451, Bybit returns HTTP 403, and Bitget/OKX public endpoints cap at ~90 days
+# of history. Coinalyze relays the full history of the underlying venues, so it
+# is a valid proxy for the mechanism-validity question on a Bitget-traded book
+# (funding is tightly correlated across venues).
+#
+# Auth: header `api_key: <KEY>` read from env var COINALYZE_API_KEY.
+# Coinalyze uses composite symbols (e.g. BTCUSDT_PERP.A where the suffix after
+# the dot is an exchange code); we resolve the right symbol per ticker via the
+# /future-markets endpoint, preferring the Bitget perpetual and falling back to
+# Binance's perpetual. from/to are UNIX SECONDS (not ms) and the number of
+# points per request is limited, so funding history is paginated in time windows.
+_FUNDING_URL     = "https://api.coinalyze.net/v1"
+_MARKETS_URL     = f"{_FUNDING_URL}/future-markets"
+_HISTORY_URL     = f"{_FUNDING_URL}/funding-rate-history"
+_FUNDING_DELAY   = 0.25
+_FUNDING_START   = "2021-01-01"
+_CHUNK_DAYS      = 30        # paginate in 30-day windows (point-count limit)
+_SETTLE_HOURS    = {0, 8, 16}  # funding settles 00:00/08:00/16:00 UTC
+_HOUR_MS         = 3_600_000
+_DAY_MS          = 86_400_000
 
-# Bybit linear-perp symbols match Bitget tickers directly (BTCUSDT, ETHUSDT)
+# Coinalyze API key (free) — must be provided via env / GitHub Actions secret.
+_API_KEY = os.environ.get("COINALYZE_API_KEY", "").strip()
+_HEADERS = {
+    "User-Agent": "NexFlow/1.0",
+    "Accept":     "application/json",
+    "api_key":    _API_KEY,
+}
+
+# Map our Bitget tickers -> (base asset, quote asset) for Coinalyze resolution.
+_TICKER_BASE_QUOTE = {
+    "BTCUSDT": ("BTC", "USDT"),
+    "ETHUSDT": ("ETH", "USDT"),
+}
+
+# In-process cache of the /future-markets response (fetched once).
+_MARKETS_CACHE: Optional[list] = None
+# Resolved {our_ticker -> coinalyze_symbol}, filled lazily.
+_SYMBOL_MAP: dict[str, str] = {}
 
 _FUNDING_SCHEMA = pa.schema([
     pa.field("symbol",       pa.string()),
@@ -114,66 +144,153 @@ _FUNDING_SCHEMA = pa.schema([
 # Funding-rate download (inline, cached)
 # ---------------------------------------------------------------------------
 
-def _fetch_funding_page(symbol: str, end_ms: int) -> list:
-    """Bybit funding-history page ending at end_ms (returns rows with ts <= end_ms)."""
+def _require_api_key() -> None:
+    """Clean exit (not a traceback) if the Coinalyze API key is missing."""
+    if not _API_KEY:
+        print("[ERROR] COINALYZE_API_KEY is not set.")
+        print("        This script needs a free Coinalyze API key to download")
+        print("        funding history. Set the COINALYZE_API_KEY GitHub Actions")
+        print("        secret (or export COINALYZE_API_KEY locally) and re-run.")
+        sys.exit(1)
+
+
+def _http_get_json(url: str):
+    """GET url with the api_key header; 5x retry with exponential backoff."""
+    last_exc: Optional[Exception] = None
+    for attempt in range(5):
+        try:
+            req = urllib.request.Request(url, headers=_HEADERS)
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                return json.loads(resp.read())
+        except Exception as exc:  # noqa: BLE001 — retry any transient failure
+            last_exc = exc
+            wait = _FUNDING_DELAY * (2 ** attempt)
+            print(f"\n  [WARN] request failed (attempt {attempt + 1}/5): {exc}; "
+                  f"retrying in {wait:.2f}s")
+            time.sleep(wait)
+    raise RuntimeError(f"GET failed after 5 attempts: {url}: {last_exc}")
+
+
+def _get_markets() -> list:
+    """Fetch /future-markets once and cache the parsed list in-process."""
+    global _MARKETS_CACHE
+    if _MARKETS_CACHE is None:
+        data = _http_get_json(_MARKETS_URL)
+        if not isinstance(data, list):
+            raise RuntimeError(f"Unexpected /future-markets response: {data!r}")
+        _MARKETS_CACHE = data
+    return _MARKETS_CACHE
+
+
+def _market_base(m: dict) -> str:
+    """Best-effort base-asset extraction from a Coinalyze market record."""
+    for key in ("base_asset", "symbol_on_exchange", "symbol"):
+        val = m.get(key)
+        if isinstance(val, str) and val:
+            return val.upper()
+    return ""
+
+
+def _resolve_symbol(ticker: str) -> str:
+    """Resolve our ticker -> Coinalyze composite symbol.
+
+    Prefer the Bitget perpetual for the matching base/quote; fall back to the
+    Binance perpetual (acceptable proxy — funding is correlated across venues).
+    """
+    if ticker in _SYMBOL_MAP:
+        return _SYMBOL_MAP[ticker]
+
+    base, quote = _TICKER_BASE_QUOTE.get(ticker, (ticker.replace("USDT", ""), "USDT"))
+    markets = _get_markets()
+
+    def _match(exchange_substr: str) -> Optional[str]:
+        for m in markets:
+            if not m.get("is_perpetual"):
+                continue
+            exch = str(m.get("exchange", "")).lower()
+            if exchange_substr not in exch:
+                continue
+            mbase = _market_base(m)
+            sym   = str(m.get("symbol", "")).upper()
+            # base must match our ticker base, and the symbol must be USDT-quoted
+            if mbase == base and "USDT" in sym:
+                return m["symbol"]
+        return None
+
+    sym = _match("bitget")
+    if sym is None:
+        sym = _match("binance")
+        if sym is not None:
+            print(f"  [WARN] {ticker}: no Bitget perpetual on Coinalyze — "
+                  f"falling back to Binance perpetual ({sym})")
+    if sym is None:
+        raise RuntimeError(
+            f"Could not resolve a Coinalyze perpetual symbol for {ticker} "
+            f"(base={base}, quote={quote}) on Bitget or Binance."
+        )
+
+    _SYMBOL_MAP[ticker] = sym
+    return sym
+
+
+def _fetch_funding_page(coinalyze_symbol: str, from_s: int, to_s: int) -> list:
+    """Coinalyze funding-rate-history for one time window [from_s, to_s] (seconds).
+
+    Returns the raw list of {"t", "o", "h", "l", "c", ...} bucket dicts.
+    """
     url = (
-        f"{_FUNDING_URL}?category=linear&symbol={symbol}"
-        f"&endTime={end_ms}&limit={_FUNDING_LIMIT}"
+        f"{_HISTORY_URL}?symbols={coinalyze_symbol}"
+        f"&interval=1hour&from={from_s}&to={to_s}"
     )
-    req = urllib.request.Request(url, headers=_HEADERS)
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        payload = json.loads(resp.read())
-    if payload.get("retCode") not in (0, "0"):
-        raise RuntimeError(f"Bybit error: {payload.get('retMsg', payload)}")
-    return payload.get("result", {}).get("list", [])
+    data = _http_get_json(url)
+    if not isinstance(data, list) or not data:
+        return []
+    # Response: [ { "symbol": ..., "history": [ {...}, ... ] } ]
+    return data[0].get("history", []) or []
 
 
 def _download_funding(symbol: str, start_ms: int, end_ms: int) -> list[dict]:
-    """Backward-paginate Bybit funding history (newest→oldest).  Returns sorted dicts."""
+    """Download Coinalyze funding history, paginated in time windows.
+
+    Resolves the Coinalyze symbol, walks [start, end] in _CHUNK_DAYS windows
+    (UNIX seconds), keeps only true settlement hours (00/08/16 UTC), and returns
+    list of {symbol, timestamp_ms, funding_rate} sorted ascending.
+    """
+    coinalyze_symbol = _resolve_symbol(symbol)
+    start_s = start_ms // 1000
+    end_s   = end_ms // 1000
+    chunk_s = _CHUNK_DAYS * 86_400
+
+    seen: set[int]  = set()
     rows: list[dict] = []
-    seen: set[int]   = set()
-    cursor = end_ms
-    errors = 0
+    win_from = start_s
 
-    while cursor > start_ms:
-        try:
-            page = _fetch_funding_page(symbol, cursor)
-        except Exception as exc:
-            errors += 1
-            if errors >= 5:
-                print(f"\n  [ERROR] Too many failures for {symbol}: {exc}")
-                break
-            print(f"\n  [WARN] Retrying {symbol}: {exc}")
-            time.sleep(2.0 * errors)
-            continue
-        errors = 0
-
-        if not page:
-            break
-
-        oldest = cursor
-        new = 0
-        for item in page:
-            ts = int(item["fundingRateTimestamp"])
-            if ts in seen or ts > end_ms:
+    while win_from <= end_s:
+        win_to = min(win_from + chunk_s, end_s)
+        history = _fetch_funding_page(coinalyze_symbol, win_from, win_to)
+        for item in history:
+            t = item.get("t")
+            c = item.get("c")
+            if t is None or c is None:
                 continue
-            seen.add(ts)
-            oldest = min(oldest, ts)
-            if ts >= start_ms:
-                new += 1
-                rows.append({
-                    "symbol":       symbol,
-                    "timestamp_ms": ts,
-                    "funding_rate": float(item["fundingRate"]),
-                })
+            t = int(t)
+            if t in seen:
+                continue
+            hour = datetime.fromtimestamp(t, tz=timezone.utc).hour
+            if hour not in _SETTLE_HOURS:
+                continue
+            seen.add(t)
+            rows.append({
+                "symbol":       symbol,
+                "timestamp_ms": t * 1000,
+                "funding_rate": float(c),
+            })
 
-        total = len(rows)
-        pct   = (end_ms - oldest) / max(end_ms - start_ms, 1) * 100
-        print(f"  {symbol}: {total:,} funding rows  ({pct:.0f}% complete) ...", end="\r")
+        pct = (win_to - start_s) / max(end_s - start_s, 1) * 100
+        print(f"  {symbol} ({coinalyze_symbol}): {len(rows):,} funding rows  "
+              f"({pct:.0f}% complete) ...", end="\r")
 
-        if new == 0 or oldest <= start_ms:
-            break
-        cursor = oldest - 1  # next page: strictly older
+        win_from = win_to + 1
         time.sleep(_FUNDING_DELAY)
 
     print()
@@ -182,7 +299,7 @@ def _download_funding(symbol: str, start_ms: int, end_ms: int) -> list[dict]:
 
 def _save_funding(symbol: str, rows: list[dict], out_dir: Path) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / f"{symbol}_funding_bybit.parquet"
+    path = out_dir / f"{symbol}_funding_coinalyze.parquet"
     table = pa.table({
         "symbol":       [r["symbol"]       for r in rows],
         "timestamp_ms": [r["timestamp_ms"] for r in rows],
@@ -197,7 +314,7 @@ def _load_funding(symbol: str, funding_dir: Path) -> list[dict]:
 
     Returns a list of {timestamp_ms, funding_rate} sorted ascending.
     """
-    path = funding_dir / f"{symbol}_funding_bybit.parquet"
+    path = funding_dir / f"{symbol}_funding_coinalyze.parquet"
     if path.exists():
         tbl = pq.read_table(path).to_pydict()
         rows = [
@@ -208,10 +325,11 @@ def _load_funding(symbol: str, funding_dir: Path) -> list[dict]:
         print(f"  {symbol}: loaded {len(rows):,} cached funding rows from {path}")
         return rows
 
+    _require_api_key()
     start_dt = datetime.strptime(_FUNDING_START, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     start_ms = int(start_dt.timestamp() * 1000)
     end_ms   = int(datetime.now(timezone.utc).timestamp() * 1000)
-    print(f"  {symbol}: no cache — downloading funding from Bybit "
+    print(f"  {symbol}: no cache — downloading funding from Coinalyze "
           f"({_FUNDING_START} → now) ...")
     dicts = _download_funding(symbol, start_ms, end_ms)
     if not dicts:
