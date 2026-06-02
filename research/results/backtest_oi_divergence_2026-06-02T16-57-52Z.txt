@@ -1,0 +1,111 @@
+
+======================================================================
+  OPEN-INTEREST DIVERGENCE / CONFIRMATION BACKTEST — 1H timeframe
+======================================================================
+  Hypothesis: a strong price move CONFIRMED by rising OI continues;
+              a strong move on falling OI (unwind) stalls.
+  Pre-committed rule:
+    strong move = price 24h-change in top/bottom 80/20 pct of trailing 90d
+    confirm     = OI 24h-change > 0
+    LONG  = strong UP + OI rising;  SHORT = strong DOWN + OI rising
+    entry = next bar open (no lookahead)
+    hold  = 24 bars OR 2.0×ATR(14) stop
+    fee   = 0.0600% taker/side  risk = 1.0%  capital = $100,000
+    symbols = BTCUSDT, ETHUSDT
+
+Loading 1H candles from /home/runner/work/NexFlow/NexFlow/data/candles and OI from /home/runner/work/NexFlow/NexFlow/data/oi ...
+  BTCUSDT: 47,252 candles, 51,082 OI rows, 47,252 bars matched OI (100%)
+  BTCUSDT: 10,105 continuation signals
+  ETHUSDT: 47,252 candles, 49,208 OI rows, 47,252 bars matched OI (100%)
+  ETHUSDT: 9,733 continuation signals
+
+======================================================================
+  SECTION A — MECHANISM VALIDITY (pre-fee, event-level analysis)
+======================================================================
+  Strong move = price 24h-change in top/bottom 20%/20% of TRAILING 90d window
+  Quadrants split every eligible bar by sign of (price 24h-chg, OI 24h-chg).
+  Continuation hypothesis: P+/OI+ → keeps rising; P-/OI+ → keeps falling.
+
+  Forward price return by quadrant (from next-bar open):
+  Quadrant          N          +8h         +24h         +48h   Cont24%
+  ────────── ──────── ──────────── ──────────── ──────────── ─────────
+  P+/OI+       26,102     +0.0478%     +0.0595%     +0.2383%     48.3%
+  P+/OI-       22,241     -0.0270%     +0.1279%     +0.2507%     49.2%
+  P-/OI+       23,517     +0.0608%     +0.1669%     +0.1918%     46.1%
+  P-/OI-       22,594     +0.0818%     +0.1112%     +0.1793%     46.4%
+
+  OI-confirmation test (continuation hit-rate, +24h):
+    UP   moves:  OI-rising 48.3%   vs  OI-falling 49.2%
+    DOWN moves:  OI-rising 46.1%   vs  OI-falling 46.4%
+
+  Mechanism assessment: NO EDGE
+    OI-confirmed moves do not continue more than OI-diverging moves.
+======================================================================
+
+======================================================================
+  SECTION B — MONETIZATION BACKTEST (after fees)
+======================================================================
+  Parameters    : strong=20/80pct trailing-90d  lookback=24h  hold=24bars  stop=2.0×ATR(14)
+  Period        : 2021-01-03 → 2026-06-02
+  Initial equity: $100,000
+  Final equity  : $10,471
+  Net PnL       : $-89,529  (-89.5%)
+  CAGR          : -34.1%
+  Max drawdown  : 91.8%
+  Profit factor : 0.92
+  Total trades  : 2535  (L:1306  S:1229)
+  Win rate      : 36.4%
+  Exit reasons  : HOLD=1177  STOP=1358
+  Total fees    : $69,371
+
+  ──────────────────────────────────────────────────────────────────────
+  Symbol      Trades     WR%      PF         Net$
+  ────────── ─────── ─────── ─────── ────────────
+  BTCUSDT       1269   36.1%    0.97 $   -10,584
+  ETHUSDT       1266   36.7%    0.87 $   -44,273
+
+  ──────────────────────────────────────────────────────────────────────
+  Year      Trades     WR%      PF         Net$  Status
+  ──────── ─────── ─────── ─────── ────────────  ──────────
+  2021         458   37.8%    0.91 $   -19,120  -
+  2022         457   36.8%    0.93 $   -13,113  -
+  2023         493   32.5%    0.90 $   -13,920  -
+  2024         479   36.5%    0.97 $    -2,106  -
+  2025         465   37.6%    0.84 $    -6,671  -
+  2026         183   39.3%    1.01 $       +73  +
+
+  ──────────────────────────────────────────────────────────────────────
+  Top 5 trades by PnL:
+    ETHUSDT  SHORT entry 2021-02-22 11:00  exit=HOLD  $+5,800
+    BTCUSDT  LONG  entry 2023-03-12 08:00  exit=HOLD  $+4,276
+    ETHUSDT  LONG  entry 2023-04-13 04:00  exit=HOLD  $+4,110
+    ETHUSDT  LONG  entry 2022-10-25 15:00  exit=HOLD  $+4,073
+    BTCUSDT  LONG  entry 2022-02-04 14:00  exit=HOLD  $+4,022
+  Bottom 5 trades by PnL:
+    ETHUSDT  LONG  entry 2021-03-03 18:00  exit=STOP  $-1,138
+    BTCUSDT  LONG  entry 2021-03-03 12:00  exit=STOP  $-1,142
+    ETHUSDT  LONG  entry 2021-03-01 23:00  exit=STOP  $-1,144
+    ETHUSDT  SHORT entry 2021-02-28 21:00  exit=STOP  $-1,157
+    ETHUSDT  SHORT entry 2021-02-28 17:00  exit=STOP  $-1,168
+
+  ──────────────────────────────────────────────────────────────────────
+  OOS split (IS = <2023, OOS = 2023+):
+    IS : 915 trades, PF 0.92
+    OOS: 1620 trades, PF 0.91
+======================================================================
+
+======================================================================
+  VERDICT
+======================================================================
+
+  KILL -- Strategy fails one or more kill criteria:
+
+     * Profit factor 0.92 < kill threshold 1.10
+     * Max drawdown 91.8% > kill threshold 40%
+
+  Action: do NOT deploy. Move to next hypothesis.
+======================================================================
+
+======================================================================
+  Backtest complete.
+======================================================================
