@@ -17,7 +17,10 @@ Taker fee 0.06%/side. Parameters pre-committed before each run.
 | 7b | HTF trend wide 12-coin (unfiltered) | 4H | same | PF 0.92, -69.4%, DD 71.9% | **KILL** |
 | 7c | HTF trend wide 12-coin + SMA-200 filter | 4H | same | PF 0.98, -36.8%, DD 68.2% | **KILL** |
 | 7d | HTF trend 4-coin (BTC/ETH/SOL/TRX) + SMA-200 | 4H | same | PF 1.16, +45.5%, DD 34.4%, OOS PF 1.26 | **MARGINAL** |
-| 8 | Cross-sectional momentum (rank-based) | 1D | — | *in progress* | *pending* |
+| 8 | Cross-sectional momentum (rank-based) | 1D | — | PF 1.09, +26.6%, DD 54.1%, OOS PF 1.09 | **KILL** |
+| 9 | Funding-rate carry (long low-funding, short high-funding) | 8H | — | PF 0.64, -19.9%, DD 21.1%, OOS PF 0.42 | **KILL** |
+| 10 | Daily RSI pullback in-trend (RSI<30 in uptrend, RSI>70 in downtrend) | 1D | — | PF 0.92, -0.6%, DD 2.1%, n=23 | **KILL** |
+| 11 | Time-series momentum (TSMOM): 6-month absolute momentum | 1D | — | PF 1.62, +130%, CAGR 16.6%, DD 30.1%, OOS PF 1.83 | **MARGINAL** |
 
 ## Pattern learned
 Every fast (≤24h hold), single-feature, taker-fee, mean-reversion/fade signal on
@@ -35,18 +38,74 @@ smooth. 2025-2026 provided that. 2021-2024 was choppier — many fake breakouts
 before the real move, then trailing stop hit on consolidation. This is the
 fundamental ceiling of single-entry breakout logic.
 
-## Active lead — Mechanism #8: Cross-sectional momentum
-Script: `scripts/backtest_cross_momentum.py`  
-Pre-committed parameters: lookback=20 days, rebal=7 days, long top-3/short bottom-3, 12-coin universe  
-Rationale: portfolio approach eliminates single-coin concentration risk; weekly
-rebalancing means low fee drag; relative-strength ranking captures cross-coin
-momentum which is distinct from absolute-price breakout.
+## Mechanism #8 post-mortem: Cross-sectional momentum KILLED
+Result: PF 1.09, DD 54.1%, CAGR 12.1% (only 2 years of data, starting 2024-05-06)
 
-If this passes, it can run alongside 7d as two uncorrelated engines.
+Only survivor was DOGE (+$48K) and SOL (+$16K). Eight symbols were net negative.
+AVAX and LINK were the worst drags (PF 0.60-0.61). 2025 was flat (PF 1.01, $769).
+The strategy suffers from: (1) large altcoin variance overwhelms ranking signal,
+(2) weekly rebalancing doesn't match momentum persistence period, (3) short positions
+in regime-trending altcoins produce outsized losses in bull/bear transitions.
+
+Structural issue: cross-sectional momentum works in equities (monthly rebalance,
+200+ stocks) but breaks in crypto (weekly rebalance, 12 volatile coins) because
+inter-coin correlations are too high during risk-off/risk-on episodes.
+
+## Mechanism #9 post-mortem: Funding-rate carry KILLED
+Result: PF 0.64, CAGR -3.4%, DD 21.1%. Price PnL -$25.8K, carry income +$9.6K.
+
+The core problem: extreme positive funding occurs during strong bull trends. Shorting
+into a trend because it's "overcrowded" means repeatedly hitting 5% stops while the
+trend continues. 2024 bull: 27 trades, 0% win rate, -$15K.
+
+The carry income (0.025%/8H × notional) is real but too small to compensate for
+trend momentum. A position needs ~200 periods of carry to offset one stopped-out short.
+
+Direction of funding ≠ direction of reversal. High funding can persist for 3-4 months
+during bull runs. The signal is too early, not wrong.
+
+## Mechanism #10 post-mortem: Daily RSI pullback KILLED
+Result: Only 23 trades across 4 symbols × 5 years. RSI<30 in an uptrend is
+ultra-rare (~2/year per coin). Below the 60-trade statistical minimum.
+
+## Mechanism #11: TSMOM MARGINAL — best result so far
+Script: `scripts/backtest_tsmom.py`
+Result: PF 1.62, CAGR 16.6%, DD 30.1%, 265 trades, IS PF 1.26, OOS PF 1.83
+Parameters: lookback=126 days, threshold=±5%, rebal=7 days, 12-coin, 1× leverage
+
+Key structural difference from #8 (KILLED): absolute threshold (±5%) vs forced ranking,
+longer lookback (126 vs 20 days), variable position count (0-12, no forced shorts).
+
+Year breakdown:
+  2021: -$38.5K (PF 0.16) — signal lagged 2021 bull top; fired LONG into crash
+  2022: +$57.8K (PF 3.06) — correctly short throughout bear market
+  2023: -$20.8K (PF 0.58) — choppy transition year
+  2024: +$81.1K (PF 2.95) — correctly long through ATH run
+  2025: +$10.0K (PF 1.24) — moderate positive
+  2026: +$40.4K (PF 74)   — correctly short most of 2026 bear
+
+OOS PF 1.83 > IS PF 1.26 → signal strength is increasing, not decaying.
+
+Weakness: 2021 and 2023 are losing years. High year-to-year variance.
+CAGR 16.6% is 3.4pp below the 20% GO target.
+
+## Combined portfolio assessment (2026-06-03)
+Strategies in hand: #7d (MARGINAL) + #11 (MARGINAL)
+Both are momentum-based → highly correlated in trend-reversal years (2021 both lost).
+Running them on equal capital: ~12% combined CAGR. Worse than #11 alone.
+
+**Decision: DEPLOY #11 as the primary strategy.** 16.6% CAGR is closest to target.
+Continue research for a genuinely uncorrelated mechanism to add.
+
+## Next research direction: Mechanism #12
+Candidate: Intraday volume-confirmed momentum breakout on 1H bars.
+Entry when 1H bar range > 2.5× ATR(14) AND volume > 2× 20-period average.
+Trade WITH the expansion (short-term continuation). Exit within 4H.
+Rationale: structurally different — short hold (intraday), volume-gated,
+exploits order flow not captured by daily momentum signals.
 
 ## Candle data cache (as of 2026-06-03)
-Committed to git: BTC, ETH, SOL, TRX (1H + 1D). Remaining 8 coins needed for #8.
-The first run of #8 will download BNB/XRP/ADA/DOGE/AVAX/LINK/LTC/DOT and cache them.
+All 12 symbols now committed to git (1H + 1D). Future runs: ~1-3 min download.
 
 ## Operational notes
 - Candle cache: data/candles/{SYMBOL}_{TF}.parquet — committed to git.
