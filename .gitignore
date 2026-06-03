@@ -220,3 +220,6 @@ __marimo__/
 # Runtime output
 logs/*.csv
 logs/*.log
+
+# Claude Code agent worktrees (temporary)
+.claude/
