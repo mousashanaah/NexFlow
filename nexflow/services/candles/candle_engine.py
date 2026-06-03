@@ -40,7 +40,7 @@ _log = get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Timeframe registry  (name → seconds)
 # ---------------------------------------------------------------------------
-TIMEFRAMES: dict[str, int] = {"1m": 60, "5m": 300, "15m": 900}
+TIMEFRAMES: dict[str, int] = {"1m": 60, "5m": 300, "15m": 900, "1H": 3600, "4H": 14400}
 
 # Trades older than this relative to now are discarded (handles reconnect replays
 # of very old history and protects candles from backdated inserts).
