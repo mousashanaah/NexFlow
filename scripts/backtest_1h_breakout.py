@@ -436,3 +436,154 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# ---------------------------------------------------------------------------
+# Variant B: Near-high breakout (price within N% of 20-bar high/low)
+# ---------------------------------------------------------------------------
+def run_variant_b(
+    symbols: list[str],
+    capital: float,
+    range_mult: float,
+    vol_mult: float,
+    tp_r: float,
+    sl_r: float,
+    max_bars: int,
+    proximity_pct: float,  # how close to N-bar high/low (0.02 = within 2%)
+    lookback: int,         # bars to define the high/low level
+    from_ts: int,
+    to_ts: int,
+) -> None:
+    """Near-high breakout: only trade when price is near the recent range extreme."""
+    notional = capital / len(symbols)
+    print(f"\nVariant B: Near-high breakout filter")
+    print(f"  range_mult={range_mult}, vol_mult={vol_mult}, TP={tp_r}R, SL={sl_r}R, "
+          f"max_bars={max_bars}, proximity={proximity_pct*100:.0f}%, lookback={lookback}")
+
+    all_trades: list[dict] = []
+    per_symbol: list[tuple[str, float, int]] = []
+
+    for symbol in symbols:
+        bars_1h = _load_1h(symbol)
+        daily_raw = _load_daily(symbol)
+        if not bars_1h:
+            per_symbol.append((symbol, 0.0, 0))
+            continue
+
+        atrs     = _atr(bars_1h)
+        vol_smas = _vol_sma(bars_1h)
+
+        daily_closes = [c for _, c in daily_raw]
+        ema8_d  = _ema_series(daily_closes, 8)
+        ema21_d = _ema_series(daily_closes, 21)
+        daily_ema: dict[int, tuple[float, float]] = {}
+        for i, (ts, _) in enumerate(daily_raw):
+            if ema8_d[i] is not None and ema21_d[i] is not None:
+                daily_ema[ts] = (ema8_d[i], ema21_d[i])  # type: ignore[assignment]
+
+        def _daily_trend(bar_ts: int) -> int:
+            day_open = (bar_ts // 86_400_000) * 86_400_000
+            best_ts = -1; best_val = 0
+            for dts, (e8, e21) in daily_ema.items():
+                if dts <= day_open and dts > best_ts:
+                    best_ts = dts; best_val = 1 if e8 > e21 else -1
+            return best_val
+
+        total_pnl = 0.0
+        sym_trades: list[dict] = []
+        in_pos = False; entry_price = 0.0; entry_dir = 0
+        entry_atr = 0.0; bars_in_pos = 0; entry_ts = 0
+
+        for i in range(max(lookback, 20), len(bars_1h)):
+            bar = bars_1h[i]
+            if bar["ts"] < from_ts or bar["ts"] > to_ts:
+                continue
+
+            if in_pos:
+                bars_in_pos += 1
+                tp = entry_price + entry_dir * tp_r * entry_atr
+                sl = entry_price - entry_dir * sl_r * entry_atr
+                hit_tp = (entry_dir == 1 and bar["high"] >= tp) or (entry_dir == -1 and bar["low"] <= tp)
+                hit_sl = (entry_dir == 1 and bar["low"]  <= sl) or (entry_dir == -1 and bar["high"] >= sl)
+                time_stop = bars_in_pos >= max_bars
+                exit_price = None; exit_reason = ""
+                if hit_sl and not hit_tp: exit_price = sl; exit_reason = "SL"
+                elif hit_tp: exit_price = tp; exit_reason = "TP"
+                elif hit_sl and hit_tp: exit_price = sl; exit_reason = "SL"
+                elif time_stop: exit_price = bar["close"]; exit_reason = "TIME"
+                if exit_price is not None:
+                    raw_pnl = (exit_price - entry_price) / entry_price * entry_dir * notional
+                    fee = 2 * _TAKER_FEE * notional
+                    net = raw_pnl - fee
+                    total_pnl += net
+                    sym_trades.append({"ts_in": entry_ts, "ts_out": bar["ts"], "dir": entry_dir,
+                                        "entry": entry_price, "exit": exit_price, "net": net, "reason": exit_reason})
+                    in_pos = False
+
+            if in_pos:
+                continue
+
+            atr_val = atrs[i]; vol_sma = vol_smas[i]
+            if atr_val is None or vol_sma is None or vol_sma == 0:
+                continue
+            if (bar["high"] - bar["low"]) < range_mult * atr_val:
+                continue
+            if bar["volume"] < vol_mult * vol_sma:
+                continue
+
+            bar_up = bar["close"] > bar["open"]
+            signal_dir = 1 if bar_up else -1
+
+            # Daily trend filter (long-only in uptrend)
+            trend = _daily_trend(bar["ts"])
+            if trend != 0 and trend != signal_dir:
+                continue
+            if signal_dir == -1:
+                continue  # long-only
+
+            # Near-high filter: close must be within proximity_pct of lookback high
+            recent_high = max(b["high"] for b in bars_1h[i-lookback:i])
+            if bar["close"] < recent_high * (1 - proximity_pct):
+                continue
+
+            if i + 1 >= len(bars_1h):
+                continue
+            next_bar = bars_1h[i + 1]
+            in_pos = True; entry_price = next_bar["open"]; entry_dir = signal_dir
+            entry_atr = atr_val; bars_in_pos = 0; entry_ts = next_bar["ts"]
+
+        per_symbol.append((symbol, total_pnl, len(sym_trades)))
+        all_trades.extend(sym_trades)
+        print(f"  {symbol:<12}  pnl=${total_pnl:>+10,.0f}  trades={len(sym_trades)}")
+
+    all_trades.sort(key=lambda t: t["ts_in"])
+    equity = capital; peak = capital; max_dd = 0.0
+    wins = losses = 0; gross_win = gross_loss = 0.0; year_pnl: dict[int, float] = {}
+    for t in all_trades:
+        equity += t["net"]
+        if equity > peak: peak = equity
+        dd = (peak - equity) / peak
+        if dd > max_dd: max_dd = dd
+        if t["net"] > 0: wins += 1; gross_win += t["net"]
+        else: losses += 1; gross_loss += abs(t["net"])
+        yr = datetime.fromtimestamp(t["ts_in"] / 1000, tz=timezone.utc).year
+        year_pnl[yr] = year_pnl.get(yr, 0.0) + t["net"]
+    n = len(all_trades)
+    pf = gross_win / gross_loss if gross_loss > 0 else float("inf")
+    win_rate = wins / n * 100 if n > 0 else 0
+    cagr_years = (to_ts - from_ts) / (1_000 * 86_400 * 365.25)
+    cagr = (equity / capital) ** (1 / cagr_years) - 1 if cagr_years > 0 and equity > 0 else -1.0
+    oos_ts = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)
+    def _pf(ts): gw = sum(t["net"] for t in ts if t["net"] > 0); gl = sum(abs(t["net"]) for t in ts if t["net"] < 0); return gw/gl if gl > 0 else float("inf")
+    is_pf = _pf([t for t in all_trades if t["ts_in"] < oos_ts])
+    oos_pf = _pf([t for t in all_trades if t["ts_in"] >= oos_ts])
+    print(f"\n  Trades={n}, WR={win_rate:.1f}%, PF={pf:.2f}, CAGR={cagr*100:.1f}%, DD={max_dd*100:.1f}%")
+    print(f"  IS PF={is_pf:.2f}, OOS PF={oos_pf:.2f}")
+    for yr in sorted(year_pnl): print(f"  {yr}: ${year_pnl[yr]:>+10,.0f}")
+    if pf >= 1.30 and max_dd <= 0.40 and n >= 60 and oos_pf >= 0.85 * is_pf and cagr >= 0.15:
+        verdict = "✓ GO"
+    elif pf >= 1.10 and max_dd <= 0.50 and n >= 60:
+        verdict = "MARGINAL"
+    else:
+        verdict = "KILL"
+    print(f"  VERDICT: {verdict}")
