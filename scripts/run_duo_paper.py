@@ -315,17 +315,46 @@ def run_live(symbols, capital):
     def _run_daily_check() -> None:
         ts_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
         print(f"\n[{ts_str}] Daily candle close — fetching signals ...")
+
+        # --- News & sentiment check ---
+        sentiment = None
+        try:
+            from nexflow.services.news.fetcher import fetch_fear_greed, fetch_crypto_news
+            from nexflow.services.news.analyzer import analyze_sentiment, sentiment_from_fear_greed_only
+            fg   = fetch_fear_greed()
+            news = fetch_crypto_news(limit=15)
+            sentiment = analyze_sentiment(news, fg) or (sentiment_from_fear_greed_only(fg) if fg else None)
+            if sentiment:
+                bias_icon = {"BULLISH": "↑", "BEARISH": "↓", "NEUTRAL": "→"}.get(sentiment.overall_bias, "?")
+                print(f"  {bias_icon} News: {sentiment.overall_bias} ({sentiment.confidence:.0%})  "
+                      f"F&G:{sentiment.fear_greed_value}({sentiment.fear_greed_label})")
+                print(f"    {sentiment.reasoning}")
+                if sentiment.suspend_new_longs:
+                    print("  ⚠  EXTREME EVENT — suspending new long entries today")
+                if sentiment.key_events:
+                    for ev in sentiment.key_events[:2]:
+                        print(f"    • {ev}")
+        except Exception as exc:
+            print(f"  [news] skipped: {exc}")
+
+        # --- Price signals ---
         any_signal = False
         for sym in symbols:
             result = _fetch_daily_close(sym)
             if result:
                 ts_ms, close = result
                 for sig in ema_strat.on_daily_close(sym, close, ts_ms):
-                    _exec(sig.action, sym, close, notional_ema, "EMA")
-                    any_signal = True
+                    if sig.action == "OPEN_LONG" and sentiment and sentiment.suspend_new_longs:
+                        print(f"  [EMA] {sym} OPEN_LONG suppressed — extreme news event")
+                    else:
+                        _exec(sig.action, sym, close, notional_ema, "EMA")
+                        any_signal = True
                 for sig in macd_strat.on_daily_close(sym, close, ts_ms):
-                    _exec(sig["action"], sym, close, notional_macd, "MACD")
-                    any_signal = True
+                    if sig["action"] == "OPEN_LONG" and sentiment and sentiment.suspend_new_longs:
+                        print(f"  [MACD] {sym} OPEN_LONG suppressed — extreme news event")
+                    else:
+                        _exec(sig["action"], sym, close, notional_macd, "MACD")
+                        any_signal = True
             time.sleep(0.25)  # gentle rate limiting
 
         if not any_signal:
