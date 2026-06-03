@@ -518,6 +518,18 @@ def run_live(symbols, capital):
     client  = BitgetClient.from_env()
     adapter = BitgetPaperAdapter(client)
 
+    # Use real account balance if available, fall back to --capital arg
+    try:
+        from nexflow.exchange.bitget_order import get_account_balance
+        live_balance = get_account_balance(client)
+        if live_balance > 0:
+            print(f"Account balance : ${live_balance:,.2f} (from exchange)")
+            capital = live_balance
+        else:
+            print(f"Account balance : could not fetch — using --capital ${capital:,.0f}")
+    except Exception as e:
+        print(f"Account balance : fetch failed ({e}) — using --capital ${capital:,.0f}")
+
     base_notional    = capital / len(symbols)
     _TARGET_RISK     = 0.01    # 1% of capital daily risk per position (ATR sizing)
     _ATR_WINDOW      = 14      # rolling days for vol estimate
@@ -709,8 +721,22 @@ def run_live(symbols, capital):
             print(f"  [ERROR] SHORT {sym} {action}: {e}")
 
     def _run_daily_check():
+        nonlocal capital, base_notional, portfolio_peak, circuit_open
         ts_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
         print(f"\n[{ts_str}] ── Daily check ──")
+
+        # Refresh capital from exchange so sizing stays accurate as account grows
+        try:
+            from nexflow.exchange.bitget_order import get_account_balance
+            live_bal = get_account_balance(client)
+            if live_bal > 0 and abs(live_bal - capital) / capital > 0.005:  # >0.5% drift
+                print(f"  Capital updated: ${capital:,.2f} → ${live_bal:,.2f}")
+                capital = live_bal
+                base_notional = capital / len(symbols)
+                if live_bal > portfolio_peak:
+                    portfolio_peak = live_bal
+        except Exception:
+            pass
 
         # News sentiment
         try:
@@ -751,7 +777,6 @@ def run_live(symbols, capital):
         print(f"  Regime: {regime_str}")
 
         # ── Circuit breaker: track portfolio mark-to-market equity ──
-        nonlocal portfolio_peak, circuit_open
         try:
             portfolio_equity = 0.0
             for sym in symbols:
