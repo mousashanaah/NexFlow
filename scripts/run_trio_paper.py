@@ -5,8 +5,12 @@
   Strategy 2: MACD 12/26/9 Daily Long-Only (CAGR 23%, DD 17%, PF 1.59)
   Strategy 3: 4H EMA 5/13 Long-Only        (CAGR 20%, DD  9%, PF 1.46)
 
-Capital split equally: $capital/3 per strategy, $/36 per coin per strategy.
-All three run independently — a coin can be held by 1, 2, or all 3 strategies.
+Confluence position sizing (backtested CAGR 32.8%, DD 34.6%):
+  1 strategy signals LONG  → 1.0× base notional per coin
+  2 strategies agree       → 1.5× base notional per coin
+  All 3 agree              → 2.0× base notional per coin
+
+Base notional = capital / 12 coins.
 
 Checks once per day at 00:05 UTC (5 min after daily candle close).
 4H EMA checks are embedded in the same daily loop using latest 4H close.
@@ -336,11 +340,12 @@ def run_live(symbols, capital):
     client  = BitgetClient.from_env()
     adapter = BitgetPaperAdapter(client)
 
-    notional = capital / 3 / len(symbols)
+    base_notional = capital / len(symbols)  # confluence sizing base: capital/12
     print("NexFlow Trio — LIVE PAPER MODE")
-    print(f"Symbols  : {len(symbols)} coins")
-    print(f"Capital  : ${capital:,.0f}  (${notional:,.2f}/slot)")
-    print(f"Fee      : {_TAKER_FEE*100:.2f}% taker")
+    print(f"Symbols        : {len(symbols)} coins")
+    print(f"Capital        : ${capital:,.0f}  (${base_notional:.2f} base/coin)")
+    print(f"Confluence     : 1 strat=1×  2 strats=1.5×  3 strats=2×")
+    print(f"Fee            : {_TAKER_FEE*100:.2f}% taker")
     print()
 
     # Seed strategies from historical data
@@ -376,12 +381,26 @@ def run_live(symbols, capital):
         print(f"  {sym:<12}  EMA:{e:<6}  MACD:{m:<6}  4H:{h4}")
     print()
 
+    # Track current strategy agreement per coin for confluence sizing
+    coin_longs: dict[str, set] = {sym: set() for sym in symbols}  # {sym: {src,...}}
+
+    def _confluence_notional(sym: str) -> float:
+        """Return position size based on how many strategies agree on this coin."""
+        n = len(coin_longs[sym])
+        mult = {0: 0.0, 1: 1.0, 2: 1.5, 3: 2.0}.get(n, 2.0)
+        return base_notional * mult
+
     def _exec(action, sym, price, src):
-        qty = notional / price
+        notional = _confluence_notional(sym)
+        qty = notional / price if price > 0 else 0
+        if qty <= 0: return
         try:
             if action == "OPEN_LONG":
                 adapter.on_entry(sym, "long", qty, 0.0, 0.0, 0.0)
-                print(f"  [{src}] BUY  {sym:<12} @ {price:,.4f}")
+                n = len(coin_longs[sym])
+                mult = {1:1.0, 2:1.5, 3:2.0}.get(n, 1.0)
+                print(f"  [{src}] BUY  {sym:<12} @ {price:,.4f}  "
+                      f"({n} strat{'s' if n>1 else ''} agree → {mult}× = ${notional:,.0f})")
             elif action == "CLOSE_LONG":
                 adapter.on_close(sym, "long", qty, 0.0, f"{src}_cross")
                 print(f"  [{src}] SELL {sym:<12} @ {price:,.4f}")
@@ -418,6 +437,10 @@ def run_live(symbols, capital):
 
             # EMA daily
             for sig in ema_strat.on_daily_close(sym, close, ts_ms):
+                if sig.action == "OPEN_LONG":
+                    coin_longs[sym].add("EMA")
+                elif sig.action == "CLOSE_LONG":
+                    coin_longs[sym].discard("EMA")
                 if sig.action == "OPEN_LONG" and suspend:
                     print(f"  [EMA] {sym} suppressed — extreme event")
                 else:
@@ -426,6 +449,10 @@ def run_live(symbols, capital):
             # MACD daily
             action = macd_strats[sym].update(close)
             if action:
+                if action == "OPEN_LONG":
+                    coin_longs[sym].add("MACD")
+                elif action == "CLOSE_LONG":
+                    coin_longs[sym].discard("MACD")
                 if action == "OPEN_LONG" and suspend:
                     print(f"  [MACD] {sym} suppressed — extreme event")
                 else:
@@ -444,6 +471,10 @@ def run_live(symbols, capital):
             for ts4, c4 in _resample_4h(bars_1h)[-3:]:
                 action = ema4h_strats[sym].update(c4)
                 if action:
+                    if action == "OPEN_LONG":
+                        coin_longs[sym].add("4H")
+                    elif action == "CLOSE_LONG":
+                        coin_longs[sym].discard("4H")
                     if action == "OPEN_LONG" and suspend:
                         print(f"  [4H] {sym} suppressed — extreme event")
                     else:
