@@ -553,22 +553,36 @@ def run_live(symbols, capital):
     last_tsmom_rebal_live = [0]   # ts of last weekly short rebalance
     live_shorts: dict[str, float] = {}  # sym → entry_price (shorts open on exchange)
 
-    # Reconcile with exchange on startup — populate live_shorts from open positions
-    # so restarts don't lose track of existing shorts or accidentally re-open them.
+    # Reconcile with exchange on startup — restore live_shorts and coin_longs
+    # from open positions so restarts don't lose state or create duplicates.
     if adapter is not None:
         try:
             from nexflow.exchange.bitget_order import get_position
             print("Reconciling open positions from exchange ...")
+            restored_shorts = 0
+            restored_longs  = 0
             for sym in symbols:
                 pos = get_position(adapter.client, sym)
-                if pos and pos.get("holdSide") == "short":
-                    entry = float(pos.get("openPriceAvg", 0))
-                    if entry > 0:
-                        live_shorts[sym] = entry
-                        print(f"  Restored SHORT {sym:<12} entry={entry:,.4f}")
+                if not pos:
+                    time.sleep(0.15)
+                    continue
+                side  = pos.get("holdSide", "")
+                entry = float(pos.get("openPriceAvg", 0))
+                if entry <= 0:
+                    time.sleep(0.15)
+                    continue
+                if side == "short":
+                    live_shorts[sym] = entry
+                    print(f"  Restored SHORT {sym:<12} entry={entry:,.4f}")
+                    restored_shorts += 1
+                elif side == "long":
+                    # Mark as held by all three strategies so the bot treats it
+                    # as a full confluence position and won't re-open or orphan it.
+                    coin_longs[sym] = {"EMA", "MACD", "4H"}
+                    print(f"  Restored LONG  {sym:<12} entry={entry:,.4f}")
+                    restored_longs += 1
                 time.sleep(0.15)
-            if not live_shorts:
-                print("  No open shorts found on exchange.")
+            print(f"  Restored {restored_shorts} short(s), {restored_longs} long(s).")
             print()
         except Exception as e:
             print(f"  [WARN] Could not reconcile positions: {e}")
