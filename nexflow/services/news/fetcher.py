@@ -1,27 +1,34 @@
-"""News and sentiment fetcher for crypto market signals.
+"""News and sentiment fetcher for crypto trading signals.
 
-Sources:
-  1. Alternative.me Fear & Greed Index (free, no key)
-  2. CryptoPanic news API (free tier — set CRYPTOPANIC_API_KEY env var,
-     or leave unset to use public feed without key)
-  3. Bitget funding rate snapshot (already in codebase)
-
-Used by the news_signal module to produce a NexFlow MarketSentiment object.
+Sources (all free, no API keys required):
+  1. Alternative.me Fear & Greed Index
+  2. Google News RSS (crypto headlines, no key needed)
+  3. CryptoPanic (optional — set CRYPTOPANIC_API_KEY for higher rate limits)
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import urllib.request
+import urllib.parse
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
+from xml.etree import ElementTree
 
 
 _FEAR_GREED_URL  = "https://api.alternative.me/fng/?limit=3&format=json"
 _CRYPTOPANIC_URL = "https://cryptopanic.com/api/v1/posts/"
 _TIMEOUT_S       = 8
+
+# Google News RSS — free, no key, no registration
+_GOOGLE_NEWS_QUERIES = [
+    "Bitcoin cryptocurrency",
+    "Ethereum crypto market",
+    "crypto regulation SEC",
+]
 
 
 @dataclass
@@ -34,7 +41,7 @@ class FearGreed:
 @dataclass
 class NewsItem:
     title: str
-    published_at: str   # ISO 8601
+    published_at: str
     source: str
     url: str
     votes_positive: int = 0
@@ -43,7 +50,6 @@ class NewsItem:
 
 
 def fetch_fear_greed() -> Optional[FearGreed]:
-    """Return current Fear & Greed index. Returns None on network failure."""
     try:
         req = urllib.request.Request(
             _FEAR_GREED_URL,
@@ -62,15 +68,50 @@ def fetch_fear_greed() -> Optional[FearGreed]:
         return None
 
 
-def fetch_crypto_news(
-    currencies: str = "BTC,ETH",
-    limit: int = 20,
-) -> list[NewsItem]:
-    """Fetch recent crypto news from CryptoPanic.
+def fetch_google_news(max_items: int = 20) -> list[NewsItem]:
+    """Fetch crypto headlines from Google News RSS — completely free."""
+    items: list[NewsItem] = []
+    seen: set[str] = set()
 
-    Uses CRYPTOPANIC_API_KEY env var if set (higher rate limit).
-    Falls back to public (unauthenticated) endpoint.
-    """
+    for query in _GOOGLE_NEWS_QUERIES:
+        if len(items) >= max_items:
+            break
+        encoded = urllib.parse.quote(query)
+        url = f"https://news.google.com/rss/search?q={encoded}&hl=en-US&gl=US&ceid=US:en"
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "NexFlow/1.0"})
+            with urllib.request.urlopen(req, timeout=_TIMEOUT_S) as resp:
+                xml_data = resp.read()
+            root = ElementTree.fromstring(xml_data)
+            channel = root.find("channel")
+            if channel is None:
+                continue
+            for item in channel.findall("item"):
+                title = item.findtext("title", "").strip()
+                # Google News appends " - Source Name" to every title
+                source = ""
+                if " - " in title:
+                    parts = title.rsplit(" - ", 1)
+                    title  = parts[0].strip()
+                    source = parts[1].strip()
+                pub = item.findtext("pubDate", "")
+                link = item.findtext("link", "")
+                if title and title not in seen:
+                    seen.add(title)
+                    items.append(NewsItem(
+                        title        = title,
+                        published_at = pub,
+                        source       = source,
+                        url          = link,
+                    ))
+        except Exception as exc:
+            print(f"  [news] Google News fetch failed for '{query}': {exc}")
+
+    return items[:max_items]
+
+
+def fetch_crypto_news(currencies: str = "BTC,ETH", limit: int = 20) -> list[NewsItem]:
+    """Fetch from CryptoPanic (optional key) or fall back to Google News."""
     api_key = os.getenv("CRYPTOPANIC_API_KEY", "")
     params  = f"currencies={currencies}&limit={limit}&public=true"
     if api_key:
@@ -98,6 +139,6 @@ def fetch_crypto_news(
                 currencies     = currencies_list,
             ))
         return items
-    except Exception as exc:
-        print(f"  [news] CryptoPanic fetch failed: {exc}")
-        return []
+    except Exception:
+        # Fall back to Google News silently
+        return fetch_google_news(max_items=limit)
