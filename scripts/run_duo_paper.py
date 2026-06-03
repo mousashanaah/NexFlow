@@ -303,26 +303,56 @@ def run_live(symbols, capital):
         except Exception as exc:
             print(f"  [ERROR] {source} {symbol} {action}: {exc}")
 
-    last_ts: Optional[int] = None
+    def _seconds_until_next_daily_close(offset_minutes: int = 5) -> float:
+        """Seconds until offset_minutes after next 00:00 UTC (daily candle close)."""
+        now = datetime.now(timezone.utc)
+        # Next midnight UTC
+        from datetime import timedelta
+        tomorrow = (now + timedelta(days=1)).replace(
+            hour=0, minute=offset_minutes, second=0, microsecond=0)
+        return max((tomorrow - now).total_seconds(), 60.0)
+
+    def _run_daily_check() -> None:
+        ts_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        print(f"\n[{ts_str}] Daily candle close — fetching signals ...")
+        any_signal = False
+        for sym in symbols:
+            result = _fetch_daily_close(sym)
+            if result:
+                ts_ms, close = result
+                for sig in ema_strat.on_daily_close(sym, close, ts_ms):
+                    _exec(sig.action, sym, close, notional_ema, "EMA")
+                    any_signal = True
+                for sig in macd_strat.on_daily_close(sym, close, ts_ms):
+                    _exec(sig["action"], sym, close, notional_macd, "MACD")
+                    any_signal = True
+            time.sleep(0.25)  # gentle rate limiting
+
+        if not any_signal:
+            print("  No crossovers today. Positions unchanged.")
+
+        print("  Current state:")
+        for sym in symbols:
+            e = ema_strat.current_signals().get(sym, "?")
+            m = macd_strat.current_signals().get(sym, "?")
+            if e == "LONG" or m == "LONG":
+                print(f"    {sym:<12}  EMA:{e:<6}  MACD:{m}")
+        longs = [s for s, v in ema_strat.positions.items() if v] + \
+                [s for s, v in macd_strat.positions.items() if v]
+        print(f"  Active longs: {sorted(set(longs)) or 'none (all flat)'}")
+
+    # Run immediately on startup (catch up if missed today's close)
+    _run_daily_check()
+
+    # Then sleep until 5 minutes after each subsequent midnight UTC
     while True:
-        now_ts = int(datetime.now(timezone.utc).replace(
-            hour=0, minute=0, second=0, microsecond=0).timestamp() * 1000)
-
-        if last_ts is None or now_ts > last_ts:
-            ts_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-            print(f"\n[{ts_str}] Processing daily closes ...")
-            for sym in symbols:
-                result = _fetch_daily_close(sym)
-                if result:
-                    ts_ms, close = result
-                    for sig in ema_strat.on_daily_close(sym, close, ts_ms):
-                        _exec(sig.action, sym, close, notional_ema, "EMA")
-                    for sig in macd_strat.on_daily_close(sym, close, ts_ms):
-                        _exec(sig["action"], sym, close, notional_macd, "MACD")
-                time.sleep(0.2)
-            last_ts = now_ts
-
-        time.sleep(3600)
+        sleep_secs = _seconds_until_next_daily_close(offset_minutes=5)
+        next_run = datetime.now(timezone.utc)
+        from datetime import timedelta
+        next_run_dt = (next_run + timedelta(seconds=sleep_secs)).strftime("%Y-%m-%d %H:%M UTC")
+        print(f"\n  Sleeping {sleep_secs/3600:.1f}h — next check at {next_run_dt}")
+        time.sleep(sleep_secs)
+        _run_daily_check()
 
 
 # ---------------------------------------------------------------------------
