@@ -589,7 +589,7 @@ def run_live(symbols, capital):
             restored_shorts = 0
             restored_longs  = 0
             for sym in symbols:
-                pos = get_position(adapter.client, sym)
+                pos = get_position(adapter._client, sym)
                 if not pos:
                     time.sleep(0.15)
                     continue
