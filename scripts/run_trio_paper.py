@@ -134,6 +134,33 @@ class EMA4HState:
 
 
 # ---------------------------------------------------------------------------
+# BTC regime tracker (SMA200 master switch for V3 system)
+# ---------------------------------------------------------------------------
+class BTCRegime:
+    """Tracks BTC SMA200. Returns bear=True when BTC < its 200-day SMA."""
+
+    def __init__(self):
+        self._closes: list[float] = []
+        self._bear = False  # default: assume bull until enough data
+
+    def update(self, close: float) -> None:
+        self._closes.append(close)
+        if len(self._closes) >= 200:
+            sma200 = sum(self._closes[-200:]) / 200
+            self._bear = close < sma200
+
+    @property
+    def is_bear(self) -> bool:
+        return self._bear
+
+    def tsmom_return(self, closes_126: list[float]) -> float:
+        """126-day return for TSMOM scoring. Needs 127+ items."""
+        if len(closes_126) < 127:
+            return 0.0
+        return (closes_126[-1] - closes_126[-127]) / closes_126[-127]
+
+
+# ---------------------------------------------------------------------------
 # Data helpers
 # ---------------------------------------------------------------------------
 def _load_candles(symbol: str, tf: str, from_ts: int, to_ts: int) -> list[tuple]:
@@ -189,15 +216,19 @@ def _fetch_1h_recent(symbol: str, n: int = 40) -> list[tuple[int, float]]:
 # Replay mode
 # ---------------------------------------------------------------------------
 def run_replay(symbols, capital, from_ts, to_ts):
-    notional = capital / 3 / len(symbols)
-    print(f"NexFlow Trio — REPLAY  |  capital=${capital:,.0f}  |  ${notional:,.0f}/slot")
+    base_notional = capital / len(symbols)
+    notional = base_notional / 3  # per-strategy slot (legacy sizing)
+    print(f"NexFlow Trio V3 — REPLAY  |  capital=${capital:,.0f}  |  ${base_notional:,.0f}/coin")
     print(f"Period: {datetime.fromtimestamp(from_ts/1000,tz=timezone.utc).date()} → "
           f"{datetime.fromtimestamp(to_ts/1000,tz=timezone.utc).date()}")
+    print(f"Regime: BTC SMA200 master switch  |  TSMOM shorts in bear market")
     print()
 
     ema_strat  = EMATrendStrategy(symbols=symbols, fast=8, slow=21)
     macd_strats = {sym: MACDState() for sym in symbols}
     ema4h_strats = {sym: EMA4HState() for sym in symbols}
+    btc_regime = BTCRegime()
+    coin_closes: dict[str, list[float]] = {sym: [] for sym in symbols}  # for TSMOM
 
     # Build event streams
     daily_events: list[tuple[int,str,float]] = []
@@ -214,7 +245,10 @@ def run_replay(symbols, capital, from_ts, to_ts):
 
     equity = capital; peak = capital; max_dd = 0.0
     positions: dict[str, dict[str, tuple[float,float]]] = {"EMA":{}, "MACD":{}, "4H":{}}
+    short_pos: dict[str, tuple[float,float]] = {}  # sym → (entry, notional) for TSMOM shorts
     trades: list[dict] = []
+    last_tsmom_rebal = 0  # ts of last TSMOM weekly rebalance
+    year_pnl: dict[int,float] = {}
 
     # Merge daily + 4H events in time order
     all_events: list[tuple[int,str,str,float]] = (
@@ -223,15 +257,69 @@ def run_replay(symbols, capital, from_ts, to_ts):
     )
     all_events.sort()
 
+    # Process all events by day — collect day's closes first for TSMOM
+    from collections import defaultdict
+    day_closes: dict[int, dict[str,float]] = defaultdict(dict)
+    for ts, sym, tf, close in all_events:
+        if tf == "1D":
+            day = (ts // _DAY_MS) * _DAY_MS
+            day_closes[day][sym] = close
+
     for ts, sym, tf, close in all_events:
         in_range = ts >= from_ts
 
         if tf == "1D":
-            # EMA 8/21
+            # Update BTC regime
+            if sym == "BTCUSDT":
+                btc_regime.update(close)
+            # Track coin closes for TSMOM
+            coin_closes[sym].append(close)
+
+            bear = btc_regime.is_bear
+
+            # ── TSMOM short rebalance (weekly when BTC is bear) ──
+            if sym == symbols[-1] and bear and in_range and (ts - last_tsmom_rebal) >= 7*_DAY_MS:
+                last_tsmom_rebal = ts
+                scores = [(btc_regime.tsmom_return(coin_closes[s]), s)
+                          for s in symbols if len(coin_closes[s]) >= 127]
+                scores.sort()
+                desired = {s for ret, s in scores if ret < -0.05}
+
+                # Close shorts no longer desired
+                for s in list(short_pos):
+                    if s not in desired:
+                        ep, n = short_pos.pop(s)
+                        exit_c = coin_closes[s][-1] if coin_closes[s] else ep
+                        pnl = (ep - exit_c) / ep * n - _TAKER_FEE * n
+                        equity += pnl
+                        yr = datetime.fromtimestamp(ts/1000,tz=timezone.utc).year
+                        year_pnl[yr] = year_pnl.get(yr,0)+pnl
+                        trades.append({"ts":ts,"src":"SHORT","sym":s,"pnl":pnl})
+
+                # Open new shorts
+                for s in desired:
+                    if s not in short_pos:
+                        c = coin_closes[s][-1] if coin_closes[s] else 0
+                        if c <= 0: continue
+                        equity -= _TAKER_FEE * base_notional
+                        short_pos[s] = (c, base_notional)
+
+            # Close shorts if we've returned to bull
+            if sym == symbols[-1] and not bear and short_pos and in_range:
+                for s in list(short_pos):
+                    ep, n = short_pos.pop(s)
+                    c = coin_closes[s][-1] if coin_closes[s] else ep
+                    pnl = (ep - c) / ep * n - _TAKER_FEE * n
+                    equity += pnl
+                    yr = datetime.fromtimestamp(ts/1000,tz=timezone.utc).year
+                    year_pnl[yr] = year_pnl.get(yr,0)+pnl
+                    trades.append({"ts":ts,"src":"SHORT","sym":s,"pnl":pnl})
+
+            # EMA 8/21 long
             sigs = ema_strat.on_daily_close(sym, close, ts)
             for sig in sigs:
                 if not in_range: continue
-                if sig.action == "OPEN_LONG":
+                if sig.action == "OPEN_LONG" and not bear:
                     fee = _TAKER_FEE * notional
                     equity -= fee
                     positions["EMA"][sym] = (close, notional)
@@ -239,12 +327,22 @@ def run_replay(symbols, capital, from_ts, to_ts):
                     ep, n = positions["EMA"].pop(sym)
                     pnl = (close-ep)/ep*n - _TAKER_FEE*n
                     equity += pnl
+                    yr = datetime.fromtimestamp(ts/1000,tz=timezone.utc).year
+                    year_pnl[yr] = year_pnl.get(yr,0)+pnl
                     trades.append({"ts":ts,"src":"EMA","sym":sym,"pnl":pnl})
+            # Force-close existing long when bear triggers
+            if bear and sym in positions["EMA"] and in_range:
+                ep, n = positions["EMA"].pop(sym)
+                pnl = (close-ep)/ep*n - _TAKER_FEE*n
+                equity += pnl
+                yr = datetime.fromtimestamp(ts/1000,tz=timezone.utc).year
+                year_pnl[yr] = year_pnl.get(yr,0)+pnl
+                trades.append({"ts":ts,"src":"EMA","sym":sym,"pnl":pnl})
 
-            # MACD
+            # MACD long
             action = macd_strats[sym].update(close)
             if action and in_range:
-                if action == "OPEN_LONG":
+                if action == "OPEN_LONG" and not bear:
                     fee = _TAKER_FEE * notional
                     equity -= fee
                     positions["MACD"][sym] = (close, notional)
@@ -252,7 +350,16 @@ def run_replay(symbols, capital, from_ts, to_ts):
                     ep, n = positions["MACD"].pop(sym)
                     pnl = (close-ep)/ep*n - _TAKER_FEE*n
                     equity += pnl
+                    yr = datetime.fromtimestamp(ts/1000,tz=timezone.utc).year
+                    year_pnl[yr] = year_pnl.get(yr,0)+pnl
                     trades.append({"ts":ts,"src":"MACD","sym":sym,"pnl":pnl})
+            if bear and sym in positions["MACD"] and in_range:
+                ep, n = positions["MACD"].pop(sym)
+                pnl = (close-ep)/ep*n - _TAKER_FEE*n
+                equity += pnl
+                yr = datetime.fromtimestamp(ts/1000,tz=timezone.utc).year
+                year_pnl[yr] = year_pnl.get(yr,0)+pnl
+                trades.append({"ts":ts,"src":"MACD","sym":sym,"pnl":pnl})
 
             # Update 4H daily trend filter
             csigs = ema_strat.current_signals()
@@ -260,9 +367,10 @@ def run_replay(symbols, capital, from_ts, to_ts):
                 ema4h_strats[sym].update_daily_trend(1.0 if csigs[sym]=="LONG" else 0.0, 0.5)
 
         elif tf == "4H":
+            bear = btc_regime.is_bear
             action = ema4h_strats[sym].update(close)
             if action and in_range:
-                if action == "OPEN_LONG":
+                if action == "OPEN_LONG" and not bear:
                     fee = _TAKER_FEE * notional
                     equity -= fee
                     positions["4H"][sym] = (close, notional)
@@ -270,35 +378,46 @@ def run_replay(symbols, capital, from_ts, to_ts):
                     ep, n = positions["4H"].pop(sym)
                     pnl = (close-ep)/ep*n - _TAKER_FEE*n
                     equity += pnl
+                    yr = datetime.fromtimestamp(ts/1000,tz=timezone.utc).year
+                    year_pnl[yr] = year_pnl.get(yr,0)+pnl
                     trades.append({"ts":ts,"src":"4H","sym":sym,"pnl":pnl})
+            if bear and sym in positions["4H"] and in_range:
+                ep, n = positions["4H"].pop(sym)
+                pnl = (close-ep)/ep*n - _TAKER_FEE*n
+                equity += pnl
+                yr = datetime.fromtimestamp(ts/1000,tz=timezone.utc).year
+                year_pnl[yr] = year_pnl.get(yr,0)+pnl
+                trades.append({"ts":ts,"src":"4H","sym":sym,"pnl":pnl})
 
         if in_range:
             if equity > peak: peak = equity
             dd = (peak-equity)/peak
             if dd > max_dd: max_dd = dd
 
-    # Mark open positions to market
+    # Mark open positions + shorts to market
     last_prices: dict[str,float] = {}
     for sym in symbols:
         d = _load_candles(sym, "1D", 0, to_ts)
         if d: last_prices[sym] = d[-1][1]
 
     unrealised = 0.0
+    last_yr = datetime.fromtimestamp(to_ts/1000,tz=timezone.utc).year
     for src, pos_map in positions.items():
         for sym, (ep, n) in pos_map.items():
             p = last_prices.get(sym, ep)
-            unrealised += (p-ep)/ep*n
+            mtm = (p-ep)/ep*n
+            unrealised += mtm
+            year_pnl[last_yr] = year_pnl.get(last_yr, 0) + mtm
+    for sym, (ep, n) in short_pos.items():
+        p = last_prices.get(sym, ep)
+        mtm = (ep-p)/ep*n  # short profits when price falls
+        unrealised += mtm
+        year_pnl[last_yr] = year_pnl.get(last_yr, 0) + mtm
 
     total_eq = equity + unrealised
     net = total_eq - capital
     years = (to_ts - from_ts) / (1000*86400*365.25)
     cagr  = (total_eq/capital)**(1/years)-1 if years>0 and total_eq>0 else 0
-
-    # Year breakdown
-    year_pnl: dict[int,float] = {}
-    for t in trades:
-        yr = datetime.fromtimestamp(t["ts"]/1000,tz=timezone.utc).year
-        year_pnl[yr] = year_pnl.get(yr,0)+t["pnl"]
 
     print(f"Trades    : {len(trades)}")
     print(f"Realised  : ${equity:,.0f}")
@@ -306,18 +425,25 @@ def run_replay(symbols, capital, from_ts, to_ts):
     print(f"Total eq  : ${total_eq:,.0f}  (net ${net:+,.0f}, {net/capital*100:.1f}%)")
     print(f"CAGR      : {cagr*100:.1f}%")
     print(f"Max DD    : {max_dd*100:.1f}%")
+    print(f"Regime    : {'BEAR (BTC<SMA200) — TSMOM shorts active' if btc_regime.is_bear else 'BULL (BTC>SMA200) — longs active'}")
     print()
     print("Year-by-year:")
     for yr in sorted(year_pnl):
-        print(f"  {yr}: ${year_pnl[yr]:>+,.0f}")
+        p = year_pnl[yr]
+        tag = " <<BEAR" if yr in [2022,2025,2026] else ""
+        print(f"  {yr}: ${p:>+,.0f}{tag}")
     print()
     print("Current positions:")
     for src, pos_map in positions.items():
         for sym, (ep, n) in pos_map.items():
             p = last_prices.get(sym, ep)
             pct = (p-ep)/ep*100
-            print(f"  [{src}] {sym:<12} entry={ep:,.2f}  now={p:,.2f}  {pct:+.1f}%")
-    if not any(positions[s] for s in positions):
+            print(f"  [{src}] {sym:<12} LONG   entry={ep:,.2f}  now={p:,.2f}  {pct:+.1f}%")
+    for sym, (ep, n) in short_pos.items():
+        p = last_prices.get(sym, ep)
+        pct = (ep-p)/ep*100
+        print(f"  [SHORT] {sym:<12} SHORT  entry={ep:,.2f}  now={p:,.2f}  {pct:+.1f}%")
+    if not any(positions[s] for s in positions) and not short_pos:
         print("  (all flat)")
     print()
     print("Current signals:")
@@ -341,21 +467,24 @@ def run_live(symbols, capital):
     adapter = BitgetPaperAdapter(client)
 
     base_notional = capital / len(symbols)  # confluence sizing base: capital/12
-    print("NexFlow Trio — LIVE PAPER MODE")
+    print("NexFlow Trio V3 — LIVE PAPER MODE")
     print(f"Symbols        : {len(symbols)} coins")
     print(f"Capital        : ${capital:,.0f}  (${base_notional:.2f} base/coin)")
     print(f"Confluence     : 1 strat=1×  2 strats=1.5×  3 strats=2×")
+    print(f"Regime gate    : BTC SMA200 — bear→short, bull→long")
     print(f"Fee            : {_TAKER_FEE*100:.2f}% taker")
     print()
 
     # Seed strategies from historical data
     today_ts = int(datetime.now(timezone.utc).replace(
         hour=0,minute=0,second=0,microsecond=0).timestamp()*1000)
-    seed_from = today_ts - 200 * _DAY_MS
+    seed_from = today_ts - 210 * _DAY_MS  # 210 days to warm up SMA200
 
     ema_strat    = EMATrendStrategy(symbols=symbols, fast=8, slow=21)
     macd_strats  = {sym: MACDState() for sym in symbols}
     ema4h_strats = {sym: EMA4HState() for sym in symbols}
+    btc_regime   = BTCRegime()
+    coin_closes_live: dict[str, list[float]] = {sym: [] for sym in symbols}
 
     print("Seeding from historical data ...")
     for sym in symbols:
@@ -363,6 +492,9 @@ def run_live(symbols, capital):
         for ts, c in daily:
             ema_strat.on_daily_close(sym, c, ts)
             macd_strats[sym].update(c)
+            coin_closes_live[sym].append(c)
+            if sym == "BTCUSDT":
+                btc_regime.update(c)
         h1 = _load_candles(sym, "1H", seed_from, today_ts)
         for ts, c in _resample_4h(h1):
             ema4h_strats[sym].update(c)
@@ -407,9 +539,15 @@ def run_live(symbols, capital):
         except Exception as e:
             print(f"  [ERROR] {src} {sym} {action}: {e}")
 
+    last_tsmom_rebal_live = [0]  # mutable ref for weekly rebalance tracking
+
     def _run_daily_check():
         ts_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
         print(f"\n[{ts_str}] ── Daily check ──")
+
+        # Regime status
+        regime_str = "BEAR (BTC<SMA200) ─ shorts mode" if btc_regime.is_bear else "BULL (BTC>SMA200) ─ longs mode"
+        print(f"  Regime: {regime_str}")
 
         # News sentiment
         try:
@@ -427,6 +565,8 @@ def run_live(symbols, capital):
         except Exception:
             suspend = False
 
+        bear = btc_regime.is_bear
+
         # Fetch closes and process signals
         any_sig = False
         for sym in symbols:
@@ -435,14 +575,20 @@ def run_live(symbols, capital):
                 time.sleep(0.3); continue
             ts_ms, close = result
 
+            # Update regime with BTC close
+            if sym == "BTCUSDT":
+                btc_regime.update(close)
+            coin_closes_live[sym].append(close)
+
             # EMA daily
             for sig in ema_strat.on_daily_close(sym, close, ts_ms):
                 if sig.action == "OPEN_LONG":
                     coin_longs[sym].add("EMA")
                 elif sig.action == "CLOSE_LONG":
                     coin_longs[sym].discard("EMA")
-                if sig.action == "OPEN_LONG" and suspend:
-                    print(f"  [EMA] {sym} suppressed — extreme event")
+                if sig.action == "OPEN_LONG" and (suspend or bear):
+                    reason = "extreme event" if suspend else "BTC bear regime"
+                    print(f"  [EMA] {sym} suppressed — {reason}")
                 else:
                     _exec(sig.action, sym, close, "EMA"); any_sig = True
 
@@ -453,8 +599,9 @@ def run_live(symbols, capital):
                     coin_longs[sym].add("MACD")
                 elif action == "CLOSE_LONG":
                     coin_longs[sym].discard("MACD")
-                if action == "OPEN_LONG" and suspend:
-                    print(f"  [MACD] {sym} suppressed — extreme event")
+                if action == "OPEN_LONG" and (suspend or bear):
+                    reason = "extreme event" if suspend else "BTC bear regime"
+                    print(f"  [MACD] {sym} suppressed — {reason}")
                 else:
                     _exec(action, sym, close, "MACD"); any_sig = True
 
@@ -475,8 +622,9 @@ def run_live(symbols, capital):
                         coin_longs[sym].add("4H")
                     elif action == "CLOSE_LONG":
                         coin_longs[sym].discard("4H")
-                    if action == "OPEN_LONG" and suspend:
-                        print(f"  [4H] {sym} suppressed — extreme event")
+                    if action == "OPEN_LONG" and (suspend or bear):
+                        reason = "extreme event" if suspend else "BTC bear regime"
+                        print(f"  [4H] {sym} suppressed — {reason}")
                     else:
                         _exec(action, sym, c4, "4H"); any_sig = True
             time.sleep(0.2)
@@ -492,7 +640,8 @@ def run_live(symbols, capital):
             h4 = ema4h_strats[sym].current_signal()
             if e=="LONG" or m=="LONG" or h4=="LONG":
                 longs.append(f"{sym}(E:{e[0]} M:{m[0]} 4:{h4[0]})")
-        print(f"  Longs: {', '.join(longs) or 'none'}")
+        bear_label = btc_regime.is_bear
+        print(f"  Regime: {'BEAR' if bear_label else 'BULL'}  |  Longs: {', '.join(longs) or 'none'}")
 
     # Run immediately then sleep until each midnight+5min UTC
     _run_daily_check()
