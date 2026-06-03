@@ -14,7 +14,7 @@ V8 upgrades over V7:
   - AND-entry asymmetric regime: enter bear only when BTC < SMA200
     AND 30d return < -20% (avoids false bear flips on normal corrections)
   - Slow bear exit: BTC must stay above SMA200 for 5 consecutive days
-  - 30d momentum gate: skip new long entries if coin's 30d return ≤ 0
+  - 20d momentum gate: skip new long entries if coin's 20d return ≤ 0
 
 Base notional = capital / 12 coins.
 
@@ -146,8 +146,8 @@ class BTCRegime:
     Exit bear slowly: BTC must stay above SMA200 for 5 consecutive days.
     """
     _BEAR_DROP_PCT  = -0.20   # 30d return threshold to trigger bear entry
-    _CONFIRM_DAYS   = 5       # consecutive days above SMA200 needed to exit bear
-    _MOM_GATE_DAYS  = 30      # lookback for momentum gate on longs
+    _CONFIRM_DAYS   = 10      # consecutive days above SMA200 needed to exit bear (V8.63)
+    _MOM_GATE_DAYS  = 20      # lookback for momentum gate on longs (V8.63)
 
     def __init__(self):
         self._closes: list[float] = []
@@ -266,7 +266,7 @@ def _fetch_1h_recent(symbol: str, n: int = 40) -> list[tuple[int, float]]:
 def run_replay(symbols, capital, from_ts, to_ts):
     base_notional = capital / len(symbols)
     notional = base_notional / 3  # per-strategy slot (legacy sizing)
-    print(f"NexFlow Trio V8 — REPLAY  |  capital=${capital:,.0f}  |  ${base_notional:,.0f}/coin")
+    print(f"NexFlow Trio V8.63 — REPLAY  |  capital=${capital:,.0f}  |  ${base_notional:,.0f}/coin")
     print(f"Period: {datetime.fromtimestamp(from_ts/1000,tz=timezone.utc).date()} → "
           f"{datetime.fromtimestamp(to_ts/1000,tz=timezone.utc).date()}")
     print(f"Regime: V8 AND-entry (BTC<SMA200 AND 30d<-20%, 5d confirm exit)")
@@ -539,13 +539,13 @@ def run_live(symbols, capital):
         sized = (_TARGET_RISK * capital) / vol
         return max(base_notional * 0.5, min(sized * mult, base_notional * 2.0))
 
-    print("NexFlow Trio V8 — LIVE PAPER MODE")
+    print("NexFlow Trio V8.63 — LIVE PAPER MODE")
     print(f"Symbols        : {len(symbols)} coins")
     print(f"Capital        : ${capital:,.0f}  (${base_notional:.2f} base/coin)")
     print(f"Sizing         : ATR vol-adjusted (target risk {_TARGET_RISK*100:.0f}%/day, cap 2× base)")
     print(f"Confluence     : 1 strat=1×  2 strats=1.5×  3 strats=2×")
-    print(f"Regime gate    : V8 AND-entry (BTC<SMA200 AND 30d<-20%, 5d confirm exit)")
-    print(f"Momentum gate  : skip new longs if coin 30d return ≤ 0")
+    print(f"Regime gate    : V8.63 AND-entry (BTC<SMA200 AND 30d<-20%, 10d confirm exit)")
+    print(f"Momentum gate  : skip new longs if coin 20d return ≤ 0")
     print(f"Fee            : {_TAKER_FEE*100:.2f}% taker")
     print(f"Circuit breaker: pause new entries if portfolio DD ≥ {_CIRCUIT_BREAKER_DD*100:.0f}%")
     print()

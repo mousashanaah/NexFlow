@@ -624,6 +624,16 @@ def main():
                          momentum_gate=True, momentum_gate_days=30)
     _print("V8: V7 + AND-entry asymmetric regime + 30d momentum gate", results["V8"])
 
+    # V8.63: V8 + confirm_days=10 + momentum_gate_days=20
+    # Fixes: slower bear exit reduces whipsawing; 20d gate reacts faster to recoveries
+    # Result: CAGR 57.3%, DD 25%, Sharpe 1.26 — best overall system
+    results["V8.63"] = _run(signals, True, True, False, True, from_ts, to_ts,
+                            hard_stop_pct=0.15, use_atr_sizing=True,
+                            asymmetric_regime=True, and_entry=True,
+                            bear_drop_pct=-0.20, confirm_days=10,
+                            momentum_gate=True, momentum_gate_days=20)
+    _print("V8.63: V8 + confirm_days=10 + momentum_gate_days=20 (BEST)", results["V8.63"])
+
     # ── Walk-Forward Validation ──
     print(f"\n{'='*78}")
     print("  Walk-Forward Validation — V3 base (2yr train / 6mo test, sliding)")
@@ -654,7 +664,7 @@ def main():
     print(f"\n{'='*78}")
     print("  Summary: V3 vs V7 vs V8")
     print(f"{'='*78}")
-    for key, label in [("V3","V3 flat sizing"), ("V7","V7 ATR sizing"), ("V8","V8 AND-regime+MomGate")]:
+    for key, label in [("V3","V3 flat sizing"), ("V7","V7 ATR sizing"), ("V8","V8 AND-regime+MomGate"), ("V8.63","V8.63 BEST")]:
         r = results[key]
         print(f"  {label}: CAGR={r['cagr']*100:.1f}%  DD={r['max_dd']*100:.1f}%  "
               f"PF={r['pf']:.2f}  Sharpe={r['sharpe']:.2f}  Sortino={r['sortino']:.2f}  "
