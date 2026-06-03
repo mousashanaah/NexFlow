@@ -216,6 +216,14 @@ def _run(
     hard_stop_pct: float = 0.0,
     use_atr_sizing: bool = False,   # vol-adjusted position sizing
     target_risk: float = 0.01,      # target daily risk per position as fraction of capital
+    # NEW: Experiment A — trailing stop on longs
+    trailing_stop_pct: float = 0.0,  # 0 = off, e.g. 0.15 = 15% from peak
+    # NEW: Experiment B — asymmetric regime switch
+    asymmetric_regime: bool = False,  # fast enter bear, slow exit bear
+    # NEW: Experiment C — momentum gate on long entries
+    momentum_gate: bool = False,      # only enter long if coin 20d return > 0
+    # NEW: diagnostic mode — print regime flips + stranded long losses
+    diagnostic: bool = False,
 ) -> dict:
     all_ts = sorted(set(ts for sym in _SYMBOLS for ts in signals.get(sym,{}) if from_ts<=ts<=to_ts))
     base_notional = _CAPITAL / len(_SYMBOLS)
@@ -226,12 +234,47 @@ def _run(
         for sym in _SYMBOLS:
             vol_series[sym] = _vol_series(signals, sym)
 
+    # Precompute 20-day return series for momentum gate (Experiment C)
+    mom20_series: dict[str, dict[int, float]] = {}
+    if momentum_gate:
+        for sym in _SYMBOLS:
+            ts_list = sorted(signals.get(sym, {}).keys())
+            closes = [signals[sym][t]["close"] for t in ts_list]
+            m20: dict[int, float] = {}
+            for i, t in enumerate(ts_list):
+                if i < 20:
+                    m20[t] = 0.0
+                else:
+                    m20[t] = (closes[i] - closes[i-20]) / closes[i-20]
+            mom20_series[sym] = m20
+
+    # Precompute BTC 30-day return series for asymmetric regime (Experiment B)
+    btc_mom30: dict[int, float] = {}
+    # Also precompute BTC SMA50 for asymmetric exit condition
+    btc_sma50_series: dict[int, Optional[float]] = {}
+    if asymmetric_regime:
+        btc_ts_list = sorted(signals.get("BTCUSDT", {}).keys())
+        btc_closes = [signals["BTCUSDT"][t]["close"] for t in btc_ts_list]
+        btc_sma50_vals = _sma_series(btc_closes, 50)
+        for i, t in enumerate(btc_ts_list):
+            if i >= 30:
+                btc_mom30[t] = (btc_closes[i] - btc_closes[i-30]) / btc_closes[i-30]
+            else:
+                btc_mom30[t] = 0.0
+            btc_sma50_series[t] = btc_sma50_vals[i]
+
     equity = _CAPITAL; peak = _CAPITAL; max_dd = 0.0
     positions: dict[str,dict] = {}
     trades: list[dict] = []
     year_pnl: dict[int,float] = {}
     last_rebal_ts = 0
     daily_equity: list[float] = []  # for Sharpe/Sortino
+
+    # Diagnostic tracking
+    diag_regime_flips: list[dict] = []
+    diag_year_short_pnl: dict[int, float] = {}
+    diag_year_long_pnl: dict[int, float] = {}
+    prev_btc_bear_mode = False  # for asymmetric regime: tracks bear state
 
     def _position_size(sym: str, ts: int, mult: float = 1.0) -> float:
         """Return notional for this position — flat or vol-adjusted."""
@@ -248,7 +291,26 @@ def _run(
     for ts in all_ts:
         # BTC regime
         btc_sig = signals.get("BTCUSDT",{}).get(ts,{})
-        btc_bull = btc_sig.get("sma200_above", True)
+        btc_sma200_above = btc_sig.get("sma200_above", True)
+
+        if asymmetric_regime:
+            # Enter bear fast: BTC < SMA200 OR dropped >15% in 30 days
+            btc_30d_ret = btc_mom30.get(ts, 0.0)
+            enter_bear = (not btc_sma200_above) or (btc_30d_ret < -0.15)
+            # Exit bear slowly: BTC must be > SMA200 AND > SMA50
+            btc_sma50_val = btc_sma50_series.get(ts)
+            btc_above_sma50 = (btc_sma50_val is not None and
+                               btc_sig.get("close", 0) > btc_sma50_val)
+            exit_bear = btc_sma200_above and btc_above_sma50
+            if prev_btc_bear_mode:
+                btc_bear_mode = not exit_bear  # slow to exit
+            else:
+                btc_bear_mode = enter_bear     # fast to enter
+            prev_btc_bear_mode = btc_bear_mode
+            btc_bull = not btc_bear_mode
+        else:
+            btc_bull = btc_sma200_above
+
         # Optionally also require BTC short-term uptrend (EMA8 > EMA21) for new longs
         btc_ema_bull = btc_sig.get("ema_long", True) if use_btc_ema_long_filter else True
         long_allowed = btc_bull and btc_ema_bull
@@ -280,6 +342,7 @@ def _run(
                     trades.append({"ts":ts,"sym":sym,"net":net,"side":"SHORT"})
                     yr = datetime.fromtimestamp(ts/1000,tz=timezone.utc).year
                     year_pnl[yr] = year_pnl.get(yr,0)+net
+                    diag_year_short_pnl[yr] = diag_year_short_pnl.get(yr, 0) + net
 
             # Open new shorts
             for sym in desired_shorts:
@@ -305,6 +368,7 @@ def _run(
                     trades.append({"ts": ts, "sym": sym, "net": net, "side": "SHORT"})
                     yr = datetime.fromtimestamp(ts / 1000, tz=timezone.utc).year
                     year_pnl[yr] = year_pnl.get(yr, 0) + net
+                    diag_year_short_pnl[yr] = diag_year_short_pnl.get(yr, 0) + net
 
         # ── Close any shorts if we're back in bull ──
         if btc_bull and use_tsmom_short:
@@ -318,6 +382,29 @@ def _run(
                 trades.append({"ts":ts,"sym":sym,"net":net,"side":"SHORT"})
                 yr = datetime.fromtimestamp(ts/1000,tz=timezone.utc).year
                 year_pnl[yr] = year_pnl.get(yr,0)+net
+                diag_year_short_pnl[yr] = diag_year_short_pnl.get(yr, 0) + net
+
+        # ── Trailing stop on longs (Experiment A) ──
+        if trailing_stop_pct > 0:
+            for sym in [s for s in list(positions) if positions[s].get("side") == "LONG"]:
+                c = signals.get(sym, {}).get(ts, {}).get("close")
+                if c is None: continue
+                pos = positions[sym]
+                # Update peak price since entry
+                if c > pos.get("peak_price", pos["entry"]):
+                    pos["peak_price"] = c
+                # Check if dropped too far from peak
+                peak_p = pos.get("peak_price", pos["entry"])
+                drawdown_from_peak = (peak_p - c) / peak_p
+                if drawdown_from_peak >= trailing_stop_pct:
+                    positions.pop(sym)
+                    raw = (c - pos["entry"]) / pos["entry"] * pos["notional"]
+                    net = raw - _TAKER_FEE * pos["notional"]
+                    equity += net
+                    trades.append({"ts": ts, "sym": sym, "net": net, "side": "LONG"})
+                    yr = datetime.fromtimestamp(ts / 1000, tz=timezone.utc).year
+                    year_pnl[yr] = year_pnl.get(yr, 0) + net
+                    diag_year_long_pnl[yr] = diag_year_long_pnl.get(yr, 0) + net
 
         # ── Long signals ──
         for sym in _SYMBOLS:
@@ -336,6 +423,13 @@ def _run(
             if use_coin_sma50 and not sig.get("sma50_above", True):
                 can_long = False  # coin below own SMA50 — in downtrend, skip bounces
 
+            # Experiment C: momentum gate — only enter if 20d return > 0
+            if momentum_gate and not sig.get("sma200_above", True):
+                # only gate entries (not exits), check 20d return
+                m20 = mom20_series.get(sym, {}).get(ts, 0.0)
+                if m20 <= 0:
+                    can_long = False  # coin declining over 20 days, skip
+
             in_pos = sym in positions and positions[sym].get("side") == "LONG"
 
             # Close long if signal gone or regime changed
@@ -347,14 +441,20 @@ def _run(
                 trades.append({"ts":ts,"sym":sym,"net":net,"side":"LONG"})
                 yr = datetime.fromtimestamp(ts/1000,tz=timezone.utc).year
                 year_pnl[yr] = year_pnl.get(yr,0)+net
+                diag_year_long_pnl[yr] = diag_year_long_pnl.get(yr, 0) + net
                 in_pos = False
 
             # Open long if signal present and regime allows
             if not in_pos and any_long and can_long:
+                # Momentum gate: don't open new entry if 20d return <= 0
+                if momentum_gate:
+                    m20 = mom20_series.get(sym, {}).get(ts, 0.0)
+                    if m20 <= 0:
+                        continue
                 mult = {1:1.0,2:1.5,3:2.0}.get(n_long,1.0) if confluence else 1.0
                 n = _position_size(sym, ts, mult)
                 equity -= _TAKER_FEE * n
-                positions[sym] = {"entry":c,"notional":n,"side":"LONG"}
+                positions[sym] = {"entry":c,"notional":n,"side":"LONG","peak_price":c}
 
         # Mark-to-market equity snapshot for Sharpe/Sortino
         mtm_today = 0.0
@@ -366,6 +466,24 @@ def _run(
             else:
                 mtm_today += (pos["entry"] - c) / pos["entry"] * pos["notional"]
         daily_equity.append(equity + mtm_today)
+
+        # Diagnostic: detect regime flips and log stranded long exposure
+        if diagnostic:
+            cur_bear = not btc_bull
+            if cur_bear != prev_btc_bear_mode and len(diag_regime_flips) < 20:
+                longs_open = [(s, p) for s, p in positions.items() if p.get("side") == "LONG"]
+                unreal_loss = 0.0
+                for s, p in longs_open:
+                    cv = signals.get(s, {}).get(ts, {}).get("close", p["entry"])
+                    unreal_loss += (cv - p["entry"]) / p["entry"] * p["notional"]
+                diag_regime_flips.append({
+                    "ts": ts,
+                    "date": datetime.fromtimestamp(ts/1000, tz=timezone.utc).strftime("%Y-%m-%d"),
+                    "to_bear": cur_bear,
+                    "longs_open": len(longs_open),
+                    "unrealised_pnl": unreal_loss,
+                    "btc_close": btc_sig.get("close", 0),
+                })
 
         snap = daily_equity[-1]
         if snap > peak: peak = snap
@@ -422,6 +540,9 @@ def _run(
         "equity":total_eq,"net":net,"cagr":cagr,"max_dd":max_dd,
         "pf":pf,"n":len(trades),"is_pf":_pf(is_t),"oos_pf":_pf(oos_t),
         "year_pnl":year_pnl,"sharpe":sharpe,"sortino":sortino,
+        "diag_regime_flips": diag_regime_flips,
+        "diag_year_short_pnl": diag_year_short_pnl,
+        "diag_year_long_pnl": diag_year_long_pnl,
     }
 
 
