@@ -540,15 +540,28 @@ def run_live(symbols, capital):
         except Exception as e:
             print(f"  [ERROR] {src} {sym} {action}: {e}")
 
-    last_tsmom_rebal_live = [0]  # mutable ref for weekly rebalance tracking
+    last_tsmom_rebal_live = [0]   # ts of last weekly short rebalance
+    live_shorts: dict[str, float] = {}  # sym → entry_price (shorts open on exchange)
+
+    def _exec_short(action: str, sym: str, price: float) -> None:
+        """Place or close a short position on the exchange."""
+        qty = base_notional / price if price > 0 else 0
+        if qty <= 0: return
+        try:
+            if action == "OPEN_SHORT":
+                adapter.on_entry(sym, "short", qty, 0.0, 0.0, 0.0)
+                live_shorts[sym] = price
+                print(f"  [SHORT] SELL {sym:<12} @ {price:,.4f}  size=${base_notional:,.0f}")
+            elif action == "CLOSE_SHORT":
+                adapter.on_close(sym, "short", qty, 0.0, "tsmom_exit")
+                live_shorts.pop(sym, None)
+                print(f"  [SHORT] BUY  {sym:<12} @ {price:,.4f}  (closed)")
+        except Exception as e:
+            print(f"  [ERROR] SHORT {sym} {action}: {e}")
 
     def _run_daily_check():
         ts_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
         print(f"\n[{ts_str}] ── Daily check ──")
-
-        # Regime status
-        regime_str = "BEAR (BTC<SMA200) ─ shorts mode" if btc_regime.is_bear else "BULL (BTC>SMA200) ─ longs mode"
-        print(f"  Regime: {regime_str}")
 
         # News sentiment
         try:
@@ -566,83 +579,148 @@ def run_live(symbols, capital):
         except Exception:
             suspend = False
 
-        bear = btc_regime.is_bear
-
-        # Fetch closes and process signals
-        any_sig = False
+        # ── Fetch all closes first ──
+        closes: dict[str, tuple[int, float]] = {}
         for sym in symbols:
             result = _fetch_close(sym)
-            if not result:
-                time.sleep(0.3); continue
-            ts_ms, close = result
-
-            # Update regime with BTC close
-            if sym == "BTCUSDT":
-                btc_regime.update(close)
-            coin_closes_live[sym].append(close)
-
-            # EMA daily
-            for sig in ema_strat.on_daily_close(sym, close, ts_ms):
-                if sig.action == "OPEN_LONG":
-                    coin_longs[sym].add("EMA")
-                elif sig.action == "CLOSE_LONG":
-                    coin_longs[sym].discard("EMA")
-                if sig.action == "OPEN_LONG" and (suspend or bear):
-                    reason = "extreme event" if suspend else "BTC bear regime"
-                    print(f"  [EMA] {sym} suppressed — {reason}")
-                else:
-                    _exec(sig.action, sym, close, "EMA"); any_sig = True
-
-            # MACD daily
-            action = macd_strats[sym].update(close)
-            if action:
-                if action == "OPEN_LONG":
-                    coin_longs[sym].add("MACD")
-                elif action == "CLOSE_LONG":
-                    coin_longs[sym].discard("MACD")
-                if action == "OPEN_LONG" and (suspend or bear):
-                    reason = "extreme event" if suspend else "BTC bear regime"
-                    print(f"  [MACD] {sym} suppressed — {reason}")
-                else:
-                    _exec(action, sym, close, "MACD"); any_sig = True
-
-            # Update daily trend for 4H filter
-            csigs = ema_strat.current_signals()
-            ema4h_strats[sym].update_daily_trend(1.0 if csigs.get(sym)=="LONG" else 0.0, 0.5)
-
-            time.sleep(0.25)
-
-        # 4H check — fetch latest 4H close
-        for sym in symbols:
-            bars_1h = _fetch_1h_recent(sym, 40)
-            if not bars_1h: continue
-            for ts4, c4 in _resample_4h(bars_1h)[-3:]:
-                action = ema4h_strats[sym].update(c4)
-                if action:
-                    if action == "OPEN_LONG":
-                        coin_longs[sym].add("4H")
-                    elif action == "CLOSE_LONG":
-                        coin_longs[sym].discard("4H")
-                    if action == "OPEN_LONG" and (suspend or bear):
-                        reason = "extreme event" if suspend else "BTC bear regime"
-                        print(f"  [4H] {sym} suppressed — {reason}")
-                    else:
-                        _exec(action, sym, c4, "4H"); any_sig = True
+            if result:
+                closes[sym] = result
             time.sleep(0.2)
 
-        if not any_sig:
-            print("  No signals today.")
+        # Update regime with BTC close
+        if "BTCUSDT" in closes:
+            btc_regime.update(closes["BTCUSDT"][1])
+        for sym, (ts_ms, close) in closes.items():
+            coin_closes_live[sym].append(close)
 
-        ema_sigs = ema_strat.current_signals()
-        longs = []
-        for sym in symbols:
-            e  = ema_sigs.get(sym,"?")
-            m  = macd_strats[sym].current_signal()
-            h4 = ema4h_strats[sym].current_signal()
-            if e=="LONG" or m=="LONG" or h4=="LONG":
-                longs.append(f"{sym}(E:{e[0]} M:{m[0]} 4:{h4[0]})")
-        bear_label = btc_regime.is_bear
-        print(f"  Regime: {'BEAR' if bear_label else 'BULL'}  |  Longs: {', '.join(longs) or 'none'}")
+        bear = btc_regime.is_bear
+        now_ts = int(datetime.now(timezone.utc).timestamp() * 1000)
+        regime_str = "BEAR (BTC<SMA200) — shorts mode" if bear else "BULL (BTC>SMA200) — longs mode"
+        print(f"  Regime: {regime_str}")
+
+        # ── BEAR REGIME: TSMOM short management ──
+        if bear:
+            # Close all open longs (regime switch)
+            for sym in list(coin_longs.keys()):
+                if coin_longs[sym] and sym in closes:
+                    _, close = closes[sym]
+                    print(f"  [REGIME] Closing long {sym} — bear regime")
+                    _exec("CLOSE_LONG", sym, close, "REGIME")
+                    coin_longs[sym].clear()
+
+            # Weekly short rebalance
+            if (now_ts - last_tsmom_rebal_live[0]) >= 7 * _DAY_MS:
+                last_tsmom_rebal_live[0] = now_ts
+                print("  [TSMOM] Weekly rebalance ...")
+
+                # Score all coins by 126-day return
+                scores: list[tuple[float, str]] = []
+                for sym in symbols:
+                    cl = coin_closes_live[sym]
+                    if len(cl) >= 127:
+                        ret = (cl[-1] - cl[-127]) / cl[-127]
+                        scores.append((ret, sym))
+                scores.sort()
+                desired = {sym for ret, sym in scores if ret < -0.05}
+
+                # Close shorts no longer desired
+                for sym in list(live_shorts.keys()):
+                    if sym not in desired and sym in closes:
+                        _, close = closes[sym]
+                        _exec_short("CLOSE_SHORT", sym, close)
+                    time.sleep(0.2)
+
+                # Open new shorts
+                for sym in desired:
+                    if sym not in live_shorts and sym in closes:
+                        _, close = closes[sym]
+                        _exec_short("OPEN_SHORT", sym, close)
+                    time.sleep(0.2)
+
+                if desired:
+                    print(f"  [TSMOM] Shorts active: {', '.join(sorted(desired))}")
+                else:
+                    print("  [TSMOM] No coins qualify for shorting")
+            else:
+                days_since = (now_ts - last_tsmom_rebal_live[0]) / _DAY_MS
+                next_rebal = 7 - days_since
+                shorts_str = ", ".join(f"{s}({(closes[s][1]-v)/v*-100:+.1f}%)"
+                                       for s, v in live_shorts.items() if s in closes)
+                print(f"  [TSMOM] Next rebalance in {next_rebal:.0f}d  |  "
+                      f"Shorts: {shorts_str or 'none'}")
+
+        # ── BULL REGIME: close any open shorts, run long trio ──
+        else:
+            # Close all shorts if back in bull
+            if live_shorts:
+                print("  [REGIME] Bull regime — closing all shorts")
+                for sym in list(live_shorts.keys()):
+                    if sym in closes:
+                        _, close = closes[sym]
+                        _exec_short("CLOSE_SHORT", sym, close)
+                    time.sleep(0.2)
+
+            # Process long signals
+            any_sig = False
+            for sym, (ts_ms, close) in closes.items():
+                # EMA daily
+                for sig in ema_strat.on_daily_close(sym, close, ts_ms):
+                    if sig.action == "OPEN_LONG":
+                        coin_longs[sym].add("EMA")
+                    elif sig.action == "CLOSE_LONG":
+                        coin_longs[sym].discard("EMA")
+                    if sig.action == "OPEN_LONG" and suspend:
+                        print(f"  [EMA] {sym} suppressed — extreme event")
+                    else:
+                        _exec(sig.action, sym, close, "EMA"); any_sig = True
+
+                # MACD daily
+                action = macd_strats[sym].update(close)
+                if action:
+                    if action == "OPEN_LONG":
+                        coin_longs[sym].add("MACD")
+                    elif action == "CLOSE_LONG":
+                        coin_longs[sym].discard("MACD")
+                    if action == "OPEN_LONG" and suspend:
+                        print(f"  [MACD] {sym} suppressed — extreme event")
+                    else:
+                        _exec(action, sym, close, "MACD"); any_sig = True
+
+                # Update daily trend for 4H filter
+                csigs = ema_strat.current_signals()
+                ema4h_strats[sym].update_daily_trend(
+                    1.0 if csigs.get(sym) == "LONG" else 0.0, 0.5)
+                time.sleep(0.1)
+
+            # 4H check
+            for sym in symbols:
+                bars_1h = _fetch_1h_recent(sym, 40)
+                if not bars_1h: continue
+                for ts4, c4 in _resample_4h(bars_1h)[-3:]:
+                    action = ema4h_strats[sym].update(c4)
+                    if action:
+                        if action == "OPEN_LONG":
+                            coin_longs[sym].add("4H")
+                        elif action == "CLOSE_LONG":
+                            coin_longs[sym].discard("4H")
+                        if action == "OPEN_LONG" and suspend:
+                            print(f"  [4H] {sym} suppressed — extreme event")
+                        else:
+                            _exec(action, sym, c4, "4H"); any_sig = True
+                time.sleep(0.2)
+
+            if not any_sig:
+                print("  No long signals today.")
+
+            ema_sigs = ema_strat.current_signals()
+            longs = []
+            for sym in symbols:
+                e  = ema_sigs.get(sym, "?")
+                m  = macd_strats[sym].current_signal()
+                h4 = ema4h_strats[sym].current_signal()
+                if e == "LONG" or m == "LONG" or h4 == "LONG":
+                    longs.append(f"{sym}(E:{e[0]} M:{m[0]} 4:{h4[0]})")
+            print(f"  Active longs: {', '.join(longs) or 'none'}")
 
     # Run immediately then sleep until each midnight+5min UTC
     _run_daily_check()
