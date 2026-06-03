@@ -187,26 +187,63 @@ def _build_signals(symbols: list[str]) -> dict:
 # ---------------------------------------------------------------------------
 # Portfolio backtest
 # ---------------------------------------------------------------------------
+def _vol_series(signals: dict, sym: str, window: int = 14) -> dict[int, float]:
+    """Rolling std of daily returns over `window` days — used as ATR proxy for sizing."""
+    ts_list = sorted(signals.get(sym, {}).keys())
+    closes = [signals[sym][t]["close"] for t in ts_list]
+    result: dict[int, float] = {}
+    for i, ts in enumerate(ts_list):
+        if i < window:
+            result[ts] = 0.0
+            continue
+        rets = [(closes[j] - closes[j-1]) / closes[j-1] for j in range(i - window + 1, i + 1)]
+        mean = sum(rets) / len(rets)
+        variance = sum((r - mean)**2 for r in rets) / len(rets)
+        result[ts] = variance**0.5  # daily vol (std of returns)
+    return result
+
+
 def _run(
     signals: dict,
-    use_sma200_long_filter: bool,   # block new longs when BTC < SMA200
-    use_tsmom_short: bool,          # short in bear regime
-    use_per_coin_sma200: bool,      # each coin must be above its own SMA200
-    confluence: bool,               # scale by strategy agreement
+    use_sma200_long_filter: bool,
+    use_tsmom_short: bool,
+    use_per_coin_sma200: bool,
+    confluence: bool,
     from_ts: int,
     to_ts: int,
-    use_btc_ema_long_filter: bool = False,  # also require BTC EMA8 > EMA21 for new longs
-    use_coin_sma50: bool = False,           # each coin must be above its own SMA50
-    hard_stop_pct: float = 0.0,            # 0 = disabled; e.g. 0.20 = close short if up 20% against us
+    use_btc_ema_long_filter: bool = False,
+    use_coin_sma50: bool = False,
+    hard_stop_pct: float = 0.0,
+    use_atr_sizing: bool = False,   # vol-adjusted position sizing
+    target_risk: float = 0.01,      # target daily risk per position as fraction of capital
 ) -> dict:
     all_ts = sorted(set(ts for sym in _SYMBOLS for ts in signals.get(sym,{}) if from_ts<=ts<=to_ts))
     base_notional = _CAPITAL / len(_SYMBOLS)
 
+    # Precompute vol series for ATR sizing
+    vol_series: dict[str, dict[int, float]] = {}
+    if use_atr_sizing:
+        for sym in _SYMBOLS:
+            vol_series[sym] = _vol_series(signals, sym)
+
     equity = _CAPITAL; peak = _CAPITAL; max_dd = 0.0
-    positions: dict[str,dict] = {}  # {sym: {entry, notional}}
+    positions: dict[str,dict] = {}
     trades: list[dict] = []
     year_pnl: dict[int,float] = {}
     last_rebal_ts = 0
+    daily_equity: list[float] = []  # for Sharpe/Sortino
+
+    def _position_size(sym: str, ts: int, mult: float = 1.0) -> float:
+        """Return notional for this position — flat or vol-adjusted."""
+        n = base_notional * mult
+        if not use_atr_sizing:
+            return n
+        vol = vol_series.get(sym, {}).get(ts, 0.0)
+        if vol <= 0:
+            return n
+        # size = target_daily_risk / daily_vol, capped at 2× base
+        vol_sized = (target_risk * _CAPITAL) / vol
+        return min(vol_sized * mult, base_notional * 2 * mult)
 
     for ts in all_ts:
         # BTC regime
@@ -249,8 +286,9 @@ def _run(
                 if sym not in positions:
                     c = signals.get(sym,{}).get(ts,{}).get("close")
                     if c is None: continue
-                    equity -= _TAKER_FEE*base_notional
-                    positions[sym] = {"entry":c,"notional":base_notional,"side":"SHORT"}
+                    n = _position_size(sym, ts)
+                    equity -= _TAKER_FEE * n
+                    positions[sym] = {"entry":c,"notional":n,"side":"SHORT"}
 
         # ── Hard stop: close any short that moved too far against us ──
         if hard_stop_pct > 0 and use_tsmom_short:
@@ -313,16 +351,25 @@ def _run(
 
             # Open long if signal present and regime allows
             if not in_pos and any_long and can_long:
-                if confluence:
-                    mult = {1:1.0,2:1.5,3:2.0}.get(n_long,1.0)
-                else:
-                    mult = 1.0
-                n = base_notional * mult
-                equity -= _TAKER_FEE*n
+                mult = {1:1.0,2:1.5,3:2.0}.get(n_long,1.0) if confluence else 1.0
+                n = _position_size(sym, ts, mult)
+                equity -= _TAKER_FEE * n
                 positions[sym] = {"entry":c,"notional":n,"side":"LONG"}
 
-        if equity > peak: peak = equity
-        dd = (peak-equity)/peak
+        # Mark-to-market equity snapshot for Sharpe/Sortino
+        mtm_today = 0.0
+        for sym, pos in positions.items():
+            c = signals.get(sym, {}).get(ts, {}).get("close")
+            if c is None: continue
+            if pos["side"] == "LONG":
+                mtm_today += (c - pos["entry"]) / pos["entry"] * pos["notional"]
+            else:
+                mtm_today += (pos["entry"] - c) / pos["entry"] * pos["notional"]
+        daily_equity.append(equity + mtm_today)
+
+        snap = daily_equity[-1]
+        if snap > peak: peak = snap
+        dd = (peak - snap) / peak
         if dd > max_dd: max_dd = dd
 
     # Close all remaining positions at last available price (mark to market)
@@ -359,10 +406,22 @@ def _run(
     oos_t = [t for t in trades if t["ts"] >= _IS_TS]
     def _pf(ts): gw=sum(t["net"] for t in ts if t["net"]>0); gl=sum(abs(t["net"]) for t in ts if t["net"]<0); return gw/gl if gl>0 else float("inf")
 
+    # Sharpe and Sortino from daily equity curve
+    sharpe = sortino = 0.0
+    if len(daily_equity) > 2:
+        daily_rets = [(daily_equity[i] - daily_equity[i-1]) / daily_equity[i-1]
+                      for i in range(1, len(daily_equity))]
+        mean_r = sum(daily_rets) / len(daily_rets)
+        std_r  = (sum((r - mean_r)**2 for r in daily_rets) / len(daily_rets))**0.5
+        down_r = [r for r in daily_rets if r < 0]
+        std_down = (sum(r**2 for r in down_r) / len(down_r))**0.5 if down_r else 1e-9
+        sharpe  = (mean_r / std_r)  * (252**0.5) if std_r  > 0 else 0.0
+        sortino = (mean_r / std_down) * (252**0.5) if std_down > 0 else 0.0
+
     return {
         "equity":total_eq,"net":net,"cagr":cagr,"max_dd":max_dd,
         "pf":pf,"n":len(trades),"is_pf":_pf(is_t),"oos_pf":_pf(oos_t),
-        "year_pnl":year_pnl,
+        "year_pnl":year_pnl,"sharpe":sharpe,"sortino":sortino,
     }
 
 
@@ -373,6 +432,7 @@ def _print(label: str, r: dict) -> None:
     print(f"  Equity : ${r['equity']:>12,.0f}  (net ${r['net']:>+,.0f})")
     print(f"  CAGR   : {r['cagr']*100:.1f}%")
     print(f"  Max DD : {r['max_dd']*100:.1f}%")
+    print(f"  Sharpe : {r['sharpe']:.2f}   Sortino: {r['sortino']:.2f}")
     print(f"  PF     : {r['pf']:.2f}  (IS:{r['is_pf']:.2f}  OOS:{r['oos_pf']:.2f})")
     print(f"  Trades : {r['n']}")
     print()
@@ -420,41 +480,45 @@ def main():
     results["V6"] = _run(signals, True,  True,  False, True,  from_ts, to_ts, use_coin_sma50=True)
     _print("V6: V3 + per-coin SMA50 filter (no longs on coins in downtrend)", results["V6"])
 
-    # ── Hard-stop sweep on V3 base ──
-    print(f"\n{'='*78}")
-    print("  Hard-Stop Sweep on V3 (TSMOM shorts) — finding optimal stop level")
-    print(f"{'='*78}")
-    print(f"  {'Stop':>8}  {'CAGR':>7}  {'MaxDD':>7}  {'PF':>6}  {'IS PF':>7}  {'OOS PF':>8}  {'Equity':>12}  {'Year P&L'}")
-    print(f"  {'-'*8}  {'-'*7}  {'-'*7}  {'-'*6}  {'-'*7}  {'-'*8}  {'-'*12}  {'-'*40}")
-    stop_levels = [0.0, 0.10, 0.15, 0.20, 0.25, 0.30]
-    stop_results = {}
-    for sl in stop_levels:
-        r = _run(signals, True, True, False, True, from_ts, to_ts, hard_stop_pct=sl)
-        stop_results[sl] = r
-        label = "none" if sl == 0.0 else f"{sl*100:.0f}%"
-        yr_str = "  ".join(
-            f"{yr}:${r['year_pnl'].get(yr,0):>+8,.0f}" for yr in [2022, 2023, 2024, 2025]
-        )
-        print(f"  {label:>8}  {r['cagr']*100:>6.1f}%  {r['max_dd']*100:>6.1f}%  "
-              f"{r['pf']:>6.2f}  {r['is_pf']:>7.2f}  {r['oos_pf']:>8.2f}  "
-              f"${r['equity']:>11,.0f}  {yr_str}")
+    results["V7"] = _run(signals, True, True, False, True, from_ts, to_ts,
+                         hard_stop_pct=0.15, use_atr_sizing=True)
+    _print("V7: V3 + 15% hard stop + ATR vol-adjusted sizing", results["V7"])
 
-    # Side-by-side year comparison
+    # ── Walk-Forward Validation ──
     print(f"\n{'='*78}")
-    print("  Year-by-year comparison (all variants, $100K)")
+    print("  Walk-Forward Validation — V3 base (2yr train / 6mo test, sliding)")
     print(f"{'='*78}")
-    print(f"  {'Year':<6} {'V1 (base)':>12} {'V2 (+SMA200L)':>14} {'V3 (+Short)':>12} {'V5 (+EMA gate)':>14}")
-    print(f"  {'-'*6} {'-'*12} {'-'*14} {'-'*12} {'-'*14}")
-    all_years = sorted(set(yr for r in results.values() for yr in r["year_pnl"]))
-    for yr in all_years:
-        tag = " B" if yr in [2022,2025,2026] else ""
-        vals = [results[v]["year_pnl"].get(yr,0) for v in ["V1","V2","V3","V5"]]
-        flags = ["✓" if v>0 else "✗" for v in vals]
-        print(f"  {yr}{tag:<4} "
-              f"${vals[0]:>+10,.0f}{flags[0]} "
-              f"${vals[1]:>+11,.0f}{flags[1]}  "
-              f"${vals[2]:>+10,.0f}{flags[2]} "
-              f"${vals[3]:>+12,.0f}{flags[3]}")
+    print(f"  {'Window':<22}  {'OOS CAGR':>9}  {'OOS PF':>8}  {'Sharpe':>8}  {'Verdict'}")
+    print(f"  {'-'*22}  {'-'*9}  {'-'*8}  {'-'*8}  {'-'*10}")
+    _TRAIN_MS = int(2 * 365.25 * _DAY_MS)
+    _TEST_MS  = int(0.5 * 365.25 * _DAY_MS)
+    wf_pass = wf_total = 0
+    window_start = from_ts
+    while window_start + _TRAIN_MS + _TEST_MS <= to_ts:
+        train_end = window_start + _TRAIN_MS
+        test_end  = min(train_end + _TEST_MS, to_ts)
+        r = _run(signals, True, True, False, True, train_end, test_end, hard_stop_pct=0.15)
+        cagr_pct = r["cagr"] * 100
+        verdict  = "PASS ✓" if r["pf"] >= 1.10 and r["cagr"] > 0 else "FAIL ✗"
+        if verdict.startswith("PASS"): wf_pass += 1
+        wf_total += 1
+        t_start = datetime.fromtimestamp(train_end/1000, tz=timezone.utc).strftime("%Y-%m")
+        t_end   = datetime.fromtimestamp(test_end/1000,  tz=timezone.utc).strftime("%Y-%m")
+        print(f"  {t_start} → {t_end}          {cagr_pct:>8.1f}%  {r['pf']:>8.2f}  "
+              f"{r['sharpe']:>8.2f}  {verdict}")
+        window_start += _TEST_MS
+    print(f"\n  Result: {wf_pass}/{wf_total} windows profitable  "
+          f"({'ROBUST ✓' if wf_pass >= wf_total*0.7 else 'FRAGILE ✗ — review before live'})")
+
+    # ── Side-by-side summary ──
+    print(f"\n{'='*78}")
+    print("  Summary: V3 vs V7 (ATR sizing)")
+    print(f"{'='*78}")
+    for key, label in [("V3","V3 flat sizing"), ("V7","V7 ATR sizing")]:
+        r = results[key]
+        print(f"  {label}: CAGR={r['cagr']*100:.1f}%  DD={r['max_dd']*100:.1f}%  "
+              f"PF={r['pf']:.2f}  Sharpe={r['sharpe']:.2f}  Sortino={r['sortino']:.2f}  "
+              f"eq=${r['equity']:,.0f}")
     print()
     for v_key, label in [("V1","V1"),("V2","V2"),("V3","V3"),("V5","V5")]:
         r = results[v_key]

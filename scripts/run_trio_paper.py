@@ -479,12 +479,17 @@ def run_live(symbols, capital):
     adapter = BitgetPaperAdapter(client)
 
     base_notional = capital / len(symbols)  # confluence sizing base: capital/12
+    _CIRCUIT_BREAKER_DD = 0.20   # pause new entries if portfolio drops 20% from peak
+    portfolio_peak   = capital
+    circuit_open     = False     # True = breaker tripped, no new entries
+
     print("NexFlow Trio V3 — LIVE PAPER MODE")
     print(f"Symbols        : {len(symbols)} coins")
     print(f"Capital        : ${capital:,.0f}  (${base_notional:.2f} base/coin)")
     print(f"Confluence     : 1 strat=1×  2 strats=1.5×  3 strats=2×")
     print(f"Regime gate    : BTC SMA200 — bear→short, bull→long")
     print(f"Fee            : {_TAKER_FEE*100:.2f}% taker")
+    print(f"Circuit breaker: pause new entries if portfolio DD ≥ {_CIRCUIT_BREAKER_DD*100:.0f}%")
     print()
 
     # Seed strategies from historical data
@@ -669,6 +674,31 @@ def run_live(symbols, capital):
         regime_str = "BEAR (BTC<SMA200) — shorts mode" if bear else "BULL (BTC>SMA200) — longs mode"
         print(f"  Regime: {regime_str}")
 
+        # ── Circuit breaker: track portfolio mark-to-market equity ──
+        nonlocal portfolio_peak, circuit_open
+        try:
+            portfolio_equity = 0.0
+            for sym in symbols:
+                pos_info = adapter.get_position_info(sym) if hasattr(adapter, "get_position_info") else None
+                if pos_info:
+                    portfolio_equity += float(pos_info.get("unrealizedPL", 0))
+            portfolio_equity += capital  # base capital + open P&L
+            if portfolio_equity > portfolio_peak:
+                portfolio_peak = portfolio_equity
+                if circuit_open:
+                    circuit_open = False
+                    print("  ✓ Circuit breaker RESET — portfolio recovered")
+            dd = (portfolio_peak - portfolio_equity) / portfolio_peak
+            print(f"  Portfolio: ${portfolio_equity:,.0f}  peak=${portfolio_peak:,.0f}  DD={dd*100:.1f}%")
+            if dd >= _CIRCUIT_BREAKER_DD and not circuit_open:
+                circuit_open = True
+                print(f"  ⚠  CIRCUIT BREAKER TRIPPED — DD={dd*100:.1f}% ≥ {_CIRCUIT_BREAKER_DD*100:.0f}%"
+                      f" — no new entries until recovery")
+            elif circuit_open:
+                print(f"  ⚠  Circuit breaker active (DD={dd*100:.1f}%) — new entries paused")
+        except Exception:
+            pass  # never block trading on a metric failure
+
         # ── BEAR REGIME: TSMOM short management ──
         if bear:
             # Close all open longs (regime switch)
@@ -702,12 +732,15 @@ def run_live(symbols, capital):
                         _exec_short("CLOSE_SHORT", sym, close)
                     time.sleep(0.2)
 
-                # Open new shorts
-                for sym in desired:
-                    if sym not in live_shorts and sym in closes:
-                        _, close = closes[sym]
-                        _exec_short("OPEN_SHORT", sym, close)
-                    time.sleep(0.2)
+                # Open new shorts (blocked if circuit breaker active)
+                if circuit_open:
+                    print("  [CIRCUIT] New short entries paused — portfolio DD too high")
+                else:
+                    for sym in desired:
+                        if sym not in live_shorts and sym in closes:
+                            _, close = closes[sym]
+                            _exec_short("OPEN_SHORT", sym, close)
+                        time.sleep(0.2)
 
                 if desired:
                     print(f"  [TSMOM] Shorts active: {', '.join(sorted(desired))}")
@@ -733,6 +766,8 @@ def run_live(symbols, capital):
                     time.sleep(0.2)
 
             # Process long signals
+            if circuit_open:
+                print("  [CIRCUIT] New long entries paused — portfolio DD too high")
             any_sig = False
             for sym, (ts_ms, close) in closes.items():
                 # EMA daily
@@ -741,8 +776,8 @@ def run_live(symbols, capital):
                         coin_longs[sym].add("EMA")
                     elif sig.action == "CLOSE_LONG":
                         coin_longs[sym].discard("EMA")
-                    if sig.action == "OPEN_LONG" and suspend:
-                        print(f"  [EMA] {sym} suppressed — extreme event")
+                    if sig.action == "OPEN_LONG" and (suspend or circuit_open):
+                        print(f"  [EMA] {sym} suppressed — {'extreme event' if suspend else 'circuit breaker'}")
                     else:
                         _exec(sig.action, sym, close, "EMA"); any_sig = True
 
@@ -753,8 +788,8 @@ def run_live(symbols, capital):
                         coin_longs[sym].add("MACD")
                     elif action == "CLOSE_LONG":
                         coin_longs[sym].discard("MACD")
-                    if action == "OPEN_LONG" and suspend:
-                        print(f"  [MACD] {sym} suppressed — extreme event")
+                    if action == "OPEN_LONG" and (suspend or circuit_open):
+                        print(f"  [MACD] {sym} suppressed — {'extreme event' if suspend else 'circuit breaker'}")
                     else:
                         _exec(action, sym, close, "MACD"); any_sig = True
 
@@ -775,8 +810,8 @@ def run_live(symbols, capital):
                             coin_longs[sym].add("4H")
                         elif action == "CLOSE_LONG":
                             coin_longs[sym].discard("4H")
-                        if action == "OPEN_LONG" and suspend:
-                            print(f"  [4H] {sym} suppressed — extreme event")
+                        if action == "OPEN_LONG" and (suspend or circuit_open):
+                            print(f"  [4H] {sym} suppressed — {'extreme event' if suspend else 'circuit breaker'}")
                         else:
                             _exec(action, sym, c4, "4H"); any_sig = True
                 time.sleep(0.2)
