@@ -114,16 +114,16 @@ def close_market_position(
 
     side = "sell" if direction is Direction.LONG else "buy"
 
+    # tradeSide="close" is already reduce-only by definition on Bitget.
+    # Do NOT include reduceOnly or marginMode — they cause 400 on close orders.
     body = {
         "symbol":      symbol,
         "productType": _PRODUCT_TYPE,
-        "marginMode":  "crossed",
         "marginCoin":  _MARGIN_COIN,
         "size":        str(size),
         "side":        side,
         "tradeSide":   "close",
         "orderType":   "market",
-        "reduceOnly":  "YES",
     }
     return client.post(_EP_PLACE_ORDER, body)
 
