@@ -478,14 +478,31 @@ def run_live(symbols, capital):
     client  = BitgetClient.from_env()
     adapter = BitgetPaperAdapter(client)
 
-    base_notional = capital / len(symbols)  # confluence sizing base: capital/12
-    _CIRCUIT_BREAKER_DD = 0.20   # pause new entries if portfolio drops 20% from peak
+    base_notional    = capital / len(symbols)
+    _TARGET_RISK     = 0.01    # 1% of capital daily risk per position (ATR sizing)
+    _ATR_WINDOW      = 14      # rolling days for vol estimate
+    _CIRCUIT_BREAKER_DD = 0.20
     portfolio_peak   = capital
-    circuit_open     = False     # True = breaker tripped, no new entries
+    circuit_open     = False
 
-    print("NexFlow Trio V3 — LIVE PAPER MODE")
+    def _atr_notional(sym: str, mult: float = 1.0) -> float:
+        """Return vol-adjusted notional for sym, capped at 2× base, floored at 0.5× base."""
+        closes = coin_closes_live.get(sym, [])
+        if len(closes) < _ATR_WINDOW + 1:
+            return base_notional * mult  # not enough history yet — fall back to flat
+        rets = [(closes[i] - closes[i-1]) / closes[i-1]
+                for i in range(len(closes) - _ATR_WINDOW, len(closes))]
+        mean_r = sum(rets) / len(rets)
+        vol = (sum((r - mean_r)**2 for r in rets) / len(rets)) ** 0.5
+        if vol <= 0:
+            return base_notional * mult
+        sized = (_TARGET_RISK * capital) / vol
+        return max(base_notional * 0.5, min(sized * mult, base_notional * 2.0))
+
+    print("NexFlow Trio V3 — LIVE PAPER MODE (V7: ATR sizing)")
     print(f"Symbols        : {len(symbols)} coins")
     print(f"Capital        : ${capital:,.0f}  (${base_notional:.2f} base/coin)")
+    print(f"Sizing         : ATR vol-adjusted (target risk {_TARGET_RISK*100:.0f}%/day, cap 2× base)")
     print(f"Confluence     : 1 strat=1×  2 strats=1.5×  3 strats=2×")
     print(f"Regime gate    : BTC SMA200 — bear→short, bull→long")
     print(f"Fee            : {_TAKER_FEE*100:.2f}% taker")
@@ -534,10 +551,10 @@ def run_live(symbols, capital):
     coin_longs: dict[str, set] = {sym: set() for sym in symbols}  # {sym: {src,...}}
 
     def _confluence_notional(sym: str) -> float:
-        """Return position size based on how many strategies agree on this coin."""
+        """Return ATR-adjusted notional scaled by confluence multiplier."""
         n = len(coin_longs[sym])
         mult = {0: 0.0, 1: 1.0, 2: 1.5, 3: 2.0}.get(n, 2.0)
-        return base_notional * mult
+        return _atr_notional(sym, mult)
 
     def _exec(action, sym, price, src):
         notional = _confluence_notional(sym)
@@ -549,7 +566,7 @@ def run_live(symbols, capital):
                 n = len(coin_longs[sym])
                 mult = {1:1.0, 2:1.5, 3:2.0}.get(n, 1.0)
                 print(f"  [{src}] BUY  {sym:<12} @ {price:,.4f}  "
-                      f"({n} strat{'s' if n>1 else ''} agree → {mult}× = ${notional:,.0f})")
+                      f"({n} strat{'s' if n>1 else ''} agree → {mult}× = ${notional:,.0f} ATR-sized)")
             elif action == "CLOSE_LONG":
                 adapter.on_close(sym, "long", qty, 0.0, f"{src}_cross")
                 print(f"  [{src}] SELL {sym:<12} @ {price:,.4f}")
@@ -621,13 +638,14 @@ def run_live(symbols, capital):
 
     def _exec_short(action: str, sym: str, price: float) -> None:
         """Place or close a short position on the exchange."""
-        qty = base_notional / price if price > 0 else 0
+        notional = _atr_notional(sym)
+        qty = notional / price if price > 0 else 0
         if qty <= 0: return
         try:
             if action == "OPEN_SHORT":
                 adapter.on_entry(sym, "short", qty, 0.0, 0.0, 0.0)
                 live_shorts[sym] = price
-                print(f"  [SHORT] SELL {sym:<12} @ {price:,.4f}  size=${base_notional:,.0f}")
+                print(f"  [SHORT] SELL {sym:<12} @ {price:,.4f}  size=${notional:,.0f} (ATR-sized)")
             elif action == "CLOSE_SHORT":
                 adapter.on_close(sym, "short", qty, 0.0, "tsmom_exit")
                 live_shorts.pop(sym, None)
