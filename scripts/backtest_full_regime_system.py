@@ -197,6 +197,7 @@ def _run(
     to_ts: int,
     use_btc_ema_long_filter: bool = False,  # also require BTC EMA8 > EMA21 for new longs
     use_coin_sma50: bool = False,           # each coin must be above its own SMA50
+    hard_stop_pct: float = 0.0,            # 0 = disabled; e.g. 0.20 = close short if up 20% against us
 ) -> dict:
     all_ts = sorted(set(ts for sym in _SYMBOLS for ts in signals.get(sym,{}) if from_ts<=ts<=to_ts))
     base_notional = _CAPITAL / len(_SYMBOLS)
@@ -250,6 +251,22 @@ def _run(
                     if c is None: continue
                     equity -= _TAKER_FEE*base_notional
                     positions[sym] = {"entry":c,"notional":base_notional,"side":"SHORT"}
+
+        # ── Hard stop: close any short that moved too far against us ──
+        if hard_stop_pct > 0 and use_tsmom_short:
+            for sym in [s for s in list(positions) if positions[s].get("side") == "SHORT"]:
+                c = signals.get(sym, {}).get(ts, {}).get("close")
+                if c is None: continue
+                pos = positions[sym]
+                loss_pct = (c - pos["entry"]) / pos["entry"]  # positive = price rose = loss on short
+                if loss_pct >= hard_stop_pct:
+                    positions.pop(sym)
+                    raw = (pos["entry"] - c) / pos["entry"] * pos["notional"]
+                    net = raw - _TAKER_FEE * pos["notional"]
+                    equity += net
+                    trades.append({"ts": ts, "sym": sym, "net": net, "side": "SHORT"})
+                    yr = datetime.fromtimestamp(ts / 1000, tz=timezone.utc).year
+                    year_pnl[yr] = year_pnl.get(yr, 0) + net
 
         # ── Close any shorts if we're back in bull ──
         if btc_bull and use_tsmom_short:
@@ -402,6 +419,25 @@ def main():
 
     results["V6"] = _run(signals, True,  True,  False, True,  from_ts, to_ts, use_coin_sma50=True)
     _print("V6: V3 + per-coin SMA50 filter (no longs on coins in downtrend)", results["V6"])
+
+    # ── Hard-stop sweep on V3 base ──
+    print(f"\n{'='*78}")
+    print("  Hard-Stop Sweep on V3 (TSMOM shorts) — finding optimal stop level")
+    print(f"{'='*78}")
+    print(f"  {'Stop':>8}  {'CAGR':>7}  {'MaxDD':>7}  {'PF':>6}  {'IS PF':>7}  {'OOS PF':>8}  {'Equity':>12}  {'Year P&L'}")
+    print(f"  {'-'*8}  {'-'*7}  {'-'*7}  {'-'*6}  {'-'*7}  {'-'*8}  {'-'*12}  {'-'*40}")
+    stop_levels = [0.0, 0.10, 0.15, 0.20, 0.25, 0.30]
+    stop_results = {}
+    for sl in stop_levels:
+        r = _run(signals, True, True, False, True, from_ts, to_ts, hard_stop_pct=sl)
+        stop_results[sl] = r
+        label = "none" if sl == 0.0 else f"{sl*100:.0f}%"
+        yr_str = "  ".join(
+            f"{yr}:${r['year_pnl'].get(yr,0):>+8,.0f}" for yr in [2022, 2023, 2024, 2025]
+        )
+        print(f"  {label:>8}  {r['cagr']*100:>6.1f}%  {r['max_dd']*100:>6.1f}%  "
+              f"{r['pf']:>6.2f}  {r['is_pf']:>7.2f}  {r['oos_pf']:>8.2f}  "
+              f"${r['equity']:>11,.0f}  {yr_str}")
 
     # Side-by-side year comparison
     print(f"\n{'='*78}")

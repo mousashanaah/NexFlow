@@ -53,9 +53,10 @@ _SYMBOLS = [
     "LINKUSDT", "LTCUSDT", "DOTUSDT", "TRXUSDT",
 ]
 _CANDLE_DIR = _REPO_ROOT / "data" / "candles"
-_TAKER_FEE  = 0.0006
-_DAY_MS     = 86_400_000
-_HOUR_MS    = 3_600_000
+_TAKER_FEE      = 0.0006
+_DAY_MS         = 86_400_000
+_HOUR_MS        = 3_600_000
+_HARD_STOP_PCT  = 0.15   # close a short if price rises 15% above entry
 
 
 # ---------------------------------------------------------------------------
@@ -731,16 +732,56 @@ def run_live(symbols, capital):
                     longs.append(f"{sym}(E:{e[0]} M:{m[0]} 4:{h4[0]})")
             print(f"  Active longs: {', '.join(longs) or 'none'}")
 
-    # Run immediately then sleep until each midnight+5min UTC
+    def _run_stop_check():
+        """Check hard stop on all open shorts — runs every 6H between daily checks."""
+        if not live_shorts:
+            return
+        ts_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        stopped = []
+        for sym in list(live_shorts.keys()):
+            result = _fetch_close(sym)
+            if result is None:
+                continue
+            _, current_price = result
+            entry_price = live_shorts[sym]
+            loss_pct = (current_price - entry_price) / entry_price
+            if loss_pct >= _HARD_STOP_PCT:
+                print(f"\n[{ts_str}] ⚠  HARD STOP {sym}: entry={entry_price:,.4f}  "
+                      f"now={current_price:,.4f}  loss={loss_pct*100:.1f}% ≥ {_HARD_STOP_PCT*100:.0f}%")
+                _exec_short("CLOSE_SHORT", sym, current_price)
+                stopped.append(sym)
+            time.sleep(0.2)
+        if stopped:
+            print(f"[{ts_str}] Hard-stopped: {', '.join(stopped)}")
+
+    def _next_daily_check_time(now: "datetime") -> "datetime":
+        """Return next midnight+05min UTC after now."""
+        candidate = now.replace(hour=0, minute=5, second=0, microsecond=0)
+        if candidate <= now:
+            candidate = candidate + timedelta(days=1)
+        return candidate
+
+    # Run immediately then loop: hard-stop check every 6H, full check at midnight+5min UTC
     _run_daily_check()
+    next_daily = _next_daily_check_time(datetime.now(timezone.utc))
     while True:
         now = datetime.now(timezone.utc)
-        tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=5, second=0, microsecond=0)
-        sleep_s = max((tomorrow - now).total_seconds(), 60.0)
-        print(f"\n  Next check: {tomorrow.strftime('%Y-%m-%d %H:%M UTC')}  "
+        # Next 6H boundary
+        next_6h = now + timedelta(hours=6)
+        # Wake at whichever comes first: next 6H check or next daily check
+        wake_at = min(next_6h, next_daily)
+        sleep_s = max((wake_at - now).total_seconds(), 60.0)
+        print(f"\n  Next stop-check: {next_6h.strftime('%H:%M UTC')}  |  "
+              f"Next daily: {next_daily.strftime('%Y-%m-%d %H:%M UTC')}  "
               f"(sleeping {sleep_s/3600:.1f}h)")
         time.sleep(sleep_s)
-        _run_daily_check()
+
+        now = datetime.now(timezone.utc)
+        if now >= next_daily:
+            _run_daily_check()
+            next_daily = _next_daily_check_time(now)
+        else:
+            _run_stop_check()
 
 
 # ---------------------------------------------------------------------------
