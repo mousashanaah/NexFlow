@@ -35,6 +35,32 @@ _EP_CANCEL_TPSL     = "/api/v2/mix/order/cancel-plan-order"
 _EP_TPSL_LIST       = "/api/v2/mix/order/tpsl-order-list"
 _EP_POSITION        = "/api/v2/mix/position/all-position"
 _EP_ACCOUNT         = "/api/v2/mix/account/account"
+_EP_SET_LEVERAGE    = "/api/v2/mix/account/set-leverage"
+
+_TARGET_LEVERAGE    = "1"  # always trade at 1x — no leverage
+
+
+# ── Leverage ──────────────────────────────────────────────────────────────────
+
+def set_leverage(
+    client: BitgetClient,
+    symbol: str,
+    hold_side: str = "long",  # "long" or "short"
+) -> None:
+    """Set leverage to 1x for this symbol before placing any order.
+
+    Silently ignores errors (e.g. already set) so it never blocks an entry.
+    """
+    try:
+        client.post(_EP_SET_LEVERAGE, {
+            "symbol":      symbol,
+            "productType": _PRODUCT_TYPE,
+            "marginCoin":  _MARGIN_COIN,
+            "leverage":    _TARGET_LEVERAGE,
+            "holdSide":    hold_side,
+        })
+    except Exception:
+        pass  # non-fatal — proceed with entry regardless
 
 
 # ── Entry ─────────────────────────────────────────────────────────────────────
@@ -52,6 +78,9 @@ def place_market_entry(
     """
     constraints = get_constraints(symbol)
     size = round_size(size, constraints)
+
+    hold_side  = "long" if direction is Direction.LONG else "short"
+    set_leverage(client, symbol, hold_side)
 
     side      = "buy"  if direction is Direction.LONG  else "sell"
     trade_side = "open"
