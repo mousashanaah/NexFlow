@@ -30,6 +30,7 @@ _MARGIN_COIN  = "USDT"
 # ── Endpoints ────────────────────────────────────────────────────────────────
 
 _EP_PLACE_ORDER     = "/api/v2/mix/order/place-order"
+_EP_CLOSE_POSITIONS = "/api/v2/mix/order/close-positions"
 _EP_PLACE_TPSL      = "/api/v2/mix/order/place-tpsl-order"
 _EP_CANCEL_TPSL     = "/api/v2/mix/order/cancel-plan-order"
 _EP_TPSL_LIST       = "/api/v2/mix/order/tpsl-order-list"
@@ -104,28 +105,18 @@ def close_market_position(
     direction: Direction,
     size: float,
 ) -> dict[str, Any]:
-    """Close (all or part of) an open position via market order.
+    """Flash-close the entire position for symbol using Bitget's close-positions endpoint.
 
-    Uses tradeSide="close" + reduceOnly to avoid accidentally opening a new
-    position in one-way mode.
+    This endpoint closes the full position without needing to specify size,
+    avoiding precision and parameter issues with place-order on closes.
     """
-    constraints = get_constraints(symbol)
-    size = round_size(size, constraints)
-
-    side = "sell" if direction is Direction.LONG else "buy"
-
-    # tradeSide="close" is already reduce-only by definition on Bitget.
-    # Do NOT include reduceOnly or marginMode — they cause 400 on close orders.
+    hold_side = "long" if direction is Direction.LONG else "short"
     body = {
         "symbol":      symbol,
         "productType": _PRODUCT_TYPE,
-        "marginCoin":  _MARGIN_COIN,
-        "size":        str(size),
-        "side":        side,
-        "tradeSide":   "close",
-        "orderType":   "market",
+        "holdSide":    hold_side,
     }
-    return client.post(_EP_PLACE_ORDER, body)
+    return client.post(_EP_CLOSE_POSITIONS, body)
 
 
 # ── Stop-loss ────────────────────────────────────────────────────────────────
