@@ -942,11 +942,13 @@ def run_live(symbols, capital):
             print(f"  Active longs: {', '.join(longs) or 'none'}")
 
     def _run_stop_check():
-        """Check hard stop on all open shorts — runs every 6H between daily checks."""
-        if not live_shorts:
+        """Check 15% hard stop on all open positions (longs + shorts) every 6H."""
+        if not live_shorts and not any(coin_longs[s] for s in symbols):
             return
         ts_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
         stopped = []
+
+        # ── Hard stop on shorts: price rose 15%+ above entry ──
         for sym in list(live_shorts.keys()):
             result = _fetch_close(sym)
             if result is None:
@@ -955,11 +957,39 @@ def run_live(symbols, capital):
             entry_price = live_shorts[sym]
             loss_pct = (current_price - entry_price) / entry_price
             if loss_pct >= _HARD_STOP_PCT:
-                print(f"\n[{ts_str}] ⚠  HARD STOP {sym}: entry={entry_price:,.4f}  "
+                print(f"\n[{ts_str}] ⚠  HARD STOP SHORT {sym}: entry={entry_price:,.4f}  "
                       f"now={current_price:,.4f}  loss={loss_pct*100:.1f}% ≥ {_HARD_STOP_PCT*100:.0f}%")
                 _exec_short("CLOSE_SHORT", sym, current_price)
-                stopped.append(sym)
+                stopped.append(f"{sym}(short)")
             time.sleep(0.2)
+
+        # ── Hard stop on longs: price fell 15%+ below entry ──
+        for sym in list(symbols):
+            if not coin_longs[sym]:
+                continue
+            result = _fetch_close(sym)
+            if result is None:
+                continue
+            _, current_price = result
+            # Get entry price from exchange
+            try:
+                from nexflow.exchange.bitget_order import get_position
+                pos = get_position(adapter._client, sym)
+                if pos is None:
+                    coin_longs[sym].clear()
+                    continue
+                entry_price = float(pos.get("openPriceAvg", current_price))
+            except Exception:
+                continue
+            loss_pct = (entry_price - current_price) / entry_price
+            if loss_pct >= _HARD_STOP_PCT:
+                print(f"\n[{ts_str}] ⚠  HARD STOP LONG  {sym}: entry={entry_price:,.4f}  "
+                      f"now={current_price:,.4f}  loss={loss_pct*100:.1f}% ≥ {_HARD_STOP_PCT*100:.0f}%")
+                _exec("CLOSE_LONG", sym, current_price, "STOP")
+                coin_longs[sym].clear()
+                stopped.append(f"{sym}(long)")
+            time.sleep(0.2)
+
         if stopped:
             print(f"[{ts_str}] Hard-stopped: {', '.join(stopped)}")
 
