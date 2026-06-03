@@ -57,6 +57,7 @@ _TAKER_FEE      = 0.0006
 _DAY_MS         = 86_400_000
 _HOUR_MS        = 3_600_000
 _HARD_STOP_PCT  = 0.15   # close a short if price rises 15% above entry
+_STATE_FILE     = _REPO_ROOT / "data" / "nexflow_live_state.json"
 
 
 # ---------------------------------------------------------------------------
@@ -553,6 +554,32 @@ def run_live(symbols, capital):
     last_tsmom_rebal_live = [0]   # ts of last weekly short rebalance
     live_shorts: dict[str, float] = {}  # sym → entry_price (shorts open on exchange)
 
+    def _save_state() -> None:
+        import json
+        try:
+            _STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+            _STATE_FILE.write_text(json.dumps({
+                "last_tsmom_rebal": last_tsmom_rebal_live[0],
+            }))
+        except Exception as e:
+            print(f"  [WARN] Could not save state: {e}")
+
+    def _load_state() -> None:
+        import json
+        if not _STATE_FILE.exists():
+            return
+        try:
+            state = json.loads(_STATE_FILE.read_text())
+            last_tsmom_rebal_live[0] = int(state.get("last_tsmom_rebal", 0))
+            saved_dt = datetime.fromtimestamp(
+                last_tsmom_rebal_live[0] / 1000, tz=timezone.utc
+            ).strftime("%Y-%m-%d %H:%M UTC")
+            print(f"  Restored last TSMOM rebal: {saved_dt}")
+        except Exception as e:
+            print(f"  [WARN] Could not load state: {e}")
+
+    _load_state()
+
     # Reconcile with exchange on startup — restore live_shorts and coin_longs
     # from open positions so restarts don't lose state or create duplicates.
     if adapter is not None:
@@ -655,6 +682,7 @@ def run_live(symbols, capital):
             # Weekly short rebalance
             if (now_ts - last_tsmom_rebal_live[0]) >= 7 * _DAY_MS:
                 last_tsmom_rebal_live[0] = now_ts
+                _save_state()
                 print("  [TSMOM] Weekly rebalance ...")
 
                 # Score all coins by 126-day return
