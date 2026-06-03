@@ -1,0 +1,80 @@
+Loading daily candles from /home/runner/work/NexFlow/NexFlow/data/candles
+
+  BTCUSDT: 1970 daily bars
+  ETHUSDT: 1970 daily bars
+  SOLUSDT: 1757 daily bars
+  BNBUSDT: 1957 daily bars
+  XRPUSDT: 1957 daily bars
+  ADAUSDT: 1957 daily bars
+  DOGEUSDT: 1819 daily bars
+  AVAXUSDT: 1690 daily bars
+  LINKUSDT: 1957 daily bars
+  LTCUSDT: 1957 daily bars
+  DOTUSDT: 1957 daily bars
+  TRXUSDT: 1957 daily bars
+======================================================================
+  CROSS-SECTIONAL MOMENTUM BACKTEST — daily timeframe
+======================================================================
+  Hypothesis: coins with highest recent return continue to outperform
+  Pre-committed rule:
+    ranking  = trailing 20-day return
+    rebal    = every 7 calendar days (taker fee on change)
+    position = long top 3, short bottom 3
+    exposure = 1.0× capital  fee = 0.060% taker/side
+    symbols  = BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT, ADAUSDT, DOGEUSDT, AVAXUSDT, LINKUSDT, LTCUSDT, DOTUSDT, TRXUSDT
+
+======================================================================
+  SECTION B — MONETIZATION BACKTEST (after fees)
+======================================================================
+  Period        : 2024-05-06 → 2026-06-01
+  Initial equity: $100,000
+  Final equity  : $126,594
+  Net PnL       : $26,594  (26.6%)
+  CAGR          : 12.1%
+  Max drawdown  : 54.1%
+  Profit factor : 1.09
+  Total trades  : 302  (L:143  S:159)
+  Win rate      : 47.0%
+  Total fees    : $6,040
+
+  Symbol        Trades     WR%      PF          Net$
+  ──────────── ─────── ─────── ─────── ─────────────
+  BTCUSDT           21   57.1%    1.50 $       5,287
+  ETHUSDT           22   50.0%    0.95 $      -1,214
+  SOLUSDT           26   42.3%    1.71 $      16,148
+  BNBUSDT           31   61.3%    0.62 $      -8,441
+  XRPUSDT           28   50.0%    0.95 $      -1,946
+  ADAUSDT           26   46.2%    0.91 $      -2,752
+  DOGEUSDT          24   45.8%    3.08 $      48,046
+  AVAXUSDT          27   29.6%    0.61 $     -15,104
+  LINKUSDT          21   33.3%    0.60 $      -8,912
+  LTCUSDT           23   47.8%    0.89 $      -1,713
+  DOTUSDT           24   54.2%    1.03 $         722
+  TRXUSDT           29   44.8%    0.79 $      -3,528
+
+  Year      Trades     WR%      PF          Net$  Status
+  ──────── ─────── ─────── ─────── ─────────────  ──────────
+  2024          95   43.2%    1.26 $      30,843  +
+  2025         143   49.7%    1.01 $         769  +
+  2026          64   46.9%    0.89 $      -5,018  -
+
+  OOS split (IS = <2023, OOS = 2023+):
+    IS : 0 trades, PF 0.00
+    OOS: 302 trades, PF 1.09
+======================================================================
+
+======================================================================
+  VERDICT
+======================================================================
+
+  KILL -- Strategy fails one or more kill criteria:
+
+     * Profit factor 1.09 < kill threshold 1.1
+     * Max drawdown 54.1% > kill threshold 40%
+
+  Action: do NOT deploy. Move to next hypothesis.
+======================================================================
+
+======================================================================
+  Backtest complete.
+======================================================================
