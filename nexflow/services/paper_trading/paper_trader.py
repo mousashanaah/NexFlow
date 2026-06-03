@@ -34,6 +34,7 @@ from nexflow.services.paper_trading.execution_journal import ExecutionJournal
 from nexflow.services.paper_trading.live_risk_monitor import LiveRiskConfig, LiveRiskMonitor
 from nexflow.services.paper_trading.live_signal_router import LiveSignalRouter, RouterState
 from nexflow.services.paper_trading.performance_tracker import PerformanceTracker
+from nexflow.services.strategy.base_strategy import BaseStrategy
 from nexflow.services.strategy.momentum_strategy import MomentumConfig, MomentumStrategy
 from nexflow.services.strategy.paper_execution import ExecutionConfig, PaperExecution
 from nexflow.services.strategy.portfolio import Portfolio
@@ -76,6 +77,7 @@ class PaperTrader:
         cfg: PaperTraderConfig | None = None,
         symbols: list[str] | None = None,
         trade_symbols: list[str] | None = None,
+        strategy: "BaseStrategy | None" = None,
     ) -> None:
         self._cfg = cfg or PaperTraderConfig()
         self._symbols = symbols or ["BTCUSDT"]
@@ -88,7 +90,7 @@ class PaperTrader:
         self._portfolio = Portfolio(self._cfg.initial_equity)
         self._risk = RiskEngine(self._cfg.risk)
         self._execution = PaperExecution(self._cfg.execution)
-        self._strategy = MomentumStrategy(self._cfg.momentum)
+        self._strategy = strategy if strategy is not None else MomentumStrategy(self._cfg.momentum)
         self._journal = ExecutionJournal(log_dir=self._cfg.journal_dir)
         self._risk_monitor = LiveRiskMonitor(
             cfg=self._cfg.live_risk,
