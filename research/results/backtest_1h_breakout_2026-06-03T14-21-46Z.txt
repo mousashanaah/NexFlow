@@ -1,0 +1,57 @@
+Mechanism #13: 1H Volume-Momentum Breakout
+  range_mult=2.0, vol_mult=2.0, TP=2.0R, SL=1.0R, max_bars=4, long_only=True, daily_filter=True
+  Capital $100,000  |  8,333/coin  |  12 coins
+
+  BTCUSDT       pnl=$        +0  trades=0
+  ETHUSDT       pnl=$        +0  trades=0
+  SOLUSDT       pnl=$    -1,525  trades=305
+  BNBUSDT       pnl=$    -2,647  trades=334
+  XRPUSDT       pnl=$    -3,183  trades=368
+  ADAUSDT       pnl=$    +1,307  trades=214
+  DOGEUSDT      pnl=$    -5,789  trades=325
+  AVAXUSDT      pnl=$    -1,116  trades=230
+  LINKUSDT      pnl=$    -2,543  trades=280
+  LTCUSDT       pnl=$    -5,891  trades=294
+  DOTUSDT       pnl=$    -3,656  trades=171
+  TRXUSDT       pnl=$       -61  trades=368
+
+============================================================
+  Trades     : 2889  (wins=1148, losses=1741, WR=39.7%)
+  Gross win  : $166,074
+  Gross loss : $191,176
+  Profit fac : 0.87
+  Net PnL    : $-25,103  (-25.1%)
+  Final eq   : $74,897
+  CAGR       : -5.2%
+  Max DD     : 25.7%
+  IS  PF (<2023)  : 0.78  (689 trades)
+  OOS PF (2023+)  : 0.91  (2200 trades)
+
+Year-by-year:
+  2021: $   -10,918
+  2022: $    -2,756
+  2023: $      +995
+  2024: $    -5,281
+  2025: $    -4,996
+  2026: $    -2,146
+
+Per-symbol summary:
+  ADAUSDT       $    +1,307  (214 trades)
+  BTCUSDT       $        +0  (0 trades)
+  ETHUSDT       $        +0  (0 trades)
+  TRXUSDT       $       -61  (368 trades)
+  AVAXUSDT      $    -1,116  (230 trades)
+  SOLUSDT       $    -1,525  (305 trades)
+  LINKUSDT      $    -2,543  (280 trades)
+  BNBUSDT       $    -2,647  (334 trades)
+  XRPUSDT       $    -3,183  (368 trades)
+  DOTUSDT       $    -3,656  (171 trades)
+  DOGEUSDT      $    -5,789  (325 trades)
+  LTCUSDT       $    -5,891  (294 trades)
+
+  VERDICT: KILL  (PF=0.87, CAGR=-5.2%, DD=25.7%, n=2889, IS_PF=0.78, OOS_PF=0.91)
+
+Exit reason breakdown:
+  SL         1482 trades  $  -179,603
+  TIME        743 trades  $   +20,900
+  TP          664 trades  $  +133,601
