@@ -137,6 +137,15 @@ class BitgetClient:
             except urllib.error.HTTPError as exc:
                 last_exc = exc
                 if exc.code < 500:
+                    try:
+                        body = exc.read().decode("utf-8", errors="replace")
+                        raise urllib.error.HTTPError(
+                            exc.url, exc.code,
+                            f"{exc.reason} — {body}",
+                            exc.headers, None,
+                        )
+                    except (AttributeError, OSError):
+                        pass
                     raise
             except (urllib.error.URLError, OSError) as exc:
                 last_exc = exc
