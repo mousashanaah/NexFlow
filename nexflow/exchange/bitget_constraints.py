@@ -73,13 +73,43 @@ SYMBOL_REGISTRY: dict[str, SymbolConstraints] = {
         "XRPUSDT", price_precision=5, size_precision=0,
         min_order_qty=1.0, min_notional=5.0, max_leverage=75,
     ),
+    "ADAUSDT": SymbolConstraints(
+        "ADAUSDT", price_precision=5, size_precision=0,
+        min_order_qty=1.0, min_notional=5.0, max_leverage=75,
+    ),
+    "DOGEUSDT": SymbolConstraints(
+        "DOGEUSDT", price_precision=6, size_precision=0,
+        min_order_qty=1.0, min_notional=5.0, max_leverage=75,
+    ),
+    "AVAXUSDT": SymbolConstraints(
+        "AVAXUSDT", price_precision=3, size_precision=1,
+        min_order_qty=0.1, min_notional=5.0, max_leverage=75,
+    ),
+    "LINKUSDT": SymbolConstraints(
+        "LINKUSDT", price_precision=4, size_precision=1,
+        min_order_qty=0.1, min_notional=5.0, max_leverage=75,
+    ),
+    "LTCUSDT": SymbolConstraints(
+        "LTCUSDT", price_precision=3, size_precision=2,
+        min_order_qty=0.01, min_notional=5.0, max_leverage=75,
+    ),
+    "DOTUSDT": SymbolConstraints(
+        "DOTUSDT", price_precision=4, size_precision=1,
+        min_order_qty=0.1, min_notional=5.0, max_leverage=75,
+    ),
+    "TRXUSDT": SymbolConstraints(
+        "TRXUSDT", price_precision=6, size_precision=0,
+        min_order_qty=1.0, min_notional=5.0, max_leverage=75,
+    ),
 }
 
 
 def get_constraints(symbol: str) -> SymbolConstraints:
-    """Return constraints for a known symbol. Raises KeyError for unknown symbols."""
+    """Return constraints for a known symbol, or a safe default for unknown ones."""
     if symbol not in SYMBOL_REGISTRY:
-        raise KeyError(f"Unknown symbol: {symbol}. Add to SYMBOL_REGISTRY before trading.")
+        # Safe fallback: 3 decimal price, 1 decimal size, $5 min notional
+        return SymbolConstraints(symbol, price_precision=3, size_precision=1,
+                                 min_order_qty=0.1, min_notional=5.0)
     return SYMBOL_REGISTRY[symbol]
 
 
