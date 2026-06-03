@@ -188,13 +188,22 @@ def _resample_4h(bars_1h: list[tuple]) -> list[tuple]:
 
 def _fetch_close(symbol: str) -> Optional[tuple[int, float]]:
     url = (f"https://api.bitget.com/api/v2/mix/market/history-candles"
-           f"?symbol={symbol}&productType=USDT-FUTURES&granularity=1D&limit=2")
+           f"?symbol={symbol}&productType=USDT-FUTURES&granularity=1D&limit=3")
     try:
         req = urllib.request.Request(url, headers={"User-Agent":"NexFlow/1.0","Accept":"application/json"})
         with urllib.request.urlopen(req, timeout=10) as r:
             data = json.loads(r.read())
         if data.get("code") != "00000" or not data.get("data"): return None
-        return int(data["data"][0][0]), float(data["data"][0][4])
+        rows = data["data"]
+        # rows[0] = currently forming candle (not closed), rows[1] = last closed candle
+        # Pick the most recent fully closed candle
+        now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+        for row in rows:
+            candle_open = int(row[0])
+            candle_close_ms = candle_open + 86_400_000
+            if candle_close_ms <= now_ms:
+                return candle_open, float(row[4])
+        return int(rows[1][0]), float(rows[1][4])
     except Exception as e:
         print(f"  [WARN] {symbol}: {e}"); return None
 
