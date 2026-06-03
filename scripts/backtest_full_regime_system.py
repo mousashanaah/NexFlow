@@ -146,6 +146,7 @@ def _build_signals(symbols: list[str]) -> dict:
         ef8  = _ema_series(closes, 8)
         ef21 = _ema_series(closes, 21)
         sma200 = _sma_series(closes, 200)
+        sma50  = _sma_series(closes, 50)
         macd_long = _macd_long_series(closes)
 
         # 4H EMA 5/13 — approximate using daily with shorter EMAs as proxy
@@ -176,6 +177,7 @@ def _build_signals(symbols: list[str]) -> dict:
                 "macd_long":   macd_long[i],
                 "h4_long":     h4_long_state,
                 "sma200_above": sma200[i] is not None and closes[i] > sma200[i],
+                "sma50_above":  sma50[i]  is not None and closes[i] > sma50[i],
                 "sma200":      sma200[i],
             }
         out[sym] = by_ts
@@ -194,6 +196,7 @@ def _run(
     from_ts: int,
     to_ts: int,
     use_btc_ema_long_filter: bool = False,  # also require BTC EMA8 > EMA21 for new longs
+    use_coin_sma50: bool = False,           # each coin must be above its own SMA50
 ) -> dict:
     all_ts = sorted(set(ts for sym in _SYMBOLS for ts in signals.get(sym,{}) if from_ts<=ts<=to_ts))
     base_notional = _CAPITAL / len(_SYMBOLS)
@@ -275,6 +278,8 @@ def _run(
                 can_long = False  # bear regime or BTC EMA bearish: no new longs
             if use_per_coin_sma200 and not sig.get("sma200_above", True):
                 can_long = False  # coin below own SMA200
+            if use_coin_sma50 and not sig.get("sma50_above", True):
+                can_long = False  # coin below own SMA50 — in downtrend, skip bounces
 
             in_pos = sym in positions and positions[sym].get("side") == "LONG"
 
@@ -394,6 +399,9 @@ def main():
 
     results["V5"] = _run(signals, True,  True,  False, True,  from_ts, to_ts, use_btc_ema_long_filter=True)
     _print("V5: V3 + BTC EMA8>EMA21 required for longs (tighter bull gate)", results["V5"])
+
+    results["V6"] = _run(signals, True,  True,  False, True,  from_ts, to_ts, use_coin_sma50=True)
+    _print("V6: V3 + per-coin SMA50 filter (no longs on coins in downtrend)", results["V6"])
 
     # Side-by-side year comparison
     print(f"\n{'='*78}")
