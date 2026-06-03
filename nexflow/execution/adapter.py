@@ -201,16 +201,17 @@ class BitgetPaperAdapter(ExecutionAdapter):
             return None
 
     def on_close(self, symbol, direction, size, exit_price, reason):
-        # For demo trading, position is closed by the stop being triggered on
-        # the exchange. Manual closes (flip) use close_market_position.
-        if reason == "flip":
-            from nexflow.exchange.bitget_order import close_market_position
-            from nexflow.services.strategy.signal_models import Direction as Dir
-            dir_enum = Dir.LONG if direction == "long" else Dir.SHORT
-            try:
-                close_market_position(self._client, symbol, dir_enum, size)
-            except Exception:
-                pass  # logged by caller
+        # Send a real market close for any signal-driven exit.
+        # Only skip if reason == "stop" (exchange already closed it via stop order).
+        if reason == "stop":
+            return
+        from nexflow.exchange.bitget_order import close_market_position
+        from nexflow.services.strategy.signal_models import Direction as Dir
+        dir_enum = Dir.LONG if direction == "long" else Dir.SHORT
+        try:
+            close_market_position(self._client, symbol, dir_enum, size)
+        except Exception as exc:
+            print(f"  [ERROR] on_close {symbol} {direction}: {exc}")
 
     def sync_position(self, symbol):
         from nexflow.exchange.bitget_order import get_position, get_open_stops

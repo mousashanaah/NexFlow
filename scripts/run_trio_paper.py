@@ -598,19 +598,26 @@ def run_live(symbols, capital):
         return _atr_notional(sym, mult)
 
     def _exec(action, sym, price, src):
-        notional = _confluence_notional(sym)
-        qty = notional / price if price > 0 else 0
-        if qty <= 0: return
         try:
             if action == "OPEN_LONG":
+                notional = _confluence_notional(sym)
+                qty = notional / price if price > 0 else 0
+                if qty <= 0: return
                 adapter.on_entry(sym, "long", qty, 0.0, 0.0, 0.0)
                 n = len(coin_longs[sym])
                 mult = {1:1.0, 2:1.5, 3:2.0}.get(n, 1.0)
                 print(f"  [{src}] BUY  {sym:<12} @ {price:,.4f}  "
                       f"({n} strat{'s' if n>1 else ''} agree → {mult}× = ${notional:,.0f} ATR-sized)")
             elif action == "CLOSE_LONG":
-                adapter.on_close(sym, "long", qty, 0.0, f"{src}_cross")
-                print(f"  [{src}] SELL {sym:<12} @ {price:,.4f}")
+                # Fetch actual size from exchange so we close exactly what's held
+                from nexflow.exchange.bitget_order import get_position
+                pos = get_position(adapter._client, sym)
+                qty = float(pos.get("total", 0)) if pos else 0.0
+                if qty <= 0:
+                    coin_longs[sym].clear()
+                    return
+                adapter.on_close(sym, "long", qty, price, f"{src}_cross")
+                print(f"  [{src}] SELL {sym:<12} @ {price:,.4f}  qty={qty}")
         except Exception as e:
             print(f"  [ERROR] {src} {sym} {action}: {e}")
 
@@ -679,18 +686,25 @@ def run_live(symbols, capital):
 
     def _exec_short(action: str, sym: str, price: float) -> None:
         """Place or close a short position on the exchange."""
-        notional = _atr_notional(sym)
-        qty = notional / price if price > 0 else 0
-        if qty <= 0: return
         try:
             if action == "OPEN_SHORT":
+                notional = _atr_notional(sym)
+                qty = notional / price if price > 0 else 0
+                if qty <= 0: return
                 adapter.on_entry(sym, "short", qty, 0.0, 0.0, 0.0)
                 live_shorts[sym] = price
                 print(f"  [SHORT] SELL {sym:<12} @ {price:,.4f}  size=${notional:,.0f} (ATR-sized)")
             elif action == "CLOSE_SHORT":
-                adapter.on_close(sym, "short", qty, 0.0, "tsmom_exit")
+                # Fetch actual size from exchange so we close exactly what's held
+                from nexflow.exchange.bitget_order import get_position
+                pos = get_position(adapter._client, sym)
+                qty = float(pos.get("total", 0)) if pos else 0.0
+                if qty <= 0:
+                    live_shorts.pop(sym, None)
+                    return
+                adapter.on_close(sym, "short", qty, price, "tsmom_exit")
                 live_shorts.pop(sym, None)
-                print(f"  [SHORT] BUY  {sym:<12} @ {price:,.4f}  (closed)")
+                print(f"  [SHORT] BUY  {sym:<12} @ {price:,.4f}  qty={qty}  (closed)")
         except Exception as e:
             print(f"  [ERROR] SHORT {sym} {action}: {e}")
 
