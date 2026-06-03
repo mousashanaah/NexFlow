@@ -1,0 +1,105 @@
+
+======================================================================
+  HIGHER-TIMEFRAME TREND-FOLLOWING BACKTEST — 4H timeframe
+======================================================================
+  Hypothesis: crypto perps trend; breakouts run far enough that a
+              trailing stop banks more than losers + fees cost.
+  Pre-committed rule:
+    entry = close beyond prior 30-bar 4H channel (next-bar open)
+    stop  = 3.0×ATR(14), chandelier trailing (ratchets favorably)
+    fee   = 0.0600% taker/side  risk = 1.0%  capital = $100,000
+    symbols = BTCUSDT, ETHUSDT, SOLUSDT, TRXUSDT
+
+Loading 1H candles and aggregating to 4H ...
+  BTCUSDT: 47,501 1H → 11,876 4H bars, 1,135 breakout signals
+  ETHUSDT: 47,501 1H → 11,876 4H bars, 1,132 breakout signals
+  SOLUSDT: 42,416 1H → 10,658 4H bars, 692 breakout signals
+  TRXUSDT: 47,266 1H → 11,876 4H bars, 833 breakout signals
+
+======================================================================
+  SECTION A — MECHANISM VALIDITY (pre-fee, event-level analysis)
+======================================================================
+  Breakout = close beyond prior 30-bar (4H) channel high/low.
+  R = 3.0×ATR(14) at entry. We measure how far breakouts run.
+  Forward MFE/MAE over the next 30 bars (5 days) from next-bar open.
+
+  LONG breakouts: 2,242 events
+    Median MFE: 0.94 R    Median MAE: 0.81 R
+    Mean   MFE: 1.28 R    Mean   MAE: 0.99 R
+    Reached +2R before -1R: 18.7%  (420/2242)
+
+  SHORT breakouts: 1,550 events
+    Median MFE: 0.70 R    Median MAE: 0.88 R
+    Mean   MFE: 0.95 R    Mean   MAE: 1.07 R
+    Reached +2R before -1R: 8.3%  (128/1550)
+
+  Mechanism assessment: NO EDGE
+    (breakeven needs >33.3% reaching +2R-before-1R given the 2:1 payoff)
+    Breakouts do not run far enough often enough to pay the 2:1 structure.
+======================================================================
+
+======================================================================
+  SECTION B — MONETIZATION BACKTEST (after fees)
+======================================================================
+  Parameters    : breakout=30bar(4H) channel  trail=3.0×ATR(14)
+  Period        : 2021-02-03 → 2026-06-03
+  Initial equity: $100,000
+  Final equity  : $145,497
+  Net PnL       : $+45,497  (+45.5%)
+  CAGR          : 7.3%
+  Max drawdown  : 34.4%
+  Profit factor : 1.16
+  Total trades  : 947  (L:514  S:433)
+  Win rate      : 38.1%
+  Avg hold      : 23.1 bars (93h)
+  Total fees    : $18,899
+
+  ──────────────────────────────────────────────────────────────────────
+  Symbol      Trades     WR%      PF         Net$
+  ────────── ─────── ─────── ─────── ────────────
+  BTCUSDT        253   37.2%    1.07 $    +6,894
+  ETHUSDT        253   37.2%    1.09 $    +8,339
+  SOLUSDT        200   40.0%    1.32 $   +21,441
+  TRXUSDT        241   38.6%    1.21 $   +18,245
+
+  ──────────────────────────────────────────────────────────────────────
+  Year      Trades     WR%      PF         Net$  Status
+  ──────── ─────── ─────── ─────── ────────────  ──────────
+  2021         141   36.2%    0.91 $    -5,257  -
+  2022         178   34.8%    1.04 $    +2,455  +
+  2023         185   37.3%    0.92 $    -5,382  -
+  2024         195   37.9%    1.00 $      +325  +
+  2025         171   40.9%    1.49 $   +27,865  +
+  2026          77   45.5%    2.11 $   +34,912  +
+
+  ──────────────────────────────────────────────────────────────────────
+  Top 5 trades by PnL:
+    SOLUSDT  LONG  entry 2023-10-16 08:00  held=104b  $+11,631
+    ETHUSDT  SHORT entry 2026-05-18 04:00  held=27b  $+10,485
+    BTCUSDT  SHORT entry 2026-05-18 04:00  held=27b  $+9,468
+    TRXUSDT  LONG  entry 2024-02-01 16:00  held=137b  $+6,176
+    TRXUSDT  LONG  entry 2024-08-15 08:00  held=32b  $+5,995
+  Bottom 5 trades by PnL:
+    SOLUSDT  LONG  entry 2026-05-21 20:00  held=8b  $-1,186
+    SOLUSDT  LONG  entry 2026-03-25 12:00  held=6b  $-1,187
+    SOLUSDT  SHORT entry 2026-01-25 20:00  held=4b  $-1,204
+    TRXUSDT  SHORT entry 2026-02-28 12:00  held=23b  $-1,301
+    SOLUSDT  SHORT entry 2026-05-23 08:00  held=3b  $-1,381
+
+  ──────────────────────────────────────────────────────────────────────
+  OOS split (IS = <2023, OOS = 2023+):
+    IS : 319 trades, PF 0.98
+    OOS: 628 trades, PF 1.26
+======================================================================
+
+======================================================================
+  VERDICT
+======================================================================
+
+  MARGINAL -- 1/3 go criteria met. Deploy on paper with caution.
+  Passed  : Max DD 34.4% <= 40%
+======================================================================
+
+======================================================================
+  Backtest complete.
+======================================================================
