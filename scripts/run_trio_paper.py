@@ -1,22 +1,25 @@
 #!/usr/bin/env python3
-"""NexFlow Trio — paper-trade all three GO strategies simultaneously.
+"""NexFlow Trio V8 — paper-trade all three GO strategies simultaneously.
 
   Strategy 1: EMA 8/21 Daily Long-Only     (CAGR 24%, DD 11%, PF 1.95)
   Strategy 2: MACD 12/26/9 Daily Long-Only (CAGR 23%, DD 17%, PF 1.59)
   Strategy 3: 4H EMA 5/13 Long-Only        (CAGR 20%, DD  9%, PF 1.46)
 
-Confluence position sizing (backtested CAGR 32.8%, DD 34.6%):
+Confluence position sizing:
   1 strategy signals LONG  → 1.0× base notional per coin
   2 strategies agree       → 1.5× base notional per coin
   All 3 agree              → 2.0× base notional per coin
+
+V8 upgrades over V7:
+  - AND-entry asymmetric regime: enter bear only when BTC < SMA200
+    AND 30d return < -20% (avoids false bear flips on normal corrections)
+  - Slow bear exit: BTC must stay above SMA200 for 5 consecutive days
+  - 30d momentum gate: skip new long entries if coin's 30d return ≤ 0
 
 Base notional = capital / 12 coins.
 
 Checks once per day at 00:05 UTC (5 min after daily candle close).
 4H EMA checks are embedded in the same daily loop using latest 4H close.
-
-News & sentiment: free rule-based engine (Fear&Greed + Google News).
-Optional: set ANTHROPIC_API_KEY to upgrade to Claude analysis.
 
 Usage:
     # See what strategies would have done since 2024:
@@ -136,24 +139,58 @@ class EMA4HState:
 
 
 # ---------------------------------------------------------------------------
-# BTC regime tracker (SMA200 master switch for V3 system)
+# BTC regime tracker (V8: AND-entry asymmetric regime)
 # ---------------------------------------------------------------------------
 class BTCRegime:
-    """Tracks BTC SMA200. Returns bear=True when BTC < its 200-day SMA."""
+    """V8 regime: enter bear only when BTC < SMA200 AND 30d drop > 20%.
+    Exit bear slowly: BTC must stay above SMA200 for 5 consecutive days.
+    """
+    _BEAR_DROP_PCT  = -0.20   # 30d return threshold to trigger bear entry
+    _CONFIRM_DAYS   = 5       # consecutive days above SMA200 needed to exit bear
+    _MOM_GATE_DAYS  = 30      # lookback for momentum gate on longs
 
     def __init__(self):
         self._closes: list[float] = []
-        self._bear = False  # default: assume bull until enough data
+        self._bear = False
+        self._above_streak = 0   # consecutive days BTC has been above SMA200
 
     def update(self, close: float) -> None:
         self._closes.append(close)
-        if len(self._closes) >= 200:
-            sma200 = sum(self._closes[-200:]) / 200
-            self._bear = close < sma200
+        if len(self._closes) < 200:
+            return
+
+        sma200 = sum(self._closes[-200:]) / 200
+        below_sma200 = close < sma200
+
+        # 30-day return
+        mom30 = 0.0
+        if len(self._closes) >= 31:
+            mom30 = (self._closes[-1] - self._closes[-31]) / self._closes[-31]
+
+        # Track streak of days above SMA200 (for slow exit)
+        if not below_sma200:
+            self._above_streak += 1
+        else:
+            self._above_streak = 0
+
+        if self._bear:
+            # Slow exit: need CONFIRM_DAYS consecutive days above SMA200
+            if self._above_streak >= self._CONFIRM_DAYS:
+                self._bear = False
+        else:
+            # AND-entry: only flip to bear if BOTH below SMA200 AND big 30d drop
+            if below_sma200 and mom30 <= self._BEAR_DROP_PCT:
+                self._bear = True
 
     @property
     def is_bear(self) -> bool:
         return self._bear
+
+    def mom_return(self, closes: list[float], days: int) -> float:
+        """N-day return for a coin. Returns 0.0 if not enough history."""
+        if len(closes) < days + 1:
+            return 0.0
+        return (closes[-1] - closes[-(days+1)]) / closes[-(days+1)]
 
     def tsmom_return(self, closes_126: list[float]) -> float:
         """126-day return for TSMOM scoring. Needs 127+ items."""
@@ -229,10 +266,11 @@ def _fetch_1h_recent(symbol: str, n: int = 40) -> list[tuple[int, float]]:
 def run_replay(symbols, capital, from_ts, to_ts):
     base_notional = capital / len(symbols)
     notional = base_notional / 3  # per-strategy slot (legacy sizing)
-    print(f"NexFlow Trio V3 — REPLAY  |  capital=${capital:,.0f}  |  ${base_notional:,.0f}/coin")
+    print(f"NexFlow Trio V8 — REPLAY  |  capital=${capital:,.0f}  |  ${base_notional:,.0f}/coin")
     print(f"Period: {datetime.fromtimestamp(from_ts/1000,tz=timezone.utc).date()} → "
           f"{datetime.fromtimestamp(to_ts/1000,tz=timezone.utc).date()}")
-    print(f"Regime: BTC SMA200 master switch  |  TSMOM shorts in bear market")
+    print(f"Regime: V8 AND-entry (BTC<SMA200 AND 30d<-20%, 5d confirm exit)")
+    print(f"MomGate: skip longs if coin 30d return ≤ 0")
     print()
 
     ema_strat  = EMATrendStrategy(symbols=symbols, fast=8, slow=21)
@@ -368,10 +406,11 @@ def run_replay(symbols, capital, from_ts, to_ts):
             if in_range and not bear:
                 n_long = len(coin_sigs[sym])
                 in_pos = sym in long_pos
+                mom30 = btc_regime.mom_return(coin_closes[sym], BTCRegime._MOM_GATE_DAYS)
                 if n_long == 0 and in_pos:
                     _close_long(sym, close, ts, "EMA/MACD")
                     equity = equity_ref[0]
-                elif n_long > 0 and not in_pos:
+                elif n_long > 0 and not in_pos and mom30 > 0:
                     size = _confluence_size(sym)
                     equity -= _TAKER_FEE * size
                     long_pos[sym] = (close, size)
@@ -390,10 +429,11 @@ def run_replay(symbols, capital, from_ts, to_ts):
             if in_range and not bear:
                 n_long = len(coin_sigs[sym])
                 in_pos = sym in long_pos
+                mom30 = btc_regime.mom_return(coin_closes[sym], BTCRegime._MOM_GATE_DAYS)
                 if n_long == 0 and in_pos:
                     _close_long(sym, close, ts, "4H")
                     equity = equity_ref[0]
-                elif n_long > 0 and not in_pos:
+                elif n_long > 0 and not in_pos and mom30 > 0:
                     size = _confluence_size(sym)
                     equity -= _TAKER_FEE * size
                     long_pos[sym] = (close, size)
@@ -499,12 +539,13 @@ def run_live(symbols, capital):
         sized = (_TARGET_RISK * capital) / vol
         return max(base_notional * 0.5, min(sized * mult, base_notional * 2.0))
 
-    print("NexFlow Trio V3 — LIVE PAPER MODE (V7: ATR sizing)")
+    print("NexFlow Trio V8 — LIVE PAPER MODE")
     print(f"Symbols        : {len(symbols)} coins")
     print(f"Capital        : ${capital:,.0f}  (${base_notional:.2f} base/coin)")
     print(f"Sizing         : ATR vol-adjusted (target risk {_TARGET_RISK*100:.0f}%/day, cap 2× base)")
     print(f"Confluence     : 1 strat=1×  2 strats=1.5×  3 strats=2×")
-    print(f"Regime gate    : BTC SMA200 — bear→short, bull→long")
+    print(f"Regime gate    : V8 AND-entry (BTC<SMA200 AND 30d<-20%, 5d confirm exit)")
+    print(f"Momentum gate  : skip new longs if coin 30d return ≤ 0")
     print(f"Fee            : {_TAKER_FEE*100:.2f}% taker")
     print(f"Circuit breaker: pause new entries if portfolio DD ≥ {_CIRCUIT_BREAKER_DD*100:.0f}%")
     print()
@@ -689,7 +730,10 @@ def run_live(symbols, capital):
 
         bear = btc_regime.is_bear
         now_ts = int(datetime.now(timezone.utc).timestamp() * 1000)
-        regime_str = "BEAR (BTC<SMA200) — shorts mode" if bear else "BULL (BTC>SMA200) — longs mode"
+        if bear:
+            regime_str = "BEAR (AND-entry: BTC<SMA200+30d<-20%) — shorts mode"
+        else:
+            regime_str = f"BULL — longs mode (confirm streak={btc_regime._above_streak}d)"
         print(f"  Regime: {regime_str}")
 
         # ── Circuit breaker: track portfolio mark-to-market equity ──
@@ -788,6 +832,9 @@ def run_live(symbols, capital):
                 print("  [CIRCUIT] New long entries paused — portfolio DD too high")
             any_sig = False
             for sym, (ts_ms, close) in closes.items():
+                mom30 = btc_regime.mom_return(coin_closes_live[sym], BTCRegime._MOM_GATE_DAYS)
+                mom_blocked = mom30 <= 0
+
                 # EMA daily
                 for sig in ema_strat.on_daily_close(sym, close, ts_ms):
                     if sig.action == "OPEN_LONG":
@@ -796,6 +843,8 @@ def run_live(symbols, capital):
                         coin_longs[sym].discard("EMA")
                     if sig.action == "OPEN_LONG" and (suspend or circuit_open):
                         print(f"  [EMA] {sym} suppressed — {'extreme event' if suspend else 'circuit breaker'}")
+                    elif sig.action == "OPEN_LONG" and mom_blocked:
+                        print(f"  [EMA] {sym} suppressed — momentum gate (30d={mom30*100:.1f}%≤0)")
                     else:
                         _exec(sig.action, sym, close, "EMA"); any_sig = True
 
@@ -808,6 +857,8 @@ def run_live(symbols, capital):
                         coin_longs[sym].discard("MACD")
                     if action == "OPEN_LONG" and (suspend or circuit_open):
                         print(f"  [MACD] {sym} suppressed — {'extreme event' if suspend else 'circuit breaker'}")
+                    elif action == "OPEN_LONG" and mom_blocked:
+                        print(f"  [MACD] {sym} suppressed — momentum gate (30d={mom30*100:.1f}%≤0)")
                     else:
                         _exec(action, sym, close, "MACD"); any_sig = True
 
@@ -821,6 +872,8 @@ def run_live(symbols, capital):
             for sym in symbols:
                 bars_1h = _fetch_1h_recent(sym, 40)
                 if not bars_1h: continue
+                mom30 = btc_regime.mom_return(coin_closes_live[sym], BTCRegime._MOM_GATE_DAYS)
+                mom_blocked = mom30 <= 0
                 for ts4, c4 in _resample_4h(bars_1h)[-3:]:
                     action = ema4h_strats[sym].update(c4)
                     if action:
@@ -830,6 +883,8 @@ def run_live(symbols, capital):
                             coin_longs[sym].discard("4H")
                         if action == "OPEN_LONG" and (suspend or circuit_open):
                             print(f"  [4H] {sym} suppressed — {'extreme event' if suspend else 'circuit breaker'}")
+                        elif action == "OPEN_LONG" and mom_blocked:
+                            print(f"  [4H] {sym} suppressed — momentum gate (30d={mom30*100:.1f}%≤0)")
                         else:
                             _exec(action, sym, c4, "4H"); any_sig = True
                 time.sleep(0.2)
