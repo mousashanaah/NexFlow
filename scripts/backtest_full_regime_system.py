@@ -220,8 +220,12 @@ def _run(
     trailing_stop_pct: float = 0.0,  # 0 = off, e.g. 0.15 = 15% from peak
     # NEW: Experiment B — asymmetric regime switch
     asymmetric_regime: bool = False,  # fast enter bear, slow exit bear
+    bear_drop_pct: float = -0.15,     # 30d BTC drop threshold to enter bear early (AND mode)
+    and_entry: bool = False,          # True = AND (must ALSO be below SMA200), False = OR
+    confirm_days: int = 0,            # days BTC must stay above SMA200 to exit bear (slow exit)
     # NEW: Experiment C — momentum gate on long entries
-    momentum_gate: bool = False,      # only enter long if coin 20d return > 0
+    momentum_gate: bool = False,      # only enter long if coin Nd return > 0
+    momentum_gate_days: int = 20,     # lookback window for momentum gate
     # NEW: diagnostic mode — print regime flips + stranded long losses
     diagnostic: bool = False,
 ) -> dict:
@@ -234,7 +238,7 @@ def _run(
         for sym in _SYMBOLS:
             vol_series[sym] = _vol_series(signals, sym)
 
-    # Precompute 20-day return series for momentum gate (Experiment C)
+    # Precompute N-day return series for momentum gate (Experiment C)
     mom20_series: dict[str, dict[int, float]] = {}
     if momentum_gate:
         for sym in _SYMBOLS:
@@ -242,10 +246,10 @@ def _run(
             closes = [signals[sym][t]["close"] for t in ts_list]
             m20: dict[int, float] = {}
             for i, t in enumerate(ts_list):
-                if i < 20:
+                if i < momentum_gate_days:
                     m20[t] = 0.0
                 else:
-                    m20[t] = (closes[i] - closes[i-20]) / closes[i-20]
+                    m20[t] = (closes[i] - closes[i-momentum_gate_days]) / closes[i-momentum_gate_days]
             mom20_series[sym] = m20
 
     # Precompute BTC 30-day return series for asymmetric regime (Experiment B)
@@ -275,6 +279,7 @@ def _run(
     diag_year_short_pnl: dict[int, float] = {}
     diag_year_long_pnl: dict[int, float] = {}
     prev_btc_bear_mode = False  # for asymmetric regime: tracks bear state
+    btc_above_sma200_streak = 0  # consecutive days BTC above SMA200 (for confirm_days exit)
 
     def _position_size(sym: str, ts: int, mult: float = 1.0) -> float:
         """Return notional for this position — flat or vol-adjusted."""
@@ -294,18 +299,24 @@ def _run(
         btc_sma200_above = btc_sig.get("sma200_above", True)
 
         if asymmetric_regime:
-            # Enter bear fast: BTC < SMA200 OR dropped >15% in 30 days
             btc_30d_ret = btc_mom30.get(ts, 0.0)
-            enter_bear = (not btc_sma200_above) or (btc_30d_ret < -0.15)
-            # Exit bear slowly: BTC must be > SMA200 AND > SMA50
-            btc_sma50_val = btc_sma50_series.get(ts)
-            btc_above_sma50 = (btc_sma50_val is not None and
-                               btc_sig.get("close", 0) > btc_sma50_val)
-            exit_bear = btc_sma200_above and btc_above_sma50
-            if prev_btc_bear_mode:
-                btc_bear_mode = not exit_bear  # slow to exit
+            drop_triggered = btc_30d_ret < bear_drop_pct
+            if and_entry:
+                # AND mode: enter bear only if BOTH below SMA200 AND 30d drop exceeded
+                enter_bear = (not btc_sma200_above) and drop_triggered
             else:
-                btc_bear_mode = enter_bear     # fast to enter
+                # OR mode: enter bear if either condition met
+                enter_bear = (not btc_sma200_above) or drop_triggered
+            # Exit bear: BTC must stay above SMA200 for confirm_days consecutive days
+            if btc_sma200_above:
+                btc_above_sma200_streak += 1
+            else:
+                btc_above_sma200_streak = 0
+            confirmed_bull = btc_above_sma200_streak >= max(1, confirm_days)
+            if prev_btc_bear_mode:
+                btc_bear_mode = not confirmed_bull  # slow to exit
+            else:
+                btc_bear_mode = enter_bear          # fast to enter
             prev_btc_bear_mode = btc_bear_mode
             btc_bull = not btc_bear_mode
         else:
@@ -605,6 +616,14 @@ def main():
                          hard_stop_pct=0.15, use_atr_sizing=True)
     _print("V7: V3 + 15% hard stop + ATR vol-adjusted sizing", results["V7"])
 
+    # V8: V7 + AND-entry asymmetric regime (BTC<SMA200 AND 30d drop>20%) + momentum gate 30d
+    results["V8"] = _run(signals, True, True, False, True, from_ts, to_ts,
+                         hard_stop_pct=0.15, use_atr_sizing=True,
+                         asymmetric_regime=True, and_entry=True,
+                         bear_drop_pct=-0.20, confirm_days=5,
+                         momentum_gate=True, momentum_gate_days=30)
+    _print("V8: V7 + AND-entry asymmetric regime + 30d momentum gate", results["V8"])
+
     # ── Walk-Forward Validation ──
     print(f"\n{'='*78}")
     print("  Walk-Forward Validation — V3 base (2yr train / 6mo test, sliding)")
@@ -633,9 +652,9 @@ def main():
 
     # ── Side-by-side summary ──
     print(f"\n{'='*78}")
-    print("  Summary: V3 vs V7 (ATR sizing)")
+    print("  Summary: V3 vs V7 vs V8")
     print(f"{'='*78}")
-    for key, label in [("V3","V3 flat sizing"), ("V7","V7 ATR sizing")]:
+    for key, label in [("V3","V3 flat sizing"), ("V7","V7 ATR sizing"), ("V8","V8 AND-regime+MomGate")]:
         r = results[key]
         print(f"  {label}: CAGR={r['cagr']*100:.1f}%  DD={r['max_dd']*100:.1f}%  "
               f"PF={r['pf']:.2f}  Sharpe={r['sharpe']:.2f}  Sortino={r['sortino']:.2f}  "
