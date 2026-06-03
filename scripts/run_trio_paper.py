@@ -553,6 +553,26 @@ def run_live(symbols, capital):
     last_tsmom_rebal_live = [0]   # ts of last weekly short rebalance
     live_shorts: dict[str, float] = {}  # sym → entry_price (shorts open on exchange)
 
+    # Reconcile with exchange on startup — populate live_shorts from open positions
+    # so restarts don't lose track of existing shorts or accidentally re-open them.
+    if adapter is not None:
+        try:
+            from nexflow.exchange.bitget_order import get_position
+            print("Reconciling open positions from exchange ...")
+            for sym in symbols:
+                pos = get_position(adapter.client, sym)
+                if pos and pos.get("holdSide") == "short":
+                    entry = float(pos.get("openPriceAvg", 0))
+                    if entry > 0:
+                        live_shorts[sym] = entry
+                        print(f"  Restored SHORT {sym:<12} entry={entry:,.4f}")
+                time.sleep(0.15)
+            if not live_shorts:
+                print("  No open shorts found on exchange.")
+            print()
+        except Exception as e:
+            print(f"  [WARN] Could not reconcile positions: {e}")
+
     def _exec_short(action: str, sym: str, price: float) -> None:
         """Place or close a short position on the exchange."""
         qty = base_notional / price if price > 0 else 0
