@@ -63,7 +63,8 @@ jobs:
         run: |
           git config user.name  "NexFlow Research Bot"
           git config user.email "research@nexflow.local"
-          git add research/results/
+          git add research/results/ data/candles/ data/oi/
           git commit -m "Research result: ${{ github.event.inputs.script }} $(date -u +%Y-%m-%d)" \
             || echo "Nothing to commit"
+          git pull --rebase origin claude/gallant-mendel-vJRA6
           git push origin claude/gallant-mendel-vJRA6

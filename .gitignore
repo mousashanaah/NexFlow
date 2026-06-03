@@ -220,4 +220,3 @@ __marimo__/
 # Runtime output
 logs/*.csv
 logs/*.log
-data/candles/*.parquet

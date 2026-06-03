@@ -125,6 +125,27 @@ def _download(symbol: str, start_ms: int, end_ms: int) -> list[dict]:
 def _save(symbol: str, bars: list[dict], out_dir: Path) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{symbol}_1H.parquet"
+
+    if path.exists():
+        existing = pq.read_table(path).to_pydict()
+        existing_ts: set[int] = set(existing["open_time"])
+        cached = [
+            {
+                "open_time":  existing["open_time"][i],
+                "close_time": existing["close_time"][i],
+                "open":       existing["open"][i],
+                "high":       existing["high"][i],
+                "low":        existing["low"][i],
+                "close":      existing["close"][i],
+                "volume":     existing["volume"][i],
+            }
+            for i in range(len(existing["open_time"]))
+        ]
+        new_bars = [b for b in bars if b["open_time"] not in existing_ts]
+        before = len(cached)
+        bars = sorted(cached + new_bars, key=lambda b: b["open_time"])
+        print(f"  Merged: {before:,} cached + {len(new_bars):,} new = {len(bars):,} total")
+
     table = pa.table({
         "symbol":     [symbol] * len(bars),
         "timeframe":  ["1H"]   * len(bars),
@@ -140,6 +161,18 @@ def _save(symbol: str, bars: list[dict], out_dir: Path) -> Path:
     return path
 
 
+def _cached_start_ms(symbol: str, out_dir: Path, default_start_ms: int) -> int:
+    """Return the timestamp just after the last cached bar, or default_start_ms."""
+    path = out_dir / f"{symbol}_1H.parquet"
+    if not path.exists():
+        return default_start_ms
+    tbl = pq.read_table(path, columns=["open_time"])
+    if tbl.num_rows == 0:
+        return default_start_ms
+    last_ts = max(tbl.column("open_time").to_pylist())
+    return last_ts + _HOUR_MS
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--symbols", nargs="+", default=_DEFAULT_SYMBOLS)
@@ -148,24 +181,30 @@ def main() -> None:
     parser.add_argument("--out",     default="data/candles")
     args = parser.parse_args()
 
-    start_dt = datetime.strptime(args.start, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    default_start_dt = datetime.strptime(args.start, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     end_dt   = (
         datetime.strptime(args.end, "%Y-%m-%d").replace(tzinfo=timezone.utc)
         if args.end else datetime.now(timezone.utc)
     )
-    start_ms = int(start_dt.timestamp() * 1000)
+    default_start_ms = int(default_start_dt.timestamp() * 1000)
     end_ms   = int(end_dt.timestamp() * 1000)
     out_dir  = _REPO_ROOT / args.out
 
-    print(f"Downloading 1H candles: {args.start} → {args.end or 'today'}")
+    print(f"Downloading 1H candles (incremental): up to {args.end or 'today'}")
     print(f"Symbols: {args.symbols}")
     print()
 
     for symbol in args.symbols:
         print(f"[{symbol}]")
+        start_ms = _cached_start_ms(symbol, out_dir, default_start_ms)
+        if start_ms >= end_ms:
+            print(f"  Already up to date")
+            continue
+        start_str = datetime.fromtimestamp(start_ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d")
+        print(f"  Fetching from {start_str} ...")
         bars = _download(symbol, start_ms, end_ms)
         if not bars:
-            print(f"  No data for {symbol}")
+            print(f"  No new data for {symbol}")
             continue
         path = _save(symbol, bars, out_dir)
         s = datetime.fromtimestamp(bars[0]["open_time"]  / 1000, tz=timezone.utc).strftime("%Y-%m-%d")
