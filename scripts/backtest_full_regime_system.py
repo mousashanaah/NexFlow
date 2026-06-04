@@ -308,6 +308,12 @@ def _run(
     er_days: int = 30,
     er_threshold: float = 0.30,
     er_use_btc: bool = True,   # True = market-wide BTC ER gate; False = per-coin ER
+    # ER as a smooth SIZING dial (instead of / on top of the hard gate): scale
+    # position size down in chop. mult = clamp((ER-lo)/(hi-lo), floor, 1).
+    er_sizing: bool = False,
+    er_size_lo: float = 0.20,
+    er_size_hi: float = 0.45,
+    er_size_floor: float = 0.4,
     # NEW: Experiment F — correlation-aware sizing. When the 12-coin book is
     # highly correlated, diversification is illusory; scale all sizes down.
     corr_sizing: bool = False,
@@ -328,10 +334,20 @@ def _run(
 
     # Experiment E: efficiency-ratio series (market-wide BTC, or per-coin)
     er_series: dict[str, dict[int, float]] = {}
-    if er_gate:
+    if er_gate or er_sizing:
         er_syms = ["BTCUSDT"] if er_use_btc else _SYMBOLS
         for sym in er_syms:
             er_series[sym] = _efficiency_ratio_series(signals, sym, er_days)
+
+    def _er_size_mult(sym: str, ts: int) -> float:
+        if not er_sizing:
+            return 1.0
+        er_key = "BTCUSDT" if er_use_btc else sym
+        er_val = er_series.get(er_key, {}).get(ts, 1.0)
+        if er_size_hi <= er_size_lo:
+            return 1.0
+        frac = (er_val - er_size_lo) / (er_size_hi - er_size_lo)
+        return max(er_size_floor, min(1.0, frac))
 
     # Experiment F: average pairwise correlation series → size multiplier
     corr_mult: dict[int, float] = {}
@@ -391,6 +407,8 @@ def _run(
     def _position_size(sym: str, ts: int, mult: float = 1.0) -> float:
         """Return notional for this position — flat or vol-adjusted."""
         cmult = corr_mult.get(ts, 1.0) if corr_sizing else 1.0
+        emult = _er_size_mult(sym, ts)
+        cmult *= emult
         n = base_notional * mult * cmult
         if not use_atr_sizing:
             return n
