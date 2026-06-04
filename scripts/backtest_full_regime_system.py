@@ -226,6 +226,10 @@ def _run(
     # NEW: Experiment C — momentum gate on long entries
     momentum_gate: bool = False,      # only enter long if coin Nd return > 0
     momentum_gate_days: int = 20,     # lookback window for momentum gate
+    # NEW: Experiment D — funding-rate crowding gate on long entries
+    # When BTC daily funding is in an extreme-high state (crowded longs paying
+    # carry), suspend NEW long entries. Existing longs exit on their own signal.
+    funding_high: Optional[dict] = None,  # {ts: bool} — True = block new longs
     # NEW: diagnostic mode — print regime flips + stranded long losses
     diagnostic: bool = False,
 ) -> dict:
@@ -441,6 +445,11 @@ def _run(
                 if m20 <= 0:
                     can_long = False  # coin declining over 20 days, skip
 
+            # Experiment D: funding crowding gate — block NEW longs when BTC
+            # funding is extreme-high (market crowded long). Does not force
+            # exits — existing longs ride out on their own signals.
+            funding_blocks_entry = bool(funding_high) and funding_high.get(ts, False)
+
             in_pos = sym in positions and positions[sym].get("side") == "LONG"
 
             # Close long if signal gone or regime changed
@@ -456,7 +465,7 @@ def _run(
                 in_pos = False
 
             # Open long if signal present and regime allows
-            if not in_pos and any_long and can_long:
+            if not in_pos and any_long and can_long and not funding_blocks_entry:
                 # Momentum gate: don't open new entry if 20d return <= 0
                 if momentum_gate:
                     m20 = mom20_series.get(sym, {}).get(ts, 0.0)
