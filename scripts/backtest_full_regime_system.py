@@ -218,6 +218,8 @@ def _run(
     target_risk: float = 0.01,      # target daily risk per position as fraction of capital
     # NEW: Experiment A — trailing stop on longs
     trailing_stop_pct: float = 0.0,  # 0 = off, e.g. 0.15 = 15% from peak
+    atr_trail_mult: float = 0.0,     # 0 = off; exit long if price falls k×(vol×price) from peak
+                                     # (vol = rolling 14d std of returns — ATR-equivalent, self-scaling)
     # NEW: Experiment B — asymmetric regime switch
     asymmetric_regime: bool = False,  # fast enter bear, slow exit bear
     bear_drop_pct: float = -0.15,     # 30d BTC drop threshold to enter bear early (AND mode)
@@ -238,7 +240,7 @@ def _run(
 
     # Precompute vol series for ATR sizing
     vol_series: dict[str, dict[int, float]] = {}
-    if use_atr_sizing:
+    if use_atr_sizing or atr_trail_mult > 0:
         for sym in _SYMBOLS:
             vol_series[sym] = _vol_series(signals, sym)
 
@@ -412,6 +414,28 @@ def _run(
                 peak_p = pos.get("peak_price", pos["entry"])
                 drawdown_from_peak = (peak_p - c) / peak_p
                 if drawdown_from_peak >= trailing_stop_pct:
+                    positions.pop(sym)
+                    raw = (c - pos["entry"]) / pos["entry"] * pos["notional"]
+                    net = raw - _TAKER_FEE * pos["notional"]
+                    equity += net
+                    trades.append({"ts": ts, "sym": sym, "net": net, "side": "LONG"})
+                    yr = datetime.fromtimestamp(ts / 1000, tz=timezone.utc).year
+                    year_pnl[yr] = year_pnl.get(yr, 0) + net
+                    diag_year_long_pnl[yr] = diag_year_long_pnl.get(yr, 0) + net
+
+        # ── ATR-multiple trailing stop on longs (self-scaling to vol) ──
+        if atr_trail_mult > 0:
+            for sym in [s for s in list(positions) if positions[s].get("side") == "LONG"]:
+                c = signals.get(sym, {}).get(ts, {}).get("close")
+                if c is None: continue
+                pos = positions[sym]
+                if c > pos.get("peak_price", pos["entry"]):
+                    pos["peak_price"] = c
+                peak_p = pos.get("peak_price", pos["entry"])
+                vol = vol_series.get(sym, {}).get(ts, 0.0)  # daily return std
+                if vol <= 0: continue
+                trail_dist = atr_trail_mult * vol * peak_p  # k × (vol×price) in $ terms
+                if (peak_p - c) >= trail_dist:
                     positions.pop(sym)
                     raw = (c - pos["entry"]) / pos["entry"] * pos["notional"]
                     net = raw - _TAKER_FEE * pos["notional"]
