@@ -572,6 +572,7 @@ def run_live(symbols, capital):
     ema4h_strats = {sym: EMA4HState() for sym in symbols}
     btc_regime   = BTCRegime()
     coin_closes_live: dict[str, list[float]] = {sym: [] for sym in symbols}
+    seed_last_4h_ts: dict[str, int] = {sym: 0 for sym in symbols}
 
     print("Seeding from historical data ...")
     for sym in symbols:
@@ -583,8 +584,10 @@ def run_live(symbols, capital):
             if sym == "BTCUSDT":
                 btc_regime.update(c)
         h1 = _load_candles(sym, "1H", seed_from, today_ts)
+        seed_last_4h_ts[sym] = 0
         for ts, c in _resample_4h(h1):
             ema4h_strats[sym].update(c)
+            seed_last_4h_ts[sym] = ts
         csigs = ema_strat.current_signals()
         if sym in csigs:
             ema4h_strats[sym].update_daily_trend(1.0 if csigs[sym]=="LONG" else 0.0, 0.5)
@@ -602,6 +605,8 @@ def run_live(symbols, capital):
 
     # Track current strategy agreement per coin for confluence sizing
     coin_longs: dict[str, set] = {sym: set() for sym in symbols}  # {sym: {src,...}}
+    last_4h_ts: dict[str, int] = dict(seed_last_4h_ts)  # last processed 4H bar ts (seeded)
+    news_suspend = [False]  # last news read: suspend new longs (shared with 6H checks)
 
     def _confluence_notional(sym: str) -> float:
         """Return ATR-adjusted notional scaled by confluence multiplier."""
@@ -720,6 +725,43 @@ def run_live(symbols, capital):
         except Exception as e:
             print(f"  [ERROR] SHORT {sym} {action}: {e}")
 
+    def _process_4h_signals(suspend: bool = False) -> bool:
+        """Process only NEW 4H bars per symbol (dedup by timestamp).
+
+        Safe to call multiple times per day — never re-feeds a bar into the
+        stateful EMA, so it can run on the 6H checks as well as the daily check.
+        Only acts when BTC regime is bull (longs allowed). Returns True if any
+        signal fired.
+        """
+        if btc_regime.is_bear:
+            return False
+        fired = False
+        for sym in symbols:
+            bars_1h = _fetch_1h_recent(sym, 40)
+            if not bars_1h:
+                continue
+            mom30 = btc_regime.mom_return(coin_closes_live[sym], BTCRegime._MOM_GATE_DAYS)
+            mom_blocked = mom30 <= 0
+            for ts4, c4 in _resample_4h(bars_1h):
+                if ts4 <= last_4h_ts[sym]:
+                    continue  # already processed this bar — skip to avoid corrupting EMA
+                last_4h_ts[sym] = ts4
+                action = ema4h_strats[sym].update(c4)
+                if not action:
+                    continue
+                if action == "OPEN_LONG":
+                    coin_longs[sym].add("4H")
+                elif action == "CLOSE_LONG":
+                    coin_longs[sym].discard("4H")
+                if action == "OPEN_LONG" and (suspend or circuit_open):
+                    print(f"  [4H] {sym} suppressed — {'extreme event' if suspend else 'circuit breaker'}")
+                elif action == "OPEN_LONG" and mom_blocked:
+                    print(f"  [4H] {sym} suppressed — momentum gate (20d={mom30*100:.1f}%≤0)")
+                else:
+                    _exec(action, sym, c4, "4H"); fired = True
+            time.sleep(0.2)
+        return fired
+
     def _run_daily_check():
         nonlocal capital, base_notional, portfolio_peak, circuit_open
         ts_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -753,6 +795,7 @@ def run_live(symbols, capital):
             suspend = sent.suspend_new_longs
         except Exception:
             suspend = False
+        news_suspend[0] = suspend
 
         # ── Fetch all closes first ──
         closes: dict[str, tuple[int, float]] = {}
@@ -907,26 +950,9 @@ def run_live(symbols, capital):
                     1.0 if csigs.get(sym) == "LONG" else 0.0, 0.5)
                 time.sleep(0.1)
 
-            # 4H check
-            for sym in symbols:
-                bars_1h = _fetch_1h_recent(sym, 40)
-                if not bars_1h: continue
-                mom30 = btc_regime.mom_return(coin_closes_live[sym], BTCRegime._MOM_GATE_DAYS)
-                mom_blocked = mom30 <= 0
-                for ts4, c4 in _resample_4h(bars_1h)[-3:]:
-                    action = ema4h_strats[sym].update(c4)
-                    if action:
-                        if action == "OPEN_LONG":
-                            coin_longs[sym].add("4H")
-                        elif action == "CLOSE_LONG":
-                            coin_longs[sym].discard("4H")
-                        if action == "OPEN_LONG" and (suspend or circuit_open):
-                            print(f"  [4H] {sym} suppressed — {'extreme event' if suspend else 'circuit breaker'}")
-                        elif action == "OPEN_LONG" and mom_blocked:
-                            print(f"  [4H] {sym} suppressed — momentum gate (30d={mom30*100:.1f}%≤0)")
-                        else:
-                            _exec(action, sym, c4, "4H"); any_sig = True
-                time.sleep(0.2)
+            # 4H check (dedup-safe, shared with 6H checks)
+            if _process_4h_signals(suspend):
+                any_sig = True
 
             if not any_sig:
                 print("  No long signals today.")
@@ -942,10 +968,16 @@ def run_live(symbols, capital):
             print(f"  Active longs: {', '.join(longs) or 'none'}")
 
     def _run_stop_check():
-        """Check 15% hard stop on all open positions (longs + shorts) every 6H."""
+        """Every 6H: process new 4H signals + check 15% hard stop on all positions."""
+        ts_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+        # ── 4H signals (can open/close positions intraday, dedup-safe) ──
+        if _process_4h_signals(news_suspend[0]):
+            print(f"[{ts_str}] 4H signal(s) acted on intraday")
+
+        # ── Hard stops only matter if something is open ──
         if not live_shorts and not any(coin_longs[s] for s in symbols):
             return
-        ts_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
         stopped = []
 
         # ── Hard stop on shorts: price rose 15%+ above entry ──
