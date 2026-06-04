@@ -203,6 +203,75 @@ def _vol_series(signals: dict, sym: str, window: int = 14) -> dict[int, float]:
     return result
 
 
+def _efficiency_ratio_series(signals: dict, sym: str, window: int) -> dict[int, float]:
+    """Kaufman Efficiency Ratio per day: |net move| / sum(|daily moves|), 0..1.
+
+    1 = perfectly directional (clean trend), 0 = pure chop. No lookahead — each
+    day uses only the trailing `window` closes up to and including that day.
+    """
+    ts_list = sorted(signals.get(sym, {}).keys())
+    closes = [signals[sym][t]["close"] for t in ts_list]
+    result: dict[int, float] = {}
+    for i, ts in enumerate(ts_list):
+        if i < window:
+            result[ts] = 1.0  # not enough history — don't gate
+            continue
+        net = abs(closes[i] - closes[i - window])
+        path = sum(abs(closes[j] - closes[j - 1]) for j in range(i - window + 1, i + 1))
+        result[ts] = (net / path) if path > 0 else 0.0
+    return result
+
+
+def _avg_correlation_series(signals: dict, symbols: list, window: int) -> dict[int, float]:
+    """Average pairwise correlation of daily returns across all coins, per day.
+
+    Uses the common timestamp grid (BTC's). No lookahead — trailing window only.
+    """
+    # Build aligned return series on BTC's timestamp grid.
+    ref_ts = sorted(signals.get("BTCUSDT", {}).keys())
+    rets_by_sym: dict[str, list[Optional[float]]] = {}
+    for sym in symbols:
+        s = signals.get(sym, {})
+        prev = None
+        series: list[Optional[float]] = []
+        for t in ref_ts:
+            c = s.get(t, {}).get("close")
+            if c is None or prev is None or prev == 0:
+                series.append(None)
+            else:
+                series.append((c - prev) / prev)
+            prev = c if c is not None else prev
+        rets_by_sym[sym] = series
+
+    def _corr(a: list[float], b: list[float]) -> Optional[float]:
+        pairs = [(x, y) for x, y in zip(a, b) if x is not None and y is not None]
+        if len(pairs) < window // 2:
+            return None
+        xs = [p[0] for p in pairs]; ys = [p[1] for p in pairs]
+        mx = sum(xs) / len(xs); my = sum(ys) / len(ys)
+        cov = sum((x - mx) * (y - my) for x, y in pairs)
+        vx = sum((x - mx) ** 2 for x in xs); vy = sum((y - my) ** 2 for y in ys)
+        denom = (vx * vy) ** 0.5
+        return (cov / denom) if denom > 0 else None
+
+    result: dict[int, float] = {}
+    for i, ts in enumerate(ref_ts):
+        if i < window:
+            result[ts] = 0.0
+            continue
+        lo = i - window + 1
+        vals = []
+        for a in range(len(symbols)):
+            for b in range(a + 1, len(symbols)):
+                ca = rets_by_sym[symbols[a]][lo:i + 1]
+                cb = rets_by_sym[symbols[b]][lo:i + 1]
+                c = _corr(ca, cb)
+                if c is not None:
+                    vals.append(c)
+        result[ts] = (sum(vals) / len(vals)) if vals else 0.0
+    return result
+
+
 def _run(
     signals: dict,
     use_sma200_long_filter: bool,
@@ -232,6 +301,19 @@ def _run(
     # When BTC daily funding is in an extreme-high state (crowded longs paying
     # carry), suspend NEW long entries. Existing longs exit on their own signal.
     funding_high: Optional[dict] = None,  # {ts: bool} — True = block new longs
+    # NEW: Experiment E — efficiency-ratio (choppiness) gate on long entries.
+    # Kaufman ER = |close[t]-close[t-n]| / sum(|close[i]-close[i-1]|), range 0..1.
+    # Low ER = choppy/whipsaw market; block new longs below the threshold.
+    er_gate: bool = False,
+    er_days: int = 30,
+    er_threshold: float = 0.30,
+    er_use_btc: bool = True,   # True = market-wide BTC ER gate; False = per-coin ER
+    # NEW: Experiment F — correlation-aware sizing. When the 12-coin book is
+    # highly correlated, diversification is illusory; scale all sizes down.
+    corr_sizing: bool = False,
+    corr_days: int = 30,
+    corr_ref: float = 0.5,     # avg pairwise corr above which sizing scales down
+    corr_floor: float = 0.5,   # minimum size multiplier (never shrink below this)
     # NEW: diagnostic mode — print regime flips + stranded long losses
     diagnostic: bool = False,
 ) -> dict:
@@ -243,6 +325,25 @@ def _run(
     if use_atr_sizing or atr_trail_mult > 0:
         for sym in _SYMBOLS:
             vol_series[sym] = _vol_series(signals, sym)
+
+    # Experiment E: efficiency-ratio series (market-wide BTC, or per-coin)
+    er_series: dict[str, dict[int, float]] = {}
+    if er_gate:
+        er_syms = ["BTCUSDT"] if er_use_btc else _SYMBOLS
+        for sym in er_syms:
+            er_series[sym] = _efficiency_ratio_series(signals, sym, er_days)
+
+    # Experiment F: average pairwise correlation series → size multiplier
+    corr_mult: dict[int, float] = {}
+    if corr_sizing:
+        avg_corr = _avg_correlation_series(signals, _SYMBOLS, corr_days)
+        for ts_c, c in avg_corr.items():
+            if c <= corr_ref:
+                corr_mult[ts_c] = 1.0
+            else:
+                # linearly scale from 1.0 at corr_ref down to corr_floor at corr=1.0
+                frac = (c - corr_ref) / max(1e-9, (1.0 - corr_ref))
+                corr_mult[ts_c] = max(corr_floor, 1.0 - frac * (1.0 - corr_floor))
 
     # Precompute N-day return series for momentum gate (Experiment C)
     mom20_series: dict[str, dict[int, float]] = {}
@@ -289,7 +390,8 @@ def _run(
 
     def _position_size(sym: str, ts: int, mult: float = 1.0) -> float:
         """Return notional for this position — flat or vol-adjusted."""
-        n = base_notional * mult
+        cmult = corr_mult.get(ts, 1.0) if corr_sizing else 1.0
+        n = base_notional * mult * cmult
         if not use_atr_sizing:
             return n
         vol = vol_series.get(sym, {}).get(ts, 0.0)
@@ -297,7 +399,7 @@ def _run(
             return n
         # size = target_daily_risk / daily_vol, capped at 2× base
         vol_sized = (target_risk * _CAPITAL) / vol
-        return min(vol_sized * mult, base_notional * 2 * mult)
+        return min(vol_sized * mult * cmult, base_notional * 2 * mult)
 
     for ts in all_ts:
         # BTC regime
@@ -474,6 +576,14 @@ def _run(
             # exits — existing longs ride out on their own signals.
             funding_blocks_entry = bool(funding_high) and funding_high.get(ts, False)
 
+            # Experiment E: efficiency-ratio (choppiness) gate — block NEW longs
+            # when the market is choppy (ER below threshold). Does not force exits.
+            er_blocks_entry = False
+            if er_gate:
+                er_key = "BTCUSDT" if er_use_btc else sym
+                er_val = er_series.get(er_key, {}).get(ts, 1.0)
+                er_blocks_entry = er_val < er_threshold
+
             in_pos = sym in positions and positions[sym].get("side") == "LONG"
 
             # Close long if signal gone or regime changed
@@ -489,7 +599,7 @@ def _run(
                 in_pos = False
 
             # Open long if signal present and regime allows
-            if not in_pos and any_long and can_long and not funding_blocks_entry:
+            if not in_pos and any_long and can_long and not funding_blocks_entry and not er_blocks_entry:
                 # Momentum gate: don't open new entry if 20d return <= 0
                 if momentum_gate:
                     m20 = mom20_series.get(sym, {}).get(ts, 0.0)
