@@ -1,0 +1,15 @@
+[
+  {
+    "email": "example@company.com",
+    "name": "Example Subscriber",
+    "company": "Example GovCon LLC",
+    "role": "Capture Manager",
+    "status": "trial",
+    "naics": ["541512", "541519"],
+    "agencies": ["HHS", "VA", "DHS"],
+    "certifications": ["Small Business", "SDVOSB"],
+    "signed_up": "2026-06-04",
+    "trial_ends": "2026-06-18",
+    "notes": "Found via Reddit post"
+  }
+]
