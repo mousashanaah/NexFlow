@@ -1,0 +1,40 @@
+REFERENCE IMAGE: visual/refs/anchor_23rd.png
+CRITICAL: This video MUST match EP-005's framing. Same building, same angle, same night.
+THE ONLY DIFFERENCE: The 23rd floor window is DARK (cold blue-gray) not warm amber.
+
+---
+
+SHOT 1 (0:00-0:03) — The Building, Window Dark
+[USE anchor_23rd.png as starting frame — GRADE THE WINDOW DARK IN POST]
+tall urban building exterior at night, same angle as EP-005, most windows dark or cold blue-gray, THE 23RD FLOOR WINDOW: dark, cold blue-gray, same as surrounding windows, NO warm light, city night
+Style: [IDENTICAL TO EP-005] cinematic, analog film grain, cold blue-gray dominant, Kodak 5219, split toning teal shadows, muted saturation
+Negative: warm window, any warm light source in building, daylight, faces
+
+POST NOTE: Generate this with the same prompt as EP-005 Shot 1. Then in DaVinci:
+- Use a Power Window to isolate the 23rd floor window
+- Grade: pull warmth out entirely (Hue vs Sat: reduce orange/amber to zero in that window area)
+- Match the cold blue-gray of surrounding windows
+- The warm window from EP-005 is now identical to every other window
+
+---
+
+SHOT 2 (0:03-0:06) — Drift Closer
+[USE anchor_23rd.png — motion: very slow drift toward building, same as EP-005 Shot 2]
+building with dark 23rd floor window, barely perceptible drift toward building, window remaining dark, cold city
+Style: cinematic, analog film grain, cold blue-gray, Kodak 5219, barely perceptible drift
+Negative: warm light appearing, zoom, dramatic, daylight
+
+---
+
+SHOT 3 (0:06-0:07) — Static Hold
+building, static, dark window, no movement, 1 second
+[Still frame or near-still — the stillness before the cut]
+
+---
+
+SHOT 4 (0:07-0:08) — IMMEDIATE CUT + SILENCE
+Hard cut to black at 0:07.
+AUDIO: SILENT IMMEDIATELY. No city ambient continues. No decay. Immediate silence.
+Black frame for 1 second. Total silence.
+
+This is the only video where the audio cuts simultaneously with the video.

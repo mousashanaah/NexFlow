@@ -1,0 +1,61 @@
+REFERENCE IMAGE: visual/refs/protagonist_C.png (shots 2, 3, 6, 7)
+REFERENCE IMAGE: visual/refs/anchor_window.png (shots 1, 4, 5)
+
+---
+
+SHOT 1 — Establishing Texture
+apartment window glass close-up at night, city reflected in glass surface, cold blue reflection distorted, slight surface marks from hands, night, no clear interior visible, static camera, close macro
+Style: cinematic, analog film grain, cold blue-gray city reflection in glass, slight chromatic aberration at edges, Kodak 5219
+Negative: face reflected, bright interior, clean glass, daylight
+
+---
+
+SHOT 2 — Figure in Negative Space
+[USE protagonist_C.png]
+woman from behind at apartment window at night, standing in lower center frame, window occupies upper 60% of frame, city visible outside window, dark warm interior behind her, cold city outside, one hand beginning to rise, static camera
+Style: cinematic, analog film grain, warm dark interior, cold city exterior through window, Kodak 5219, split color temperature interior/exterior, figure small against window
+Negative: face visible, bright interior, equal color temperature inside and outside
+
+---
+
+SHOT 3 — Movement Initiation
+[USE protagonist_C.png]
+woman's hand rising to press flat against window glass, palm against cold glass, city visible through glass around her hand, warm skin tone, cold glass and city behind
+Style: cinematic, analog film grain, warm hand cold glass, practical lighting, Kodak 5219
+Negative: face visible, dramatic motion, full arm visible
+
+---
+
+SHOT 4 — Reverse Angle [OUTSIDE LOOKING IN — CRITICAL SHOT]
+[USE anchor_window.png — from outside perspective]
+view from outside looking in through apartment window at night, woman's hand pressed against glass from inside (only hand visible), city reflection covering rest of glass where face would be, her face replaced by reflected city buildings, warm amber light visible around hand inside, cold city reflected in glass everywhere else
+Style: cinematic, analog film grain, cold exterior, warm glow from inside visible around the hand, city reflection dominant in glass, Kodak 5219
+Negative: face clearly visible, indoor scene visible through glass clearly, bright
+
+---
+
+SHOT 5 — Compression Moment
+palm against glass surface, inside perspective, close-up of hand on window, warm skin, city cold and blurred through glass beyond the hand, shallow depth of field
+Style: cinematic, heavy analog film grain, warm palm cold glass, single practical light from interior catching hand, Kodak 5219
+Negative: face, other body parts, dramatic
+
+---
+
+SHOT 6 — Emotional Peak Image [SCREENSHOT FRAME]
+[USE protagonist_C.png]
+full interior view: woman from behind at window, one hand on glass, entire city framed in window behind her, dark warm room interior, cold lit city exterior, she is the threshold between them, figure lower center
+Style: cinematic, analog film grain, strong split warm interior cold exterior, Kodak 5219, underexposed interior, practical lighting only, muted saturation
+Negative: face visible, equal color temps, bright interior
+
+---
+
+SHOT 7 — Release
+[USE protagonist_C.png]
+woman's hand sliding slightly down the window glass, beginning of downward motion, city still outside, hand leaving glass — cut before hand fully leaves
+Style: cinematic, analog film grain, warm hand on cold glass, gentle motion
+Negative: face, fast motion, dramatic
+
+---
+
+SHOT 8 — Audio Decay [BLACK + AUDIO]
+Black frame 6 seconds. Audio: interior apartment ambient (quiet hum, no city sounds), then: muffled distant city barely audible through the glass (as if we're inside), fades to silence.

@@ -1,0 +1,67 @@
+REFERENCE IMAGE: visual/refs/protagonist_A.png (shots 2, 3, 5, 6, 7)
+REFERENCE IMAGE: visual/refs/anchor_overpass.png (shots 1, 4)
+REFERENCE IMAGE: visual/refs/cassette_held.png (shot 5)
+
+ECHO NOTE: Shots 2 and 6 MUST match EP-001's framing as closely as possible.
+Use identical protagonist reference, identical anchor reference, identical style settings.
+The ONLY visual difference should be: her hands holding the cassette vs. gripping the railing.
+
+---
+
+SHOT 1 — Establishing Texture (WITH CASSETTE)
+wet metal railing close-up, same framing as EP-001 Shot 1, BUT: a black cassette tape is resting on the railing surface, in frame, visible, cold blue-gray steel, rain residue, no person visible yet, static camera
+Style: [IDENTICAL TO EP-001 SHOT 1] cinematic, analog film grain, cold blue-gray, Kodak 5219
+Negative: face, bright colors, warm light on railing
+
+---
+
+SHOT 2 — Figure in Negative Space [MATCH EP-001 SHOT 2 EXACTLY]
+[USE protagonist_A.png — IDENTICAL framing to EP-001 Shot 2]
+woman from behind at elevated walkway railing, city lights below, dark jacket, medium dark hair, figure small in lower center frame, cold blue-gray ambient, BUT: her right hand is around a cassette tape on the railing
+Style: [IDENTICAL TO EP-001] cinematic, analog film grain, cold blue-gray, Kodak 5219, slight drift
+Negative: face visible, cassette dramatically lit, anything not matching EP-001
+
+---
+
+SHOT 3 — Movement Initiation (DIFFERENT FROM EP-001)
+[USE protagonist_A.png]
+woman's hand lifting cassette tape from railing surface, picking it up, one hand, the cassette rising from cold steel, city below, she does not grip the railing this time
+Style: cinematic, analog film grain, cold blue-gray ambient, warm skin picking up cold-toned object
+Negative: face, dramatic, fast motion
+
+---
+
+SHOT 4 — Tempo-Visual Coupling [SAME AS EP-001 SHOT 4]
+[USE anchor_overpass.png — IDENTICAL to EP-001 Shot 4]
+looking down from elevated walkway at city below, SAME SHOT as EP-001, BUT: find the wet railing reflection below — a small dark rectangle (cassette reflection) barely visible in the metal
+Post note: add the cassette reflection as a DaVinci overlay if Runway cannot generate it — a small dark rectangle in the railing surface reflection at 20% opacity
+Style: [IDENTICAL TO EP-001 SHOT 4]
+
+---
+
+SHOT 5 — Compression Moment
+[USE cassette_held.png + protagonist_A.png reference]
+her hands with cassette, SAME FRAMING as EP-004 (the first cassette video), but: railing visible at bottom of frame, city light visible at frame edge — she is at the overpass with it
+Style: cinematic, heavy analog film grain, amber light on hands and cassette, teal shadow, Kodak 5219
+Negative: face, no railing visible, interior environment
+
+---
+
+SHOT 6 — Emotional Peak Image [MATCH EP-001 SHOT 6 — HANDS DIFFERENT]
+[USE protagonist_A.png — IDENTICAL composition to EP-001 Shot 6]
+woman silhouette from behind, SAME POSITION as EP-001, but: one hand holds cassette at chest level (not on railing), city behind her, cold city glow, blue-gray ambient
+Style: [IDENTICAL TO EP-001 SHOT 6] cinematic, analog film grain, cold ambient, Kodak 5219, underexposed
+Negative: face, hands on railing, any difference from EP-001 except hand position
+
+---
+
+SHOT 7 — Release
+[USE protagonist_A.png]
+woman setting cassette back on railing, both hands releasing it, the cassette stays on the cold steel, her hands withdraw, cut at moment of release
+Style: cinematic, analog film grain, cold blue-gray, practical lighting
+Negative: dramatic, face, keeping the cassette
+
+---
+
+SHOT 8 — Audio Decay [BLACK + AUDIO]
+Black frame 5 seconds. Audio: city ambient, wind against steel structure (overpass wind sound from Freesound.org). Fade to silence.

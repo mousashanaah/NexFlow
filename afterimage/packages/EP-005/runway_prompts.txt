@@ -1,0 +1,23 @@
+REFERENCE IMAGE: visual/refs/anchor_23rd.png
+
+---
+
+SHOT 1 (0:00-0:03) — Opening Compression
+[USE anchor_23rd.png as starting frame]
+tall urban building exterior at night, looking up, most windows dark or cold blue-gray, one window on upper floor glowing warm amber-orange, single warm window among cold ones, city night, slight upward angle, static camera
+Style: cinematic, analog film grain, cold blue-gray building, single warm amber window isolated, Kodak 5219, split toning teal shadow amber highlight, muted saturation, slight natural camera drift
+Negative: people visible in window, daylight, bright overall, multiple warm windows, lens flare dramatic
+
+---
+
+SHOT 2 (0:03-0:05) — Drift Closer
+[USE anchor_23rd.png — motion: very slow push toward building]
+building exterior, warm amber window coming slightly closer, natural drift motion not zoom, window warm against cold building, city ambient light on building surface, slight breathing motion
+Style: cinematic, analog film grain, cold building warm window, Kodak 5219, barely perceptible drift
+Negative: zoom lens, dramatic, fast motion, people visible, bright
+
+---
+
+SHOT 3 (0:05-0:06) — Cut / Audio Decay
+[NO VIDEO — BLACK FRAME]
+Black frame. City ambient audio: 1 second (distant traffic, city hum). Single car passing in audio. Silence.

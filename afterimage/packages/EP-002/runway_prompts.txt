@@ -1,0 +1,62 @@
+REFERENCE IMAGE: visual/refs/protagonist_C.png (upload for shots 2, 3, 5, 6, 7)
+REFERENCE IMAGE: visual/refs/anchor_store.png (upload for shot 4)
+
+---
+
+SHOT 1 — Establishing Texture
+wet pavement at night, fluorescent green-white store light reflected in puddle, no people, looking down, static camera, convenience store exterior
+Style: cinematic, analog film grain, teal shadows amber highlights, single practical light source (fluorescent), Kodak 5219, muted saturation, green-tinted shadow floor
+Negative: faces, bright colors, daylight, clean digital
+
+---
+
+SHOT 2 — Figure in Negative Space
+[USE protagonist_C.png]
+woman from behind standing at glass convenience store door at night, fluorescent interior visible behind glass, her reflection overlaid on interior view, dark jacket, medium dark hair, figure lower-center, static camera
+Style: cinematic, analog film grain, teal shadows green-white highlights, practical fluorescent lighting, Kodak 5219, slight underexposed exterior
+Negative: face visible, interior shown clearly, bright exterior
+
+---
+
+SHOT 3 — Movement Initiation
+[USE protagonist_C.png — reframe to hand and door]
+woman's hand coming up to touch glass door, fingers against cold glass, fluorescent interior light visible through glass, shallow depth of field, hand in focus, interior slightly blurred
+Style: cinematic, analog film grain, warm hand against cool green-white glass light, practical lighting
+Negative: face visible, arm past shoulder visible, dramatic motion
+
+---
+
+SHOT 4 — Tempo-Visual Coupling
+[USE anchor_store.png]
+convenience store interior seen from outside through glass, empty aisles, overhead fluorescent lights, no customers, green-white overhead light, slight reflection of exterior in glass, static camera
+Style: cinematic, analog film grain, fluorescent green-white color temperature, Kodak 5219, slightly overexposed interior vs dark exterior
+Negative: people inside, movement, daylight
+
+---
+
+SHOT 5 — Compression Moment
+woman's reflection in store glass door, reflection clearer than she is, face reflection obscured by grain and angle, cold glass surface, ambient fluorescent behind
+Style: cinematic, heavy analog film grain, green-white fluorescent reflection, slight chromatic aberration at edges
+Negative: face clearly visible in reflection
+
+---
+
+SHOT 6 — Emotional Peak Image [SCREENSHOT FRAME]
+[USE protagonist_C.png]
+woman silhouette from behind against green-white fluorescent store glow, door handle visible at her right side, hand near handle, dark jacket against lit interior, figure full height lower center frame, night outside
+Style: cinematic, analog film grain, strong practical fluorescent backlight, figure in silhouette, teal exterior shadows, Kodak 5219, muted saturation
+Negative: face visible, overexposed interior detail
+
+---
+
+SHOT 7 — Release
+[USE protagonist_C.png]
+woman pushing door open, entering convenience store, figure half through door frame, cut at this moment — door partially open, she is half inside, static camera
+Style: cinematic, analog film grain, fluorescent backlight through opening door, practical lighting
+Negative: completing the entry, seeing interior clearly
+
+---
+
+SHOT 8 — Audio Decay
+[NO VIDEO — BLACK FRAME + AUDIO]
+Black frame. Layer: door entry chime (single tone, 0.5 sec). Then: city ambient 2 seconds. Then: silence.

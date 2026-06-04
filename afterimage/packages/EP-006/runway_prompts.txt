@@ -1,0 +1,61 @@
+REFERENCE IMAGE: visual/refs/protagonist_B.png (shots 2, 6, 7)
+REFERENCE IMAGE: visual/refs/anchor_car.png (shots 1, 4, 5)
+
+---
+
+SHOT 1 — Establishing Texture
+car dashboard close-up, amber instrument light, steering wheel edge at frame right, windshield with city lights smearing past, moving, night, warm amber interior vs cold blue exterior, static interior camera
+Style: cinematic, analog film grain, amber warm dashboard, cold blue-gray through windshield, Kodak 5219, split interior/exterior color temperature
+Negative: faces, driver visible, bright interior, daylight
+
+---
+
+SHOT 2 — Figure in Negative Space
+[USE protagonist_B.png — modified for driving position]
+woman from behind driving, hands on wheel, view from back seat, passenger seat empty with dark jacket on it, seatbelt unfastened, city lights through side windows, amber dashboard light, cold city outside
+Style: cinematic, analog film grain, warm amber interior, cold blue outside, practical dashboard lighting, Kodak 5219, slight natural drift from road movement
+Negative: face visible, bright interior, jacket described clearly
+
+---
+
+SHOT 3 — Movement Initiation / Neon Sweep
+car interior from back seat angle, neon light source sweeping across interior from outside (brief, moving light), jacket on passenger seat illuminated amber-orange for 1 second as light passes, woman's hands on wheel not reacting, the light moves through
+Style: cinematic, analog film grain, practical neon light sweep, amber highlight on jacket, cold return, Kodak 5219
+Negative: face visible, dramatic lighting, multiple light sources simultaneously
+
+---
+
+SHOT 4 — Tempo-Visual Coupling [music arrives here]
+[USE anchor_car.png]
+car windshield view, city streaming past, neon reflections on wet road outside, moving perspective, amber dashboard reflection in windshield glass
+Style: cinematic, analog film grain, moving city, reflections, practical light, Kodak 5219
+Negative: daylight, bright, static
+
+---
+
+SHOT 5 — Compression Moment
+[USE anchor_car.png — passenger seat focus]
+close-up dark jacket on passenger seat, amber dashboard light just catching it, unfastened seatbelt, no one in seat, shallow depth of field, dashboard light source only
+Style: cinematic, heavy analog film grain, warm amber on jacket, cold shadow around, Kodak 5219, shallow DoF
+Negative: identifying features on jacket, bright, multiple objects in focus
+
+---
+
+SHOT 6 — Emotional Peak Image [SCREENSHOT FRAME]
+[USE protagonist_B.png]
+woman hands on wheel from back seat, jacket visible on passenger seat mid-distance, city streaming outside both windows, amber interior, cold city blue exterior, she and the jacket and the moving city
+Style: cinematic, analog film grain, split warm interior cold exterior, practical lighting, Kodak 5219, muted saturation, underexposed
+Negative: face visible, bright interior, jacket dramatically lit
+
+---
+
+SHOT 7 — Release
+[USE protagonist_B.png]
+woman's right hand lifting briefly from wheel, beginning of motion toward passenger seat — cut before motion completes, hands and wheel, city still moving outside
+Style: cinematic, analog film grain, warm interior, motion just beginning
+Negative: completing the reach, face visible, dramatic
+
+---
+
+SHOT 8 — Audio Decay [BLACK + AUDIO]
+Black frame 8 seconds. Audio: road noise, city moving (car driving sound). At second 6 of black: the car sound slows, stops. Silence 2 seconds.

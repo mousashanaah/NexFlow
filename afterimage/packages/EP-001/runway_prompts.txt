@@ -1,0 +1,63 @@
+REFERENCE IMAGE: visual/refs/protagonist_A.png (upload as starting frame for shots 2, 3, 5, 6, 7)
+REFERENCE IMAGE: visual/refs/anchor_overpass.png (upload as starting frame for shot 4)
+
+---
+
+SHOT 1 (0:00-0:02) — Establishing Texture
+wet metal railing close-up, rain pooled in channel, cold blue-gray steel, no people visible, extreme macro, static camera, night
+Style: cinematic short film, analog film grain, split toning teal shadows amber highlights, practical lighting only, Kodak 5219 emulation, muted saturation
+Negative: face visible, bright colors, digital sharpness, smooth movement, daylight
+
+---
+
+SHOT 2 (0:02-0:04) — Figure in Negative Space
+[USE protagonist_A.png as starting frame]
+woman from behind standing at elevated walkway railing, city lights far below, dark jacket, medium dark hair, figure small in lower center frame, cold blue-gray ambient, wet metal railing, static camera
+Style: cinematic short film, analog film grain, split toning teal shadows amber highlights, practical lighting only, Kodak 5219 emulation, muted saturation, slight camera drift
+Negative: face visible, bright colors, digital sharpness, drone shot, smooth stabilized movement
+
+---
+
+SHOT 3 (0:04-0:05) — Movement Initiation
+[USE protagonist_A.png as starting frame]
+close-up of hands gripping metal railing, knuckles tightening, fingers wrapping around cold wet steel, warm skin against cold blue-gray metal, shallow depth of field, static camera
+Style: cinematic short film, analog film grain, split toning teal shadows amber highlights, practical lighting only, Kodak 5219 emulation
+Negative: face visible, bright colors, full body visible
+
+---
+
+SHOT 4 (0:05-0:07) — Tempo-Visual Coupling
+[USE anchor_overpass.png as starting frame]
+looking down from elevated walkway at city below, distant street lights, neon reflections, rain-wet streets far below, high angle, static camera, night city
+Style: cinematic short film, analog film grain, split toning teal shadows amber highlights, practical lighting only, Kodak 5219 emulation, muted saturation
+Negative: daylight, bright colors, cartoon, CGI
+
+---
+
+SHOT 5 (0:07-0:08) — Compression Moment
+[USE protagonist_A.png as starting frame — reframe to hands only]
+extreme close-up hands on metal railing, knuckle detail visible, cold steel surface, single warm light from city below catching skin, shallow depth of field background dissolved, analog grain heavy
+Style: cinematic short film, heavy analog film grain, split toning teal shadows amber highlights, single practical light source, Kodak 5219 emulation
+Negative: face, body, background in focus, digital sharpness
+
+---
+
+SHOT 6 (0:08-0:09) — Emotional Peak Image [THE SCREENSHOT FRAME]
+[USE protagonist_A.png as starting frame]
+woman silhouette from behind at railing, both hands on rail, hair catching cold city glow from below, city lights spread behind her, blue-gray ambient, she is the only warm element, perfect stillness
+Style: cinematic short film, analog film grain, split toning teal shadows amber highlights, practical lighting, Kodak 5219 emulation, muted saturation, slight underexposed
+Negative: face visible, bright colors, movement, smile, any expression visible
+
+---
+
+SHOT 7 (0:09-0:10) — Release
+[USE protagonist_A.png as starting frame]
+woman from behind at railing, one hand lifts from rail — cut at moment of lift, do not complete the motion, static camera
+Style: cinematic short film, analog film grain, split toning teal shadows amber highlights
+Negative: face visible, completing motion, dramatic
+
+---
+
+SHOT 8 (0:10-0:15) — Audio Decay
+[NO VIDEO — BLACK FRAME]
+Use DaVinci: fade to black over 1 second at 0:10. Hold black 0:10-0:15. Audio (city ambient) continues and fades over these 5 seconds.

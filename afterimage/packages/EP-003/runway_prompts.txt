@@ -1,0 +1,49 @@
+REFERENCE IMAGE: visual/refs/anchor_stairwell.png (all shots)
+NOTE: No protagonist in any shot. Environmental only.
+
+---
+
+SHOT 1 — Establishing Texture
+extreme close-up concrete stairwell wall, old painted concrete texture, marks and layers, deep blue ambient light, no other light source, no people, static camera, night
+Style: cinematic, analog film grain, deep blue (#050d14) shadow dominant, barely any highlight, Kodak 5219, maximum grain, underexposed, muted
+Negative: faces, warm light, daylight, brightness, people
+
+---
+
+SHOT 2 — Environmental Wide
+interior concrete stairwell looking upward, stairs ascending into darkness, single overhead light visible several floors above, deep blue ambient, no people, entire frame mostly shadow with single small light at top, static camera
+Style: cinematic, analog film grain, deep blue shadow, tiny warm light source very far above, Kodak 5219, heavily underexposed, muted saturation
+Negative: people, warm ambient, bright lights, modern design
+
+---
+
+SHOT 3 — Middle Distance
+concrete stairs first flight, metal handrail, steps worn in center, blue ambient light from above, no one on stairs, looking up the flight, static camera
+Style: cinematic, analog film grain, blue-gray ambient, Kodak 5219, underexposed, worn surfaces
+Negative: people, bright light, warm light, modern
+
+---
+
+SHOT 4 — Floor Detail
+close-up concrete floor at base of stairs, worn path visible in center of step surfaces, years of use visible, deep blue light, extremely low key, almost no detail in shadows
+Style: cinematic, heavy analog film grain, deep blue (#050d14) shadow, minimum highlight, extremely underexposed, Kodak 5219
+Negative: people, bright
+
+---
+
+SHOT 5 — THE SIGNAL [GENERATE CLEAN VERSION — APPLY SIGNAL IN POST]
+[Generate: stairwell static clean shot, same framing as Shot 2]
+NOTE: Generate this shot clean. The Signal effect is applied in DaVinci Resolve in post:
+  - At 0:07-0:09 (24-48 frames at 24fps)
+  - Layer: analog static texture at 60% opacity
+  - Hue shift: +15 degrees toward magenta for 24 frames
+  - Grain intensity: 200% for those frames
+  - Audio: frequency artifact (see Freesound.org for "analog interference" sound, 2 sec, -20db under ambient)
+  - Returns to clean at 0:09 with no transition
+
+---
+
+SHOT 6 — After Signal / Hard Cut
+[USE anchor_stairwell.png]
+stairwell as before, unchanged, empty, light from above, static — cut to black at 0:10
+Style: identical to Shot 2 — the space is unchanged by what happened

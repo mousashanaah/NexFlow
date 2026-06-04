@@ -1,0 +1,51 @@
+CRITICAL NOTE: EP-008 MUST BE FILMED, NOT AI-GENERATED.
+Reason: real handwriting on real paper with real texture is required for the handwriting motif.
+The handwriting must be physically created ONCE and used consistently in all future appearances.
+
+The handwriting specification (create this before filming):
+- All lowercase
+- Slight leftward lean
+- The lowercase "e" has a specific form: closed loop, slightly smaller than surrounding letters
+- Write on slightly aged paper (leave in sunlight 1-2 hours, or lightly tea-stain)
+- Use a fine-tip ballpoint, black ink
+- Write the note text: "i found you before i knew what finding meant." (never readable on camera)
+
+---
+
+FILMED SHOT GUIDE:
+
+SHOT 1 — Paper Texture
+Lens: macro or close-up. Paper on dark surface. Single amber light from side. Capture only the texture of the paper — the fold line, the grain. 2 seconds, static.
+
+SHOT 2 — Her Hand Reaching
+Camera positioned above the surface. Her body is in background (from above, blurred). Her arm extends into frame toward the note. Hold 2 seconds.
+
+SHOT 3 — Pick Up and Unfold
+Her hands picking up the folded note, unfolding it. Real paper sound. One smooth motion. Film from slightly above and to the side. 1 second.
+
+SHOT 4 — Reading (FROM HER PERSPECTIVE)
+Camera takes her POV looking down at the open note. The handwriting is visible but:
+- Hold the camera at a slight angle (not perpendicular to paper)
+- Soft focus (manual focus, backed off slightly)
+- The paper is lit with amber, the handwriting is real but the angle + focus makes it illegible
+- This shot must show: clearly it's handwriting, clearly it's a real note, NOT clearly what it says
+
+SHOT 5 — Extreme Close-Up of Handwriting
+Macro lens as close as possible. The ink texture on paper. Specific: find the lowercase "e" in the text and center the frame on it. The letterform is the subject. Still soft enough not to be readable.
+
+SHOT 6 — Both Hands Holding
+Standard close-up of both hands holding open note. Amber light. The care in how she holds it.
+
+SHOT 7 — Fold and Away
+She folds the note once. Then it goes — into a jacket pocket, under a small object. Cut at the moment it disappears from view.
+
+SHOT 8 — Audio Only
+Room ambient. The paper sound of the fold. Fades.
+
+---
+
+POST NOTE:
+Save this note. Store the physical note with the production materials.
+Every future handwriting appearance must use the same note or same handwriting.
+Photograph the note at high resolution: save as visual/refs/note_original.jpg.
+This is a production asset as important as the protagonist reference images.

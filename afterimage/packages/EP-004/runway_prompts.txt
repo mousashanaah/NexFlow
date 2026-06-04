@@ -1,0 +1,33 @@
+REFERENCE IMAGE: visual/refs/cassette_held.png (all shots)
+NOTE: Fragment video — no protagonist body, no anchor location. Hands and object only.
+
+---
+
+SHOT 1 (0:00-0:02) — Compression / Opening
+[USE cassette_held.png as starting frame]
+extreme close-up hands holding vintage cassette tape, black shell no label, tape reels visible through window, both thumbs resting on tape window, single warm amber light from left, deep teal shadow from right, skin warmth vs cold-toned cassette, shallow depth of field, static camera
+Style: cinematic, heavy analog film grain, strong split toning (amber light left, teal shadow right), practical single light source, Kodak 5219, shallow DoF
+Negative: face visible, body visible past forearms, bright ambient, multiple light sources, clean digital
+
+---
+
+SHOT 2 (0:02-0:04) — Emotional Peak Image
+[USE cassette_held.png as starting frame — slightly wider]
+both hands holding cassette, thumbs covering the tape window/reels, slight pull-back to show both hands fully, amber light warm on skin, teal shadow side, cassette centered, hands frame it from both sides
+Style: cinematic, analog film grain, amber warmth on hands, teal shadow on cassette side, Kodak 5219, natural hand texture, slight underexposed
+Negative: face, body past wrists, bright light, movement
+
+---
+
+SHOT 3 (0:04-0:06) — Release
+[USE cassette_held.png — motion: thumb lifting then returning]
+hands holding cassette, one thumb beginning to lift from tape window — slight movement, then returning, cut at moment of return, 2 seconds of this micro-motion
+Style: cinematic, analog film grain, split toning, practical amber light, static camera
+Negative: dramatic motion, fast movement, face visible
+
+---
+
+SHOT 4 (0:06-0:08) — Audio Decay
+[NO VIDEO — BLACK FRAME]
+Black frame. Audio: quiet room ambient (very low), no city sound, no music. 2 seconds. Fade to complete silence.
+NOTE: the absence of city sound here is deliberate. This is an interior moment. The city doesn't reach it.
