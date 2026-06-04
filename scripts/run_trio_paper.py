@@ -269,8 +269,8 @@ def run_replay(symbols, capital, from_ts, to_ts):
     print(f"NexFlow Trio V8.63 — REPLAY  |  capital=${capital:,.0f}  |  ${base_notional:,.0f}/coin")
     print(f"Period: {datetime.fromtimestamp(from_ts/1000,tz=timezone.utc).date()} → "
           f"{datetime.fromtimestamp(to_ts/1000,tz=timezone.utc).date()}")
-    print(f"Regime: V8 AND-entry (BTC<SMA200 AND 30d<-20%, 5d confirm exit)")
-    print(f"MomGate: skip longs if coin 30d return ≤ 0")
+    print(f"Regime: V8.63 AND-entry (BTC<SMA200 AND 30d<-20%, 10d confirm exit)")
+    print(f"MomGate: skip longs if coin 20d return ≤ 0")
     print()
 
     ema_strat  = EMATrendStrategy(symbols=symbols, fast=8, slow=21)
@@ -926,7 +926,7 @@ def run_live(symbols, capital):
                     if sig.action == "OPEN_LONG" and (suspend or circuit_open):
                         print(f"  [EMA] {sym} suppressed — {'extreme event' if suspend else 'circuit breaker'}")
                     elif sig.action == "OPEN_LONG" and mom_blocked:
-                        print(f"  [EMA] {sym} suppressed — momentum gate (30d={mom30*100:.1f}%≤0)")
+                        print(f"  [EMA] {sym} suppressed — momentum gate (20d={mom30*100:.1f}%≤0)")
                     else:
                         _exec(sig.action, sym, close, "EMA"); any_sig = True
 
@@ -940,7 +940,7 @@ def run_live(symbols, capital):
                     if action == "OPEN_LONG" and (suspend or circuit_open):
                         print(f"  [MACD] {sym} suppressed — {'extreme event' if suspend else 'circuit breaker'}")
                     elif action == "OPEN_LONG" and mom_blocked:
-                        print(f"  [MACD] {sym} suppressed — momentum gate (30d={mom30*100:.1f}%≤0)")
+                        print(f"  [MACD] {sym} suppressed — momentum gate (20d={mom30*100:.1f}%≤0)")
                     else:
                         _exec(action, sym, close, "MACD"); any_sig = True
 
