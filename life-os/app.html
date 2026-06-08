@@ -1129,15 +1129,17 @@
         <div class="section-label training-lbl">Training Habits</div>
         <div id="habit-list"></div>
 
-        <div class="section-label">Performance Metrics</div>
-        <div class="input-row">
-          <div>
-            <label>Catastrophic Misses</label>
-            <input type="number" id="t-catmisses" min="0" max="20" placeholder="0">
-          </div>
-          <div>
-            <label>Stock-Shot Command /10</label>
-            <input type="number" id="t-stockshot" min="0" max="10" placeholder="7">
+        <div id="perf-metrics">
+          <div class="section-label">Performance Metrics</div>
+          <div class="input-row">
+            <div>
+              <label>Catastrophic Misses</label>
+              <input type="number" id="t-catmisses" min="0" max="20" placeholder="0">
+            </div>
+            <div>
+              <label>Stock-Shot Command /10</label>
+              <input type="number" id="t-stockshot" min="0" max="10" placeholder="7">
+            </div>
           </div>
         </div>
 
@@ -1566,6 +1568,8 @@ let restDay = false;
 function applyRestUI() {
   $('rest-toggle').classList.toggle('on', restDay);
   $('today-form').classList.toggle('is-rest', restDay);
+  const pm = $('perf-metrics');
+  if (pm) pm.style.display = restDay ? 'none' : '';
 }
 
 function toggleRestDay() {
