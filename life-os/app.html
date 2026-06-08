@@ -1161,12 +1161,20 @@
           <input type="date" id="r-date">
         </div>
         <div>
-          <label>Par</label>
-          <input type="number" id="r-par" value="72" min="60" max="80">
+          <label>Holes Played</label>
+          <input type="number" id="r-holes" value="18" min="1" max="18">
         </div>
       </div>
-      <label>Course Name</label>
-      <input type="text" id="r-course" placeholder="e.g. Emirates Golf Club — Majlis">
+      <div class="input-row">
+        <div>
+          <label>Par <span style="color:var(--muted);font-weight:400">(for holes played)</span></label>
+          <input type="number" id="r-par" value="72" min="27" max="80">
+        </div>
+        <div>
+          <label>Course Name</label>
+          <input type="text" id="r-course" placeholder="Emirates — Majlis">
+        </div>
+      </div>
       <div class="input-row">
         <div>
           <label>Score</label>
@@ -1709,6 +1717,7 @@ function saveRound() {
   const r = {
     date: $('r-date').value || today(),
     course: $('r-course').value.trim(),
+    holes: parseInt($('r-holes').value) || 18,
     par: parseInt($('r-par').value) || 72,
     score: parseInt($('r-score').value) || null,
     fir: parseInt($('r-fir').value) || 0,
@@ -1736,6 +1745,7 @@ function saveRound() {
   ['r-course','r-score','r-fir','r-firTotal','r-gir','r-girTotal',
    'r-putts','r-udAttempts','r-udMakes','r-sandAttempts','r-sandMakes','r-catmisses','r-notes'].forEach(id => $(id).value = '');
   $('r-par').value = 72;
+  $('r-holes').value = 18;
   $('r-date').value = '';
 
   showToast('Round saved!');
@@ -1765,7 +1775,7 @@ function renderRoundList() {
       <div class="round-item">
         <div class="round-info">
           <div class="round-course">${r.course}</div>
-          <div class="round-date">${fmtShort(r.date)}</div>
+          <div class="round-date">${fmtShort(r.date)} · ${r.holes || 18} holes</div>
           <div class="round-meta">Cat. Misses: <strong style="color:${r.catMisses === 0 ? 'var(--green)' : r.catMisses > 2 ? 'var(--red)' : 'var(--accent)'}">${r.catMisses}</strong> · ${pct(r.gir, r.girTotal)} GIR · ${r.putts ?? '—'} putts</div>
         </div>
         <div style="text-align:right">
@@ -1788,11 +1798,15 @@ function renderStats() {
     return;
   }
 
-  const scores = rounds.map(r => r.score).filter(Boolean);
+  // per-18 normalizer so 9 / 12 / 18-hole rounds compare fairly
+  const per18 = (val, holes) => val / (holes || 18) * 18;
+  // 18-hole-equivalent scores
+  const scores = rounds.filter(r => r.score).map(r => per18(r.score, r.holes));
   const pars = rounds.map(r => r.par);
-  const toPars = rounds.map((r, i) => r.score - r.par).filter((_, i) => rounds[i].score);
+  // score to par is hole-count-agnostic (par entered for holes played)
+  const toPars = rounds.filter(r => r.score).map(r => r.score - r.par);
   const last5 = rounds.slice(0, 5);
-  const last5scores = last5.map(r => r.score - r.par);
+  const last5scores = last5.filter(r => r.score).map(r => r.score - r.par);
 
   const scoringAvg = avg(scores).toFixed(1);
   const last5avg = last5scores.length ? (avg(last5scores) >= 0 ? '+' : '') + avg(last5scores).toFixed(1) : '—';
@@ -1808,8 +1822,8 @@ function renderStats() {
   const over6 = toPars.filter(t => t > 5).length;
   const total = toPars.length;
 
-  // Cat misses
-  const cats = rounds.map(r => r.catMisses);
+  // Cat misses (normalized per 18 for a fair average)
+  const cats = rounds.map(r => per18(r.catMisses || 0, r.holes));
   const avgCat = avg(cats).toFixed(1);
 
   // T2G
@@ -1817,7 +1831,7 @@ function renderStats() {
   const allFirT = rounds.reduce((a, r) => a + r.firTotal, 0);
   const allGir = rounds.reduce((a, r) => a + r.gir, 0);
   const allGirT = rounds.reduce((a, r) => a + r.girTotal, 0);
-  const allPutts = rounds.filter(r => r.putts).map(r => r.putts);
+  const allPutts = rounds.filter(r => r.putts).map(r => per18(r.putts, r.holes));
   const avgPutts = allPutts.length ? avg(allPutts).toFixed(1) : '—';
   const allUdA = rounds.reduce((a, r) => a + r.udAttempts, 0);
   const allUdM = rounds.reduce((a, r) => a + r.udMakes, 0);
@@ -1868,7 +1882,7 @@ function renderStats() {
       <div class="stat-grid">
         <div class="stat-box">
           <div class="stat-val">${scoringAvg}</div>
-          <div class="stat-lbl">Scoring Avg</div>
+          <div class="stat-lbl">Scoring Avg / 18</div>
         </div>
         <div class="stat-box">
           <div class="stat-val">${last5avg}</div>
@@ -1899,7 +1913,7 @@ function renderStats() {
       <div class="stat-grid" style="margin-bottom:16px">
         <div class="stat-box" style="border-color:var(--accent)">
           <div class="stat-val gold">${avgCat}</div>
-          <div class="stat-lbl">Avg per Round</div>
+          <div class="stat-lbl">Avg per 18</div>
         </div>
         <div class="stat-box" style="border-color:var(--accent)">
           <div class="stat-val gold">${rounds.filter(r => r.catMisses === 0).length}</div>
@@ -1925,7 +1939,7 @@ function renderStats() {
         </div>
         <div class="stat-box">
           <div class="stat-val">${avgPutts}</div>
-          <div class="stat-lbl">Avg Putts</div>
+          <div class="stat-lbl">Avg Putts / 18</div>
         </div>
         <div class="stat-box">
           <div class="stat-val">${pct(allUdM, allUdA)}</div>
