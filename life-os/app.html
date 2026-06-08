@@ -626,6 +626,145 @@
   input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
   }
+
+  /* ─── RPG / CHARACTER LAYER ─────────────────────────────────────── */
+  /* make nav fit 6 tabs */
+  .nav-btn { font-size: 8.5px; letter-spacing: 0.03em; }
+  .nav-btn svg { width: 20px; height: 20px; }
+
+  .char-hero {
+    background: radial-gradient(120% 90% at 50% 0%, #1f1c14 0%, #141414 60%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 16px 22px;
+    text-align: center;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .char-tier-name {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 2px;
+  }
+  .char-name-line {
+    font-size: 24px; font-weight: 800; margin-bottom: 2px;
+  }
+  .char-title-line {
+    font-size: 12px; color: var(--muted); font-style: italic; margin-bottom: 12px;
+    min-height: 16px;
+  }
+  .char-svg-wrap {
+    width: 170px; height: 200px; margin: 0 auto 14px;
+    display: flex; align-items: flex-end; justify-content: center;
+    border-radius: 14px;
+    position: relative;
+  }
+  .char-svg-wrap svg { width: 150px; height: 190px; position: relative; z-index: 2; }
+  .char-aura {
+    position: absolute; left: 50%; top: 52%; transform: translate(-50%,-50%);
+    width: 120px; height: 120px; border-radius: 50%;
+    z-index: 1; pointer-events: none;
+  }
+  @keyframes auraPulse {
+    0%,100% { opacity: 0.55; transform: translate(-50%,-50%) scale(1); }
+    50% { opacity: 1; transform: translate(-50%,-50%) scale(1.12); }
+  }
+  @keyframes floatY {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  .char-svg-wrap.animated svg { animation: floatY 3.5s ease-in-out infinite; }
+  .char-aura.on { animation: auraPulse 2.8s ease-in-out infinite; }
+
+  .lvl-pill {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    background: var(--accent-dim); border: 1px solid rgba(201,168,76,0.35);
+    color: var(--accent); padding: 4px 14px; border-radius: 20px;
+    font-weight: 800; font-size: 15px; margin-bottom: 12px;
+  }
+  .lvl-pill small { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; opacity: 0.8; }
+
+  .xp-wrap { margin-top: 4px; }
+  .xp-bar-track {
+    height: 10px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; overflow: hidden;
+  }
+  .xp-bar-fill {
+    height: 100%; background: linear-gradient(90deg,#9a7e2e,var(--accent));
+    border-radius: 6px; transition: width 0.5s ease;
+  }
+  .xp-meta {
+    display: flex; justify-content: space-between; margin-top: 6px;
+    font-size: 11px; color: var(--muted); font-weight: 600;
+  }
+
+  /* attribute bars */
+  .attr-row { display: flex; align-items: center; gap: 10px; margin-bottom: 11px; }
+  .attr-lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--muted); width: 92px; flex-shrink: 0; text-transform: uppercase; }
+  .attr-track { flex: 1; height: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .attr-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+  .attr-num { font-size: 13px; font-weight: 800; width: 30px; text-align: right; flex-shrink: 0; }
+
+  /* customize panel */
+  .cust-group { margin-bottom: 14px; }
+  .cust-group > .cust-lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; display:block; }
+  .opt-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .opt-swatch {
+    width: 36px; height: 36px; border-radius: 10px; border: 2px solid var(--border);
+    cursor: pointer; -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+    transition: transform 0.1s, border-color 0.15s;
+  }
+  .opt-swatch.sel { border-color: var(--accent); transform: scale(1.08); }
+  .opt-chip {
+    padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--muted); font-size: 12px; font-weight: 700;
+    cursor: pointer; -webkit-tap-highlight-color: transparent; transition: all 0.15s;
+  }
+  .opt-chip.sel { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+  .opt-chip.locked { opacity: 0.4; cursor: not-allowed; }
+
+  /* achievements grid */
+  .ach-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  }
+  .ach {
+    aspect-ratio: 1; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 4px; padding: 6px 4px;
+    text-align: center; cursor: pointer; position: relative; transition: all 0.15s;
+  }
+  .ach .ach-icon { font-size: 22px; line-height: 1; filter: grayscale(1) brightness(0.6); }
+  .ach .ach-name { font-size: 8px; font-weight: 700; color: var(--muted); letter-spacing: 0.02em; line-height: 1.15; text-transform: uppercase; }
+  .ach.unlocked {
+    border-color: var(--accent);
+    background: linear-gradient(150deg,#1f1c14,#1c1c1c);
+  }
+  .ach.unlocked .ach-icon { filter: none; }
+  .ach.unlocked .ach-name { color: var(--accent); }
+  .ach-detail {
+    font-size: 12px; color: var(--muted); margin-top: 10px; min-height: 18px;
+    text-align: center; line-height: 1.4;
+  }
+
+  /* celebration modal */
+  #celebrate {
+    position: fixed; inset: 0; z-index: 200; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.78); padding: 30px;
+  }
+  #celebrate.show { display: flex; }
+  .celebrate-card {
+    background: linear-gradient(160deg,#241f12,#141414);
+    border: 1px solid var(--accent); border-radius: 18px;
+    padding: 30px 26px; text-align: center; max-width: 340px; width: 100%;
+    box-shadow: 0 0 60px rgba(201,168,76,0.25);
+    animation: popIn 0.35s cubic-bezier(.2,.9,.3,1.4);
+  }
+  @keyframes popIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .celebrate-kicker { font-size: 11px; letter-spacing: 0.2em; font-weight: 800; color: var(--accent); text-transform: uppercase; margin-bottom: 10px; }
+  .celebrate-icon { font-size: 56px; margin: 6px 0 12px; }
+  .celebrate-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .celebrate-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -802,6 +941,60 @@
       <div id="nutri-streak"></div>
     </div>
 
+    <!-- TAB: CHARACTER -->
+    <div id="tab-character" class="tab-panel">
+      <div class="page-title" style="margin-bottom:16px">Character</div>
+
+      <div class="char-hero">
+        <div class="char-tier-name" id="char-tier">ROOKIE</div>
+        <div class="char-name-line" id="char-name-display">Mousa</div>
+        <div class="char-title-line" id="char-title-display"></div>
+        <div class="char-svg-wrap" id="char-svg-wrap">
+          <div class="char-aura" id="char-aura"></div>
+          <div id="char-svg"></div>
+        </div>
+        <div class="lvl-pill"><span id="char-level">Lv 1</span><small id="char-tier-pill">ROOKIE</small></div>
+        <div class="xp-wrap">
+          <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-fill" style="width:0%"></div></div>
+          <div class="xp-meta">
+            <span id="xp-progress">0 / 500 XP</span>
+            <span id="xp-total">0 total XP</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label">Attributes</div>
+      <div class="card" id="attr-panel"></div>
+
+      <div class="section-label">Achievements <span id="ach-count" style="color:var(--accent)"></span></div>
+      <div class="ach-grid" id="ach-grid"></div>
+      <div class="ach-detail" id="ach-detail">Tap a badge to see how to earn it.</div>
+
+      <div class="section-label">Customize</div>
+      <div class="card">
+        <div class="cust-group">
+          <label class="cust-lbl">Name</label>
+          <input type="text" id="cust-name" placeholder="Mousa" style="margin-bottom:0">
+        </div>
+        <div class="cust-group">
+          <span class="cust-lbl">Skin Tone</span>
+          <div class="opt-row" id="cust-skin"></div>
+        </div>
+        <div class="cust-group">
+          <span class="cust-lbl">Hair</span>
+          <div class="opt-row" id="cust-hair"></div>
+        </div>
+        <div class="cust-group">
+          <span class="cust-lbl">Kit Color</span>
+          <div class="opt-row" id="cust-kit"></div>
+        </div>
+        <div class="cust-group">
+          <span class="cust-lbl">Title</span>
+          <div class="opt-row" id="cust-title"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- TAB 5: STREAK -->
     <div id="tab-streak" class="tab-panel">
       <div class="page-date" id="streak-date-label"></div>
@@ -861,6 +1054,12 @@
       </svg>
       Stats
     </button>
+    <button class="nav-btn" data-tab="character" onclick="switchTab('character',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>
+      </svg>
+      Hero
+    </button>
     <button class="nav-btn" data-tab="nutrition" onclick="switchTab('nutrition',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
@@ -877,6 +1076,16 @@
 </div>
 
 <div id="toast"></div>
+
+<div id="celebrate" onclick="closeCelebrate()">
+  <div class="celebrate-card" onclick="event.stopPropagation()">
+    <div class="celebrate-kicker" id="celebrate-kicker">Achievement Unlocked</div>
+    <div class="celebrate-icon" id="celebrate-icon">🏆</div>
+    <div class="celebrate-title" id="celebrate-title"></div>
+    <div class="celebrate-sub" id="celebrate-sub"></div>
+    <button class="btn btn-primary" onclick="nextCelebrate()" id="celebrate-btn">Continue</button>
+  </div>
+</div>
 
 <script>
 // ─── Utilities ────────────────────────────────────────────────────
@@ -926,6 +1135,7 @@ function switchTab(name, btn) {
   if (name === 'streak') renderStreak();
   if (name === 'round') renderRoundList();
   if (name === 'nutrition') renderNutriStreak();
+  if (name === 'character') renderCharacter();
   if (name === 'today') checkSavedDay();
 }
 
@@ -1047,6 +1257,7 @@ function saveDay() {
 
   showToast(green ? '✓ Green day saved!' : 'Day saved — keep pushing');
   showSavedDay(obj);
+  checkRpgProgress(false);
 }
 
 // ─── ROUND TAB ─────────────────────────────────────────────────────
@@ -1085,6 +1296,7 @@ function saveRound() {
 
   showToast('Round saved!');
   renderRoundList();
+  checkRpgProgress(false);
 }
 
 function deleteRound(id) {
@@ -1390,6 +1602,7 @@ function saveNutrition() {
   save('nexflow_nutrition', nut);
   showToast('Nutrition log saved!');
   renderNutriStreak();
+  checkRpgProgress(false);
 }
 
 function renderNutriStreak() {
@@ -1623,6 +1836,465 @@ function drawMissChart() {
   ctx.fillText('─ Target: 0', padL + 2, padT + 8);
 }
 
+// ─── RPG / CHARACTER LAYER ─────────────────────────────────────────
+const CHAR_KEY = 'nexflow_character';
+const RPG_META = 'nexflow_rpg_meta'; // { lastLevel, seenAchievements:[] }
+
+const SKIN_TONES = ['#f1c9a5','#e0a878','#a86b40','#6b4423'];
+const HAIR_OPTS = [
+  { id:'black', color:'#1a1a1a', label:'Black' },
+  { id:'brown', color:'#6b4423', label:'Brown' },
+  { id:'blonde', color:'#d9b25a', label:'Blonde' },
+  { id:'buzz', color:'#2a2a2a', label:'Buzz' },
+];
+const KIT_OPTS = ['#c9a84c','#3b82f6','#ef4444','#22c55e','#e5e5e5','#7c3aed'];
+
+function getChar() {
+  const c = load(CHAR_KEY) || {};
+  return {
+    name: c.name || 'Mousa',
+    skin: c.skin || SKIN_TONES[1],
+    hair: c.hair || 'black',
+    kit: c.kit || '#c9a84c',
+    title: c.title || '',
+  };
+}
+function getMeta() {
+  const m = load(RPG_META) || {};
+  return { lastLevel: m.lastLevel || 0, seen: m.seen || [] };
+}
+
+// ─── XP & LEVEL ────────────────────────────────────────────────────
+function currentStreak() {
+  const days = load('nexflow_days') || [];
+  let streak = 0, d = new Date();
+  while (true) {
+    const ds = d.toISOString().slice(0,10);
+    if (!days.find(x => x.date === ds && x.green)) break;
+    streak++; d.setDate(d.getDate()-1);
+  }
+  return streak;
+}
+
+function longestNutriStreak() {
+  // longest run of consecutive clean nutrition days
+  const nut = load('nexflow_nutrition') || [];
+  const clean = nut.filter(n => {
+    const c = Object.values(n.habits||{}).filter(Boolean).length;
+    return c >= 4 && n.snackRating !== 'blowup';
+  }).map(n => n.date).sort();
+  let best=0, cur=0, prev=null;
+  clean.forEach(ds => {
+    if (prev) { const diff=(new Date(ds)-new Date(prev))/86400000; cur = diff===1?cur+1:1; }
+    else cur=1;
+    if (cur>best) best=cur; prev=ds;
+  });
+  return best;
+}
+
+function longestGreenStreak() {
+  const days = load('nexflow_days') || [];
+  const g = days.filter(x=>x.green).map(x=>x.date).sort();
+  let best=0,cur=0,prev=null;
+  g.forEach(ds=>{ if(prev){const diff=(new Date(ds)-new Date(prev))/86400000; cur=diff===1?cur+1:1;} else cur=1; if(cur>best)best=cur; prev=ds; });
+  return best;
+}
+
+// habit total counts across all days, per key
+function habitCounts() {
+  const days = load('nexflow_days') || [];
+  const counts = {};
+  days.forEach(d => Object.entries(d.habits||{}).forEach(([k,v]) => { if(v) counts[k]=(counts[k]||0)+1; }));
+  return counts;
+}
+
+function computeXP() {
+  const days = load('nexflow_days') || [];
+  const rounds = load('nexflow_rounds') || [];
+  const nut = load('nexflow_nutrition') || [];
+  let xp = 0;
+
+  days.forEach(d => {
+    xp += d.green ? 100 : 30;
+    const checked = Object.values(d.habits||{}).filter(Boolean).length;
+    xp += checked * 5;
+  });
+
+  rounds.forEach(r => {
+    xp += 50;
+    if (r.catMisses === 0) xp += 150;
+    if (r.score && r.par && r.score < r.par) xp += 200;
+  });
+
+  nut.forEach(n => {
+    const c = Object.values(n.habits||{}).filter(Boolean).length;
+    if (c >= 4 && n.snackRating !== 'blowup') xp += 25;
+  });
+
+  // streak milestone bonuses (based on longest green streak achieved)
+  const lg = longestGreenStreak();
+  const milestones = [[7,250],[14,500],[30,1000],[60,2000],[100,4000]];
+  milestones.forEach(([d,b]) => { if (lg >= d) xp += b; });
+
+  return xp;
+}
+
+// Level curve: cumulative XP for level N = 250 * N * (N-1)
+// L1=0, L2=500, L3=1500, L4=3000, L5=5000 ... fast early, grindy later
+function xpForLevel(n) { return 250 * n * (n - 1); }
+function levelFromXP(xp) {
+  let lvl = 1;
+  while (xpForLevel(lvl + 1) <= xp) lvl++;
+  return lvl;
+}
+
+const TIERS = [
+  { min:1, max:4, name:'ROOKIE' },
+  { min:5, max:9, name:'CONTENDER' },
+  { min:10, max:19, name:'PRO' },
+  { min:20, max:34, name:'TOUR PLAYER' },
+  { min:35, max:Infinity, name:'CHAMPION' },
+];
+function tierFor(level) { return TIERS.find(t => level >= t.min && level <= t.max) || TIERS[0]; }
+function tierIndex(level) { return TIERS.indexOf(tierFor(level)); }
+
+// ─── ATTRIBUTES (0-100) ────────────────────────────────────────────
+function computeAttributes() {
+  const days = load('nexflow_days') || [];
+  const rounds = load('nexflow_rounds') || [];
+  const counts = habitCounts();
+  const clamp = v => Math.max(0, Math.min(100, Math.round(v)));
+
+  // DISCIPLINE: green ratio + current streak
+  const greenDays = days.filter(d=>d.green).length;
+  const greenRatio = days.length ? greenDays/days.length : 0;
+  const streak = currentStreak();
+  const discipline = clamp(greenRatio*70 + Math.min(streak,30)/30*30);
+
+  // STRIKING: inverse avg cat misses + stockShot avg
+  const cats = rounds.map(r=>r.catMisses||0);
+  const avgCat = cats.length ? avg(cats) : 4;
+  const stockVals = days.map(d=>d.stockShot).filter(v=>v!=null);
+  const stockAvg = stockVals.length ? avg(stockVals) : 5;
+  const striking = clamp((Math.max(0,(5-avgCat))/5)*60 + (stockAvg/10)*40);
+
+  // SHORT GAME: up-and-down %
+  const udA = rounds.reduce((a,r)=>a+(r.udAttempts||0),0);
+  const udM = rounds.reduce((a,r)=>a+(r.udMakes||0),0);
+  const udPct = udA ? udM/udA : 0;
+  const shortGame = clamp(udPct*125); // 80% -> 100
+
+  // PUTTING: 30 putts benchmark, fewer better. 24->100, 36->0
+  const putts = rounds.map(r=>r.putts).filter(Boolean);
+  const avgPutts = putts.length ? avg(putts) : 32;
+  const putting = clamp((36 - avgPutts)/12*100);
+
+  // MIND: stateReset + logging consistency
+  const stateN = counts.stateReset || 0;
+  const last14 = []; for(let i=0;i<14;i++){const d=new Date();d.setDate(d.getDate()-i);last14.push(d.toISOString().slice(0,10));}
+  const loggedRecent = last14.filter(ds => days.find(x=>x.date===ds)).length;
+  const mind = clamp(Math.min(stateN,20)/20*50 + loggedRecent/14*50);
+
+  // STRENGTH: gym warmup + lifting
+  const strN = (counts.gymWarmup||0) + (counts.gymLifting||0);
+  const strength = clamp(Math.min(strN,40)/40*100);
+
+  // FAITH: reading/Quran
+  const faith = clamp(Math.min(counts.reading||0,30)/30*100);
+
+  // HUSTLE: nexflow work
+  const hustle = clamp(Math.min(counts.nexflow||0,30)/30*100);
+
+  return [
+    { lbl:'Discipline', val:discipline, color:'#c9a84c' },
+    { lbl:'Striking', val:striking, color:'#3b82f6' },
+    { lbl:'Short Game', val:shortGame, color:'#22c55e' },
+    { lbl:'Putting', val:putting, color:'#7c3aed' },
+    { lbl:'Mind', val:mind, color:'#06b6d4' },
+    { lbl:'Strength', val:strength, color:'#ef4444' },
+    { lbl:'Faith', val:faith, color:'#e5e5e5' },
+    { lbl:'Hustle', val:hustle, color:'#f59e0b' },
+  ];
+}
+
+// ─── ACHIEVEMENTS ──────────────────────────────────────────────────
+// title? -> grants a selectable title
+function computeAchievements() {
+  const days = load('nexflow_days') || [];
+  const rounds = load('nexflow_rounds') || [];
+  const nut = load('nexflow_nutrition') || [];
+  const counts = habitCounts();
+  const lg = longestGreenStreak();
+  const xp = computeXP();
+  const level = levelFromXP(xp);
+
+  // up-and-down % overall
+  const udA = rounds.reduce((a,r)=>a+(r.udAttempts||0),0);
+  const udM = rounds.reduce((a,r)=>a+(r.udMakes||0),0);
+  const udPct = udA ? udM/udA : 0;
+  const putts = rounds.map(r=>r.putts).filter(Boolean);
+  const avgPutts = putts.length ? avg(putts) : 99;
+
+  // rounds in chronological order (rounds stored newest-first via unshift)
+  const chrono = [...rounds].reverse();
+  let maxCleanRun=0, run=0;
+  chrono.forEach(r => { if(r.catMisses===0){run++; if(run>maxCleanRun)maxCleanRun=run;} else run=0; });
+
+  // comeback: green day immediately after a red day
+  const byDate = [...days].sort((a,b)=>a.date<b.date?-1:1);
+  let comeback=false;
+  for (let i=1;i<byDate.length;i++){
+    const prev=byDate[i-1], cur=byDate[i];
+    const diff=(new Date(cur.date)-new Date(prev.date))/86400000;
+    if (diff===1 && !prev.green && cur.green) { comeback=true; break; }
+  }
+
+  const firBest = rounds.some(r => r.firTotal && r.fir/r.firTotal > 0.70);
+  const girBest = rounds.some(r => r.girTotal && r.gir/r.girTotal > 0.70);
+
+  const A = [
+    { id:'first_steps', icon:'👣', name:'First Steps', desc:'Log your first day.', done: days.length>=1 },
+    { id:'first_blood', icon:'🩸', name:'First Blood', desc:'Log your first round.', done: rounds.length>=1 },
+    { id:'iron_will', icon:'🛡️', name:'Iron Will', desc:'7-day green streak.', done: lg>=7, title:'The Disciplined' },
+    { id:'unbreakable', icon:'⛓️', name:'Unbreakable', desc:'30-day green streak.', done: lg>=30, title:'Unbreakable' },
+    { id:'the_machine', icon:'🤖', name:'The Machine', desc:'60-day green streak.', done: lg>=60, title:'The Machine' },
+    { id:'immortal', icon:'♾️', name:'Immortal', desc:'100-day green streak.', done: lg>=100, title:'Immortal' },
+    { id:'zero_hero', icon:'🎯', name:'Zero Hero', desc:'A round with 0 catastrophic misses.', done: rounds.some(r=>r.catMisses===0), title:'Zero Hero' },
+    { id:'clean_card', icon:'🃏', name:'Clean Card', desc:'3 rounds in a row with 0 cat. misses.', done: maxCleanRun>=3 },
+    { id:'sub_par', icon:'🐦', name:'Sub-Par', desc:'Shoot a round under par.', done: rounds.some(r=>r.score&&r.score<r.par), title:'Birdie Machine' },
+    { id:'tournament_ready', icon:'🏌️', name:'Tournament Ready', desc:'Shoot par or better.', done: rounds.some(r=>r.score&&r.score<=r.par) },
+    { id:'range_rat', icon:'⛳', name:'Range Rat', desc:'Range drills checked 25 times.', done:(counts.rangeDrills||0)>=25 },
+    { id:'grinder', icon:'🔁', name:'Grinder', desc:'Range drills checked 100 times.', done:(counts.rangeDrills||0)>=100, title:'The Grinder' },
+    { id:'wedge_wizard', icon:'🪄', name:'Wedge Wizard', desc:'U&D over 60% across 5+ rounds.', done: rounds.length>=5 && udPct>0.60, title:'Wedge Wizard' },
+    { id:'putting_machine', icon:'🎱', name:'Putting Machine', desc:'Avg under 30 putts (5+ rounds).', done: putts.length>=5 && avgPutts<30 },
+    { id:'fairway_finder', icon:'🌳', name:'Fairway Finder', desc:'FIR over 70% in a round.', done: firBest },
+    { id:'dialed_in', icon:'📍', name:'Dialed In', desc:'GIR over 70% in a round.', done: girBest },
+    { id:'iron_body', icon:'💪', name:'Iron Body', desc:'Lifting checked 20 times.', done:(counts.gymLifting||0)>=20, title:'Iron Body' },
+    { id:'clean_diet', icon:'🥗', name:'Disciplined Diet', desc:'7 clean-nutrition days in a row.', done: longestNutriStreak()>=7 },
+    { id:'scholar', icon:'📖', name:'Scholar', desc:'Quran/Reading checked 30 times.', done:(counts.reading||0)>=30, title:'The Scholar' },
+    { id:'the_builder', icon:'🛠️', name:'The Builder', desc:'NexFlow work checked 30 times.', done:(counts.nexflow||0)>=30, title:'The Builder' },
+    { id:'comeback', icon:'🔥', name:'Comeback', desc:'Green day right after a red day.', done: comeback },
+    { id:'lvl10', icon:'🔟', name:'Level 10', desc:'Reach level 10.', done: level>=10 },
+    { id:'lvl25', icon:'⭐', name:'Level 25', desc:'Reach level 25.', done: level>=25, title:'Tour Player' },
+    { id:'lvl50', icon:'👑', name:'Level 50', desc:'Reach level 50.', done: level>=50, title:'Legend' },
+  ];
+  return A;
+}
+
+function unlockedTitles() {
+  return computeAchievements().filter(a => a.done && a.title).map(a => a.title);
+}
+
+// ─── CHARACTER SVG ─────────────────────────────────────────────────
+function buildCharSvg(tierIdx, kit, skin, hairId) {
+  const hair = (HAIR_OPTS.find(h=>h.id===hairId)||HAIR_OPTS[0]).color;
+  const goldTrim = tierIdx >= 1;
+  const auraGlow = tierIdx >= 2;
+  const champion = tierIdx >= 4;
+  const tourPlayer = tierIdx >= 3;
+  const trimColor = '#c9a84c';
+  // crown for champion
+  const crown = champion ? `
+    <path d="M62 30 L70 40 L75 28 L80 40 L88 30 L86 46 L64 46 Z" fill="#c9a84c" stroke="#9a7e2e" stroke-width="1"/>
+    <circle cx="75" cy="26" r="3" fill="#ffe9a8"/>` : '';
+  // outfit trim accent line
+  const trim = goldTrim ? `<rect x="55" y="78" width="40" height="3" fill="${trimColor}"/>` : '';
+  const polo = `
+    <!-- torso / polo -->
+    <path d="M55 78 Q55 72 62 70 L88 70 Q95 72 95 78 L97 120 L53 120 Z" fill="${kit}" stroke="#0a0a0a" stroke-width="1.2"/>
+    <!-- collar -->
+    <path d="M68 70 L75 80 L82 70 Z" fill="#0a0a0a" opacity="0.35"/>
+    ${trim}`;
+  const aura = auraGlow ? `<ellipse cx="75" cy="100" rx="60" ry="80" fill="url(#auraGrad)" opacity="${champion?0.5:tourPlayer?0.35:0.22}"/>` : '';
+  return `
+  <svg viewBox="0 0 150 190" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="auraGrad" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#c9a84c" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#c9a84c" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    ${aura}
+    <!-- legs -->
+    <rect x="62" y="118" width="11" height="50" rx="4" fill="#2a2a2a"/>
+    <rect x="77" y="118" width="11" height="50" rx="4" fill="#2a2a2a"/>
+    <!-- shoes -->
+    <ellipse cx="65" cy="170" rx="10" ry="5" fill="#0a0a0a"/>
+    <ellipse cx="84" cy="170" rx="10" ry="5" fill="#0a0a0a"/>
+    ${polo}
+    <!-- arms -->
+    <path d="M55 80 Q44 90 46 108" stroke="${kit}" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <path d="M95 80 Q106 90 104 108" stroke="${kit}" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <circle cx="46" cy="110" r="5" fill="${skin}"/>
+    <circle cx="104" cy="110" r="5" fill="${skin}"/>
+    <!-- golf club -->
+    <line x1="104" y1="110" x2="124" y2="150" stroke="#9a9a9a" stroke-width="2.2"/>
+    <path d="M122 148 q6 2 6 8" stroke="#666" stroke-width="3" fill="none"/>
+    <!-- neck -->
+    <rect x="71" y="60" width="8" height="12" fill="${skin}"/>
+    <!-- head -->
+    <circle cx="75" cy="52" r="14" fill="${skin}" stroke="#0a0a0a" stroke-width="0.8"/>
+    <!-- hair -->
+    <path d="M61 50 Q62 36 75 36 Q88 36 89 50 Q84 44 75 44 Q66 44 61 50 Z" fill="${hair}"/>
+    ${crown}
+    <!-- cap visor for pro+ -->
+    ${tierIdx>=2 ? `<path d="M61 46 Q75 34 89 46 L92 47 L58 47 Z" fill="${goldTrim?trimColor:'#1a1a1a'}"/>` : ''}
+  </svg>`;
+}
+
+// ─── RENDER ────────────────────────────────────────────────────────
+function renderCharacter() {
+  const c = getChar();
+  const xp = computeXP();
+  const level = levelFromXP(xp);
+  const tier = tierFor(level);
+  const tIdx = tierIndex(level);
+  const streak = currentStreak();
+
+  $('char-tier').textContent = tier.name;
+  $('char-tier-pill').textContent = tier.name;
+  $('char-name-display').textContent = c.name;
+  $('char-title-display').textContent = c.title ? '“' + c.title + '”' : '';
+  $('char-level').textContent = 'Lv ' + level;
+
+  // XP bar
+  const curBase = xpForLevel(level);
+  const nextReq = xpForLevel(level + 1);
+  const into = xp - curBase;
+  const span = nextReq - curBase;
+  const pctXp = span ? Math.min(100, into/span*100) : 100;
+  $('xp-fill').style.width = pctXp + '%';
+  $('xp-progress').textContent = into + ' / ' + span + ' XP';
+  $('xp-total').textContent = xp.toLocaleString() + ' total XP';
+
+  // SVG
+  $('char-svg').innerHTML = buildCharSvg(tIdx, c.kit, c.skin, c.hair);
+  $('char-svg-wrap').classList.add('animated');
+
+  // Aura scales with tier + streak
+  const aura = $('char-aura');
+  const baseGlow = [0, 6, 14, 26, 44][tIdx] || 0;
+  const streakGlow = Math.min(streak, 30) * 1.6;
+  const glow = baseGlow + streakGlow;
+  if (glow > 4) {
+    aura.style.boxShadow = `0 0 ${glow}px ${glow*0.7}px rgba(201,168,76,${Math.min(0.7, 0.15 + glow/120)})`;
+    aura.classList.add('on');
+  } else {
+    aura.style.boxShadow = 'none';
+    aura.classList.remove('on');
+  }
+
+  // Attributes
+  $('attr-panel').innerHTML = computeAttributes().map(a => `
+    <div class="attr-row">
+      <span class="attr-lbl">${a.lbl}</span>
+      <div class="attr-track"><div class="attr-fill" style="width:${a.val}%;background:${a.color}"></div></div>
+      <span class="attr-num" style="color:${a.color}">${a.val}</span>
+    </div>`).join('');
+
+  // Achievements
+  const achs = computeAchievements();
+  const unlocked = achs.filter(a=>a.done).length;
+  $('ach-count').textContent = unlocked + ' / ' + achs.length;
+  $('ach-grid').innerHTML = achs.map(a => `
+    <div class="ach ${a.done?'unlocked':''}" onclick="showAch('${a.id}')">
+      <div class="ach-icon">${a.icon}</div>
+      <div class="ach-name">${a.name}</div>
+    </div>`).join('');
+
+  buildCustomize();
+}
+
+let _achCache = [];
+function showAch(id) {
+  _achCache = computeAchievements();
+  const a = _achCache.find(x=>x.id===id);
+  if (!a) return;
+  $('ach-detail').innerHTML = `<strong style="color:${a.done?'var(--accent)':'var(--text)'}">${a.icon} ${a.name}</strong> — ${a.desc} ${a.done?'<span style="color:var(--green)">✓ Earned</span>':'<span style="color:var(--muted)">Locked</span>'}`;
+}
+
+// ─── CUSTOMIZE ─────────────────────────────────────────────────────
+function setChar(patch) {
+  const c = getChar();
+  save(CHAR_KEY, { ...c, ...patch });
+  renderCharacter();
+}
+function buildCustomize() {
+  const c = getChar();
+  $('cust-name').value = c.name;
+
+  $('cust-skin').innerHTML = SKIN_TONES.map(t =>
+    `<div class="opt-swatch ${c.skin===t?'sel':''}" style="background:${t}" onclick="setChar({skin:'${t}'})"></div>`).join('');
+
+  $('cust-hair').innerHTML = HAIR_OPTS.map(h =>
+    `<div class="opt-swatch ${c.hair===h.id?'sel':''}" style="background:${h.color}" title="${h.label}" onclick="setChar({hair:'${h.id}'})"></div>`).join('');
+
+  $('cust-kit').innerHTML = KIT_OPTS.map(k =>
+    `<div class="opt-swatch ${c.kit===k?'sel':''}" style="background:${k}" onclick="setChar({kit:'${k}'})"></div>`).join('');
+
+  const titles = unlockedTitles();
+  let html = `<div class="opt-chip ${!c.title?'sel':''}" onclick="setChar({title:''})">None</div>`;
+  if (!titles.length) html += `<div class="opt-chip locked">Unlock via achievements</div>`;
+  html += titles.map(t => `<div class="opt-chip ${c.title===t?'sel':''}" onclick="setChar({title:'${t.replace(/'/g,"\\'")}'})">${t}</div>`).join('');
+  $('cust-title').innerHTML = html;
+}
+// name input -> save on change
+document.addEventListener('input', e => {
+  if (e.target && e.target.id === 'cust-name') {
+    const c = getChar();
+    save(CHAR_KEY, { ...c, name: e.target.value.trim() || 'Mousa' });
+    $('char-name-display').textContent = e.target.value.trim() || 'Mousa';
+  }
+});
+
+// ─── CELEBRATION QUEUE ─────────────────────────────────────────────
+let _celebrateQueue = [];
+function queueCelebrate(kicker, icon, title, sub) {
+  _celebrateQueue.push({ kicker, icon, title, sub });
+}
+function flushCelebrate() {
+  if (!_celebrateQueue.length) return;
+  nextCelebrate();
+}
+function nextCelebrate() {
+  if (!_celebrateQueue.length) { closeCelebrate(); return; }
+  const c = _celebrateQueue.shift();
+  $('celebrate-kicker').textContent = c.kicker;
+  $('celebrate-icon').textContent = c.icon;
+  $('celebrate-title').textContent = c.title;
+  $('celebrate-sub').textContent = c.sub;
+  $('celebrate-btn').textContent = _celebrateQueue.length ? 'Next' : 'Continue';
+  $('celebrate').classList.add('show');
+}
+function closeCelebrate() {
+  $('celebrate').classList.remove('show');
+  _celebrateQueue = [];
+}
+
+// check for new level-ups and achievements; store seen state
+function checkRpgProgress(silent) {
+  const xp = computeXP();
+  const level = levelFromXP(xp);
+  const meta = getMeta();
+  const achs = computeAchievements();
+  const unlockedIds = achs.filter(a=>a.done).map(a=>a.id);
+
+  if (!silent) {
+    // new achievements
+    achs.filter(a => a.done && !meta.seen.includes(a.id)).forEach(a => {
+      queueCelebrate('Achievement Unlocked', a.icon, a.name, a.desc + (a.title ? ` · Title “${a.title}” unlocked!` : ''));
+    });
+    // level up
+    if (meta.lastLevel && level > meta.lastLevel) {
+      const tier = tierFor(level);
+      queueCelebrate('Level Up', '🎉', 'Lv ' + level + ' — ' + tier.name, "You're getting closer to the card. Keep grinding.");
+    }
+    flushCelebrate();
+  }
+
+  save(RPG_META, { lastLevel: level, seen: unlockedIds });
+}
+
 // ─── INIT ──────────────────────────────────────────────────────────
 function init() {
   // Set date labels
@@ -1660,6 +2332,11 @@ function init() {
 
   renderNutriStreak();
   renderRoundList();
+
+  // RPG: first-ever load seeds meta silently (avoids mass toasts for existing data);
+  // afterwards, celebrate anything newly achieved since last visit.
+  const firstRun = load(RPG_META) === null;
+  checkRpgProgress(firstRun);
 }
 
 document.addEventListener('DOMContentLoaded', init);
