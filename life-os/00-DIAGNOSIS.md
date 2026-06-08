@@ -30,12 +30,20 @@ Threat-response in your own swing → narrowed cognition, can't self-diagnose.
 You don't need more swing knowledge. You need state management + external feedback (tape, video,
 launch data) so you stop diagnosing from inside the storm.
 
-## The Two-Way Miss (current working hypothesis — UNCONFIRMED)
-Random, state-independent snap hooks AND shanks from one swing →
-likely **early extension + getting stuck**: pelvis thrusts toward the ball, posture lost,
-club drops behind; from there face-flip = snap hook, hosel-lead = shank. Same fault, two faces.
-Corroborating tell: occasional **lower-right back** flare — signature of early extension.
-**Status:** must be confirmed on video / impact tape before we commit. See 02 protocol.
+## The Two-Way Miss (CONFIRMED via video, 2026-06-08 — see 04-SWING-ANALYSIS.md)
+Snap hooks AND shanks come from ONE root fault wearing two masks:
+club gets behind him at the top (across the line + trail-elbow lift, drops under in
+transition) + early extension (pelvis thrusts toward ball, posture lost through impact).
+From "stuck + no space," two random escapes: body stalls → flip → snap hook; body turns
+on → hosel leads → shank/block. Random regardless of emotional state — it's positional,
+committed at the top, which is why it can't be felt or fixed at impact.
+Corroborated by the **lower-right back** flare (early-extension signature) — confirmed on video.
+Fix order: Block 1 posture retention (back-saver), Block 2 tidy the top. See 02 + 04.
+
+## The Numbers (2026-06-08)
+Competitive scoring avg ~80 vs ~70 expected for +2 → ~10-shot gap.
+4-5 catastrophic misses/round; at ~1.5 strokes each that is ~6-7.5 of the 10-shot gap.
+Conclusion: the two-way miss IS the gap. Kill it → 80 becomes ~73-74 with nothing else changed.
 
 ## Leverage (what we weaponize)
 - Genuine research obsession — you already self-educate hard. We aim it.
