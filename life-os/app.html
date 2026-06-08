@@ -1370,6 +1370,18 @@
       <div class="motive-banner">
         <p>"Dec 2026. Asian Tour Q-School.<br>Every green day is a rep toward the card.<br>No days off from who you're becoming."</p>
       </div>
+
+      <!-- DATA BACKUP -->
+      <div class="section-label" style="margin-top:24px">Data Backup</div>
+      <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">
+        <p style="font-size:12px;color:var(--muted);line-height:1.5">Export your data regularly so no streak is ever lost to a browser wipe or new phone. Import to restore everything instantly.</p>
+        <button class="btn-gold" onclick="exportData()" style="font-size:13px;padding:12px">⬇ Export All Data</button>
+        <label class="btn-ghost" style="font-size:13px;padding:12px;cursor:pointer;text-align:center;border:1px solid rgba(201,168,76,.3);border-radius:10px;color:var(--muted)">
+          ⬆ Import Data
+          <input type="file" accept=".json" onchange="importData(event)" style="display:none">
+        </label>
+        <div id="backup-status" style="font-size:11px;color:var(--muted);text-align:center;min-height:16px"></div>
+      </div>
     </div>
   </div>
 
@@ -2774,6 +2786,44 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// ── BACKUP ──────────────────────────────────────────────────────────────────
+function exportData() {
+  const keys = ['nexflow_days','nexflow_rounds','nexflow_nutrition','nexflow_character','nexflow_rpg_meta'];
+  const snapshot = {};
+  keys.forEach(k => { const v = localStorage.getItem(k); if (v) snapshot[k] = JSON.parse(v); });
+  snapshot._exported = new Date().toISOString();
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mousa-data-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  const s = $('backup-status');
+  if (s) { s.textContent = 'Exported ✓ — save this file somewhere safe.'; s.style.color = 'var(--green)'; }
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const keys = ['nexflow_days','nexflow_rounds','nexflow_nutrition','nexflow_character','nexflow_rpg_meta'];
+      let restored = 0;
+      keys.forEach(k => { if (data[k] !== undefined) { localStorage.setItem(k, JSON.stringify(data[k])); restored++; } });
+      const s = $('backup-status');
+      if (s) { s.textContent = `Restored ${restored} data sets ✓ — reloading…`; s.style.color = 'var(--green)'; }
+      setTimeout(() => location.reload(), 1200);
+    } catch(err) {
+      const s = $('backup-status');
+      if (s) { s.textContent = 'Import failed — invalid file.'; s.style.color = 'var(--red)'; }
+    }
+  };
+  reader.readAsText(file);
+}
 </script>
 </body>
 </html>
