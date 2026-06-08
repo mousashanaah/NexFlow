@@ -28,6 +28,16 @@ man it requires you to become.
 - `03-DAILY-PROTOCOL.md` — the dream-day template and the discipline ledger spec.
 - `logs/` — daily ledgers. One file per day. This is where the system lives or dies.
 
-## How to run it
-Every morning: open today's log, set the day's ONE practice objective.
-Every night: score the day. End of week: review the seven logs with the coach, adjust.
+## Files (cont.)
+- `WEEK.md` — this week's contract: concrete targets, non-negotiables, stakes. Rewritten Sundays.
+- `04-SWING-ANALYSIS.md` — confirmed swing diagnosis and fix order.
+- `scoreboard.py` — the dashboard. Parses your logs into streak / discipline trend / miss trend.
+
+## How to run it (the daily loop)
+- **Morning:** `python3 life-os/scoreboard.py new` → set today's ONE objective.
+- **Night:** check the habits, fill the numbers, write ONE line. `git add` + `git commit`.
+- **Anytime:** `python3 life-os/scoreboard.py` → see your streak and trends.
+- **Sunday:** run the dashboard, do the review in `WEEK.md`, write next week's contract.
+
+The streak is the number you protect. You don't break the chain. The git history is the
+permanent, un-fudgeable record — when the coach reviews you, he reads your commits.
