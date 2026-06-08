@@ -9,27 +9,27 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MOUSA">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0a0a0a">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' rx='40' fill='%230a0a0a'/%3E%3Ctext x='50%25' y='54%25' font-family='Georgia,serif' font-size='110' font-weight='700' fill='%23c9a84c' text-anchor='middle' dominant-baseline='central'%3EM%3C/text%3E%3Ccircle cx='132' cy='52' r='9' fill='%23c9a84c'/%3E%3C/svg%3E">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0a0a'/%3E%3Ctext x='50%25' y='56%25' font-family='Georgia,serif' font-size='40' font-weight='700' fill='%23c9a84c' text-anchor='middle' dominant-baseline='central'%3EM%3C/text%3E%3C/svg%3E">
-<link rel="manifest" href="data:application/json,%7B%22name%22%3A%22Mousa%20Shanaah%20-%20Road%20to%20the%20Tour%22%2C%22short_name%22%3A%22MOUSA%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230a0a0a%22%2C%22theme_color%22%3A%22%230a0a0a%22%2C%22start_url%22%3A%22.%22%7D">
+<meta name="theme-color" content="#050505">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' rx='40' fill='%23050505'/%3E%3Ctext x='50%25' y='54%25' font-family='Georgia,serif' font-size='110' font-weight='700' fill='%23e8e8ea' text-anchor='middle' dominant-baseline='central'%3EM%3C/text%3E%3Ccircle cx='132' cy='52' r='9' fill='%23e8e8ea'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='14' fill='%23050505'/%3E%3Ctext x='50%25' y='56%25' font-family='Georgia,serif' font-size='40' font-weight='700' fill='%23e8e8ea' text-anchor='middle' dominant-baseline='central'%3EM%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="data:application/json,%7B%22name%22%3A%22Mousa%20Shanaah%20-%20Road%20to%20the%20Tour%22%2C%22short_name%22%3A%22MOUSA%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23050505%22%2C%22theme_color%22%3A%22%23050505%22%2C%22start_url%22%3A%22.%22%7D">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #0a0a0a;
-    --surface: #141414;
-    --card: #1c1c1c;
-    --accent: #c9a84c;
-    --accent-dim: rgba(201,168,76,0.15);
-    --green: #22c55e;
-    --green-dim: rgba(34,197,94,0.15);
-    --red: #ef4444;
-    --red-dim: rgba(239,68,68,0.15);
-    --text: #e5e5e5;
-    --muted: #6b6b6b;
-    --border: #2a2a2a;
-    --accent2: #4ea3c9;
+    --bg: #050505;
+    --surface: #121214;
+    --card: #16171a;
+    --accent: #e8e8ea;
+    --accent-dim: rgba(232,232,234,0.12);
+    --green: #3f9e6a;
+    --green-dim: rgba(63,158,106,0.15);
+    --red: #c0453f;
+    --red-dim: rgba(192,69,63,0.15);
+    --text: #e6e6e8;
+    --muted: #7a7e85;
+    --border: #25272b;
+    --accent2: #5a7a90;
     --tab-h: 64px;
     --header-h: 88px;
   }
@@ -38,11 +38,35 @@
     height: 100%;
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI Variable', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
     font-size: 16px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
+  }
+
+  /* Film grain + cold vignette overlay — CSS/SVG only, above bg, below content */
+  #grain {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0.07;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
+    mix-blend-mode: overlay;
+    animation: grainShift 0.6s steps(2) infinite;
+  }
+  #grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(120% 100% at 50% 35%, transparent 55%, rgba(0,0,0,0.55) 100%);
+  }
+  @keyframes grainShift {
+    0% { transform: translate(0,0); }
+    50% { transform: translate(-4px,3px); }
+    100% { transform: translate(3px,-2px); }
   }
 
   /* Ambient animated background — dark, subtle, CSS-only */
@@ -52,32 +76,38 @@
     z-index: 0;
     pointer-events: none;
     background:
-      radial-gradient(120% 80% at 50% -10%, rgba(201,168,76,0.10), transparent 60%),
-      radial-gradient(80% 60% at 110% 10%, rgba(78,163,201,0.05), transparent 60%),
-      #0a0a0a;
+      radial-gradient(120% 70% at 50% -15%, rgba(190,200,210,0.07), transparent 60%),
+      radial-gradient(80% 60% at 110% 10%, rgba(90,122,144,0.05), transparent 60%),
+      #050505;
   }
+  /* dim overhead cold light glow */
   #ambient::before {
     content: '';
     position: absolute;
     inset: -40%;
-    background: radial-gradient(closest-side, rgba(201,168,76,0.12), transparent 70%);
-    filter: blur(40px);
-    animation: ambientDrift 26s ease-in-out infinite;
+    background: radial-gradient(closest-side, rgba(200,210,220,0.08), transparent 70%);
+    filter: blur(46px);
+    animation: ambientDrift 30s ease-in-out infinite;
   }
+  /* faint vertical rain streaks */
   #ambient::after {
     content: '';
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px) 0 0 / 100% 44px,
-      linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px) 0 0 / 44px 100%;
-    -webkit-mask-image: radial-gradient(120% 100% at 50% 0%, #000 30%, transparent 80%);
-            mask-image: radial-gradient(120% 100% at 50% 0%, #000 30%, transparent 80%);
+      repeating-linear-gradient(90deg, rgba(180,190,200,0.035) 0 1px, transparent 1px 7px);
+    -webkit-mask-image: radial-gradient(120% 100% at 50% 0%, #000 25%, transparent 85%);
+            mask-image: radial-gradient(120% 100% at 50% 0%, #000 25%, transparent 85%);
     opacity: 0.5;
+    animation: rainFall 1.1s linear infinite;
   }
   @keyframes ambientDrift {
-    0%,100% { transform: translate(-12%, -8%) scale(1); }
-    50%     { transform: translate(14%, 10%) scale(1.15); }
+    0%,100% { transform: translate(-12%, -10%) scale(1); }
+    50%     { transform: translate(12%, 8%) scale(1.12); }
+  }
+  @keyframes rainFall {
+    from { background-position: 0 -20px; }
+    to   { background-position: 0 0; }
   }
 
   #app {
@@ -87,17 +117,17 @@
     max-width: 480px;
     margin: 0 auto;
     position: relative;
-    z-index: 1;
+    z-index: 3;
   }
 
   /* Header — personal command-center identity banner */
   #header {
     min-height: var(--header-h);
     background:
-      linear-gradient(180deg, rgba(31,28,20,0.92), rgba(20,20,20,0.82));
-    backdrop-filter: blur(14px) saturate(1.2);
-    -webkit-backdrop-filter: blur(14px) saturate(1.2);
-    border-bottom: 1px solid rgba(201,168,76,0.22);
+      linear-gradient(180deg, rgba(22,23,26,0.94), rgba(8,8,9,0.86));
+    backdrop-filter: blur(14px) saturate(1.05);
+    -webkit-backdrop-filter: blur(14px) saturate(1.05);
+    border-bottom: 1px solid rgba(232,232,234,0.16);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -113,7 +143,7 @@
     position: absolute;
     left: 0; right: 0; bottom: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(201,168,76,0.6), transparent);
+    background: linear-gradient(90deg, transparent, rgba(232,232,234,0.55), transparent);
   }
   #header .hd-top {
     display: flex;
@@ -123,15 +153,16 @@
   }
   #header .hd-id { min-width: 0; }
   #header .logo {
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: 0.06em;
+    font-size: 21px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     line-height: 1.05;
-    background: linear-gradient(90deg, #f0dca0, var(--accent));
+    background: linear-gradient(180deg, #ffffff, #9aa0a6);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    text-shadow: 0 0 18px rgba(201,168,76,0.18);
+    text-shadow: 0 0 22px rgba(232,232,234,0.20);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -155,7 +186,7 @@
     font-size: 22px;
     font-weight: 900;
     color: var(--accent);
-    text-shadow: 0 0 12px rgba(201,168,76,0.45);
+    text-shadow: 0 0 12px rgba(232,232,234,0.45);
   }
   #header .hd-streak .hs-lbl {
     font-size: 8px;
@@ -182,15 +213,15 @@
     flex: 1;
     height: 5px;
     background: rgba(0,0,0,0.5);
-    border: 1px solid rgba(201,168,76,0.2);
+    border: 1px solid rgba(232,232,234,0.18);
     border-radius: 4px;
     overflow: hidden;
   }
   #header .hd-xp-fill {
     height: 100%;
     border-radius: 4px;
-    background: linear-gradient(90deg, #9a7e2e, var(--accent), #f0dca0);
-    box-shadow: 0 0 8px rgba(201,168,76,0.5);
+    background: linear-gradient(90deg, #6b6f76, #9aa0a6, #ffffff);
+    box-shadow: 0 0 8px rgba(232,232,234,0.5);
     width: 0%;
     transition: width 0.7s ease;
   }
@@ -257,8 +288,8 @@
   }
   .section-label {
     font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    font-weight: 800;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--muted);
     margin-bottom: 10px;
@@ -269,22 +300,22 @@
   /* Cards */
   .card {
     background: var(--card);
-    border-radius: 12px;
+    border-radius: 6px;
     padding: 16px;
     margin-bottom: 12px;
     border: 1px solid var(--border);
   }
   .card-title {
     font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+    font-weight: 800;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--muted);
     margin-bottom: 12px;
   }
   .card.accent-card {
     border-color: var(--accent);
-    background: linear-gradient(135deg, #1c1c1c 0%, #1f1c14 100%);
+    background: linear-gradient(135deg, #16171a 0%, #1d1f23 100%);
   }
 
   /* Form elements */
@@ -360,7 +391,7 @@
   .btn-danger {
     background: var(--red-dim);
     color: var(--red);
-    border: 1px solid rgba(239,68,68,0.3);
+    border: 1px solid rgba(192,69,63,0.3);
     padding: 8px 14px;
     width: auto;
     font-size: 13px;
@@ -422,9 +453,9 @@
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
-  .badge-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
-  .badge-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
-  .badge-gold { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(201,168,76,0.3); }
+  .badge-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(63,158,106,0.3); }
+  .badge-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(192,69,63,0.3); }
+  .badge-gold { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(232,232,234,0.3); }
 
   /* Stat grid */
   .stat-grid {
@@ -704,8 +735,8 @@
 
   /* Motivational banner */
   .motive-banner {
-    background: linear-gradient(135deg, #1c1a12, #1c1c1c);
-    border: 1px solid rgba(201,168,76,0.3);
+    background: linear-gradient(135deg, #1a1b1e, #16171a);
+    border: 1px solid rgba(232,232,234,0.3);
     border-radius: 12px;
     padding: 20px;
     text-align: center;
@@ -759,7 +790,7 @@
   .nav-btn svg { width: 20px; height: 20px; }
 
   .char-hero {
-    background: radial-gradient(120% 90% at 50% 0%, #1f1c14 0%, #141414 60%);
+    background: radial-gradient(120% 90% at 50% 0%, #1d1f23 0%, #121214 60%);
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 18px 16px 22px;
@@ -804,7 +835,7 @@
 
   .lvl-pill {
     display: inline-flex; align-items: baseline; gap: 6px;
-    background: var(--accent-dim); border: 1px solid rgba(201,168,76,0.35);
+    background: var(--accent-dim); border: 1px solid rgba(232,232,234,0.35);
     color: var(--accent); padding: 4px 14px; border-radius: 20px;
     font-weight: 800; font-size: 15px; margin-bottom: 12px;
   }
@@ -816,7 +847,7 @@
     border-radius: 6px; overflow: hidden;
   }
   .xp-bar-fill {
-    height: 100%; background: linear-gradient(90deg,#9a7e2e,var(--accent));
+    height: 100%; background: linear-gradient(90deg,#6b6f76,var(--accent));
     border-radius: 6px; transition: width 0.5s ease;
   }
   .xp-meta {
@@ -863,7 +894,7 @@
   .ach .ach-name { font-size: 8px; font-weight: 700; color: var(--muted); letter-spacing: 0.02em; line-height: 1.15; text-transform: uppercase; }
   .ach.unlocked {
     border-color: var(--accent);
-    background: linear-gradient(150deg,#1f1c14,#1c1c1c);
+    background: linear-gradient(150deg,#1d1f23,#16171a);
   }
   .ach.unlocked .ach-icon { filter: none; }
   .ach.unlocked .ach-name { color: var(--accent); }
@@ -880,10 +911,10 @@
   }
   #celebrate.show { display: flex; }
   .celebrate-card {
-    background: linear-gradient(160deg,#241f12,#141414);
+    background: linear-gradient(160deg,#1f2125,#121214);
     border: 1px solid var(--accent); border-radius: 18px;
     padding: 30px 26px; text-align: center; max-width: 340px; width: 100%;
-    box-shadow: 0 0 60px rgba(201,168,76,0.25);
+    box-shadow: 0 0 60px rgba(232,232,234,0.25);
     animation: popIn 0.35s cubic-bezier(.2,.9,.3,1.4);
   }
   @keyframes popIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -898,12 +929,12 @@
     background: linear-gradient(180deg, rgba(20,20,20,0.82), rgba(10,10,10,0.94));
     backdrop-filter: blur(16px) saturate(1.2);
     -webkit-backdrop-filter: blur(16px) saturate(1.2);
-    border-top: 1px solid rgba(201,168,76,0.18);
+    border-top: 1px solid rgba(232,232,234,0.18);
   }
   .nav-btn { transition: color 0.2s, transform 0.12s; }
   .nav-btn:active { transform: scale(0.9); }
-  .nav-btn.active { color: var(--accent); text-shadow: 0 0 10px rgba(201,168,76,0.4); }
-  .nav-btn.active svg { filter: drop-shadow(0 0 5px rgba(201,168,76,0.55)); }
+  .nav-btn.active { color: var(--accent); text-shadow: 0 0 10px rgba(232,232,234,0.4); }
+  .nav-btn.active svg { filter: drop-shadow(0 0 5px rgba(232,232,234,0.55)); }
 
   /* Confident typography */
   .page-title {
@@ -925,7 +956,7 @@
     box-shadow: 0 6px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
   }
   .card.accent-card {
-    box-shadow: 0 6px 26px rgba(0,0,0,0.4), 0 0 0 1px rgba(201,168,76,0.25), inset 0 1px 0 rgba(201,168,76,0.08);
+    box-shadow: 0 6px 26px rgba(0,0,0,0.4), 0 0 0 1px rgba(232,232,234,0.25), inset 0 1px 0 rgba(232,232,234,0.08);
   }
 
   /* Tab fade/slide transition */
@@ -937,8 +968,8 @@
 
   /* Tactile buttons + gold glow on primary */
   .btn-primary {
-    background: linear-gradient(135deg, #e0c873, var(--accent));
-    box-shadow: 0 6px 20px rgba(201,168,76,0.28);
+    background: linear-gradient(135deg, #ffffff, var(--accent));
+    box-shadow: 0 6px 20px rgba(232,232,234,0.28);
   }
   .btn:active { transform: scale(0.97); }
 
@@ -948,7 +979,7 @@
   }
   .habit-row:active, .nutri-row:active { transform: scale(0.985); }
   .habit-row.checked, .nutri-row.checked {
-    box-shadow: 0 0 0 1px rgba(34,197,94,0.4), 0 4px 16px rgba(34,197,94,0.12);
+    box-shadow: 0 0 0 1px rgba(63,158,106,0.4), 0 4px 16px rgba(63,158,106,0.12);
   }
   .habit-check { transition: transform 0.2s cubic-bezier(.2,.8,.3,1.6), background 0.2s, border-color 0.2s; }
   .habit-row.checked .habit-check, .nutri-row.checked .habit-check {
@@ -956,8 +987,8 @@
   }
   @keyframes checkPop {
     0%   { transform: scale(0.6); }
-    55%  { transform: scale(1.28); box-shadow: 0 0 0 6px rgba(34,197,94,0.25); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+    55%  { transform: scale(1.28); box-shadow: 0 0 0 6px rgba(63,158,106,0.25); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(63,158,106,0); }
   }
 
   /* Animated bar fills */
@@ -968,16 +999,16 @@
 
   /* Streak hero glow intensifies with streak */
   .streak-big {
-    background: linear-gradient(180deg, #f0dca0, var(--accent));
+    background: linear-gradient(180deg, #ffffff, var(--accent));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    filter: drop-shadow(0 0 18px rgba(201,168,76,0.35));
+    filter: drop-shadow(0 0 18px rgba(232,232,234,0.35));
     animation: streakGlow 3.4s ease-in-out infinite;
   }
   @keyframes streakGlow {
-    0%,100% { filter: drop-shadow(0 0 14px rgba(201,168,76,0.30)); }
-    50%     { filter: drop-shadow(0 0 26px rgba(201,168,76,0.55)); }
+    0%,100% { filter: drop-shadow(0 0 14px rgba(232,232,234,0.30)); }
+    50%     { filter: drop-shadow(0 0 26px rgba(232,232,234,0.55)); }
   }
 
   /* Save verdict overlay */
@@ -998,12 +1029,12 @@
   .verdict-card.green {
     background: rgba(15,30,18,0.85);
     border: 1px solid var(--green);
-    box-shadow: 0 0 60px rgba(34,197,94,0.4);
+    box-shadow: 0 0 60px rgba(63,158,106,0.4);
   }
   .verdict-card.amber {
     background: rgba(30,26,15,0.85);
     border: 1px solid var(--accent);
-    box-shadow: 0 0 60px rgba(201,168,76,0.4);
+    box-shadow: 0 0 60px rgba(232,232,234,0.4);
   }
   .verdict-icon { font-size: 60px; line-height: 1; margin-bottom: 8px; }
   .verdict-title {
@@ -1019,7 +1050,7 @@
   }
 
   /* ─── REST DAY ───────────────────────────────────────────────────── */
-  .badge-rest { background: rgba(78,163,201,0.15); color: var(--accent2); border: 1px solid rgba(78,163,201,0.4); }
+  .badge-rest { background: rgba(90,122,144,0.15); color: var(--accent2); border: 1px solid rgba(90,122,144,0.4); }
   .rest-toggle {
     display: flex; align-items: center; gap: 14px;
     padding: 16px;
@@ -1035,7 +1066,7 @@
   .rest-toggle.on {
     border-color: var(--accent2);
     background: linear-gradient(160deg, rgba(14,30,38,0.92), rgba(16,24,28,0.85));
-    box-shadow: 0 0 0 1px rgba(78,163,201,0.35), 0 6px 22px rgba(78,163,201,0.14);
+    box-shadow: 0 0 0 1px rgba(90,122,144,0.35), 0 6px 22px rgba(90,122,144,0.14);
   }
   .rest-toggle .rest-ic { font-size: 22px; line-height: 1; flex-shrink: 0; filter: grayscale(0.6) brightness(0.9); transition: filter 0.2s; }
   .rest-toggle.on .rest-ic { filter: none; }
@@ -1053,7 +1084,7 @@
     width: 20px; height: 20px; border-radius: 50%;
     background: var(--muted); transition: transform 0.22s cubic-bezier(.2,.8,.3,1.4), background 0.2s;
   }
-  .rest-toggle.on .rest-switch { background: rgba(78,163,201,0.25); border-color: var(--accent2); }
+  .rest-toggle.on .rest-switch { background: rgba(90,122,144,0.25); border-color: var(--accent2); }
   .rest-toggle.on .rest-switch::after { transform: translateX(20px); background: var(--accent2); }
   /* rest-day styling for the habit form */
   #today-form.is-rest .section-label.training-lbl::after {
@@ -1063,25 +1094,26 @@
   #today-form.is-rest .habit-row.golf-gym { opacity: 0.55; }
   #today-form.is-rest .habit-row.golf-gym.checked { opacity: 1; }
   /* streak calendar rest coloring */
-  .week-box.rest { background: rgba(78,163,201,0.15); border-color: var(--accent2); }
+  .week-box.rest { background: rgba(90,122,144,0.15); border-color: var(--accent2); }
   .week-box.rest .wnum { color: var(--accent2); }
-  .cal-cell.rest { background: rgba(78,163,201,0.15); border-color: var(--accent2); color: var(--accent2); }
+  .cal-cell.rest { background: rgba(90,122,144,0.15); border-color: var(--accent2); color: var(--accent2); }
   .dot.rest { background: var(--accent2); }
   .streak-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; font-size: 11px; color: var(--muted); }
   .streak-legend .lg-item { display: flex; align-items: center; gap: 6px; }
   .streak-legend .lg-dot { width: 11px; height: 11px; border-radius: 3px; border: 1px solid var(--border); }
   .streak-legend .lg-dot.green { background: var(--green-dim); border-color: var(--green); }
-  .streak-legend .lg-dot.rest { background: rgba(78,163,201,0.15); border-color: var(--accent2); }
+  .streak-legend .lg-dot.rest { background: rgba(90,122,144,0.15); border-color: var(--accent2); }
   .streak-legend .lg-dot.red { background: var(--red-dim); border-color: var(--red); }
 
   @media (prefers-reduced-motion: reduce) {
-    #ambient::before, .streak-big, .char-svg-wrap.animated svg, .char-aura.on { animation: none !important; }
+    #ambient::before, #ambient::after, #grain, .streak-big, .char-svg-wrap.animated svg, .char-aura.on { animation: none !important; }
     .tab-panel.active { animation: none; }
   }
 </style>
 </head>
 <body>
 <div id="ambient"></div>
+<div id="grain"></div>
 <div id="app">
   <div id="header">
     <div class="hd-top">
@@ -1385,8 +1417,8 @@
       <div class="section-label" style="margin-top:24px">Data Backup</div>
       <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">
         <p style="font-size:12px;color:var(--muted);line-height:1.5">Export your data regularly so no streak is ever lost to a browser wipe or new phone. Import to restore everything instantly.</p>
-        <button class="btn-gold" onclick="exportData()" style="font-size:13px;padding:12px">⬇ Export All Data</button>
-        <label class="btn-ghost" style="font-size:13px;padding:12px;cursor:pointer;text-align:center;border:1px solid rgba(201,168,76,.3);border-radius:10px;color:var(--muted)">
+        <button class="btn btn-primary" onclick="exportData()" style="font-size:13px;padding:12px">⬇ Export All Data</button>
+        <label class="btn-ghost" style="font-size:13px;padding:12px;cursor:pointer;text-align:center;border:1px solid rgba(232,232,234,.3);border-radius:10px;color:var(--muted)">
           ⬆ Import Data
           <input type="file" accept=".json" onchange="importData(event)" style="display:none">
         </label>
@@ -1525,7 +1557,7 @@ function updateHeaderHud() {
   $('hd-xp-fill').style.width = pctXp + '%';
   // streak glow on the streak counter intensifies as it climbs
   const g = Math.min(streak, 40);
-  el.style.textShadow = `0 0 ${8 + g * 0.6}px rgba(201,168,76,${Math.min(0.85, 0.35 + g/60)})`;
+  el.style.textShadow = `0 0 ${8 + g * 0.6}px rgba(232,232,234,${Math.min(0.85, 0.35 + g/60)})`;
 }
 
 function pct(num, den) {
@@ -2198,11 +2230,11 @@ function drawMissChart() {
   const chartH = H - padT - padB;
 
   // Background
-  ctx.fillStyle = '#141414';
+  ctx.fillStyle = '#121214';
   ctx.fillRect(0, 0, W, H);
 
   if (!rounds.length) {
-    ctx.fillStyle = '#6b6b6b';
+    ctx.fillStyle = '#7a7e85';
     ctx.font = '13px -apple-system, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('No rounds logged', W / 2, H / 2);
@@ -2216,7 +2248,7 @@ function drawMissChart() {
   function yPos(v) { return padT + chartH - (v / maxY) * chartH; }
 
   // Grid lines
-  ctx.strokeStyle = '#2a2a2a';
+  ctx.strokeStyle = '#25272b';
   ctx.lineWidth = 1;
   [0, 2, 5, 10].forEach(v => {
     if (v > maxY) return;
@@ -2225,14 +2257,14 @@ function drawMissChart() {
     ctx.moveTo(padL, y);
     ctx.lineTo(padL + chartW, y);
     ctx.stroke();
-    ctx.fillStyle = '#6b6b6b';
+    ctx.fillStyle = '#7a7e85';
     ctx.font = `10px -apple-system, sans-serif`;
     ctx.textAlign = 'right';
     ctx.fillText(v, padL - 4, y + 3.5);
   });
 
   // Target line at 0
-  ctx.strokeStyle = '#22c55e';
+  ctx.strokeStyle = '#3f9e6a';
   ctx.lineWidth = 1.5;
   ctx.setLineDash([4, 4]);
   ctx.beginPath();
@@ -2243,7 +2275,7 @@ function drawMissChart() {
 
   // Data line
   if (n > 1) {
-    ctx.strokeStyle = '#c9a84c';
+    ctx.strokeStyle = '#e8e8ea';
     ctx.lineWidth = 2.5;
     ctx.lineJoin = 'round';
     ctx.beginPath();
@@ -2264,7 +2296,7 @@ function drawMissChart() {
     ctx.lineTo(xPos(n - 1), yPos(0));
     ctx.lineTo(xPos(0), yPos(0));
     ctx.closePath();
-    ctx.fillStyle = 'rgba(201,168,76,0.07)';
+    ctx.fillStyle = 'rgba(232,232,234,0.07)';
     ctx.fill();
     ctx.restore();
   }
@@ -2274,23 +2306,23 @@ function drawMissChart() {
     const x = xPos(i), y = yPos(r.catMisses);
     ctx.beginPath();
     ctx.arc(x, y, 4, 0, Math.PI * 2);
-    const dotColor = r.catMisses === 0 ? '#22c55e' : r.catMisses > 2 ? '#ef4444' : '#c9a84c';
+    const dotColor = r.catMisses === 0 ? '#3f9e6a' : r.catMisses > 2 ? '#c0453f' : '#e8e8ea';
     ctx.fillStyle = dotColor;
     ctx.fill();
-    ctx.strokeStyle = '#141414';
+    ctx.strokeStyle = '#121214';
     ctx.lineWidth = 1.5;
     ctx.stroke();
   });
 
   // X labels (last/first)
-  ctx.fillStyle = '#6b6b6b';
+  ctx.fillStyle = '#7a7e85';
   ctx.font = '9px -apple-system, sans-serif';
   ctx.textAlign = 'center';
   if (n >= 1) ctx.fillText(fmtShort(rounds[0].date), xPos(0), H - 6);
   if (n >= 2) ctx.fillText(fmtShort(rounds[n-1].date), xPos(n-1), H - 6);
 
   // Legend
-  ctx.fillStyle = '#22c55e';
+  ctx.fillStyle = '#3f9e6a';
   ctx.font = '9px -apple-system, sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('─ Target: 0', padL + 2, padT + 8);
@@ -2307,7 +2339,7 @@ const HAIR_OPTS = [
   { id:'blonde', color:'#d9b25a', label:'Blonde' },
   { id:'buzz', color:'#2a2a2a', label:'Buzz' },
 ];
-const KIT_OPTS = ['#c9a84c','#3b82f6','#ef4444','#22c55e','#e5e5e5','#7c3aed'];
+const KIT_OPTS = ['#e8e8ea','#5a7a90','#c0453f','#3f9e6a','#9aa0a6','#3a3d42'];
 
 function getChar() {
   const c = load(CHAR_KEY) || {};
@@ -2315,7 +2347,7 @@ function getChar() {
     name: c.name || 'Mousa',
     skin: c.skin || SKIN_TONES[1],
     hair: c.hair || 'black',
-    kit: c.kit || '#c9a84c',
+    kit: c.kit || '#e8e8ea',
     title: c.title || '',
   };
 }
@@ -2466,14 +2498,14 @@ function computeAttributes() {
   const hustle = clamp(Math.min(counts.nexflow||0,30)/30*100);
 
   return [
-    { lbl:'Discipline', val:discipline, color:'#c9a84c' },
-    { lbl:'Striking', val:striking, color:'#3b82f6' },
-    { lbl:'Short Game', val:shortGame, color:'#22c55e' },
-    { lbl:'Putting', val:putting, color:'#7c3aed' },
-    { lbl:'Mind', val:mind, color:'#06b6d4' },
-    { lbl:'Strength', val:strength, color:'#ef4444' },
-    { lbl:'Faith', val:faith, color:'#e5e5e5' },
-    { lbl:'Hustle', val:hustle, color:'#f59e0b' },
+    { lbl:'Discipline', val:discipline, color:'#e8e8ea' },
+    { lbl:'Striking', val:striking, color:'#5a7a90' },
+    { lbl:'Short Game', val:shortGame, color:'#3f9e6a' },
+    { lbl:'Putting', val:putting, color:'#9aa0a6' },
+    { lbl:'Mind', val:mind, color:'#7d99a8' },
+    { lbl:'Strength', val:strength, color:'#c0453f' },
+    { lbl:'Faith', val:faith, color:'#d8d8da' },
+    { lbl:'Hustle', val:hustle, color:'#b0b4ba' },
   ];
 }
 
@@ -2552,11 +2584,11 @@ function buildCharSvg(tierIdx, kit, skin, hairId) {
   const auraGlow = tierIdx >= 2;
   const champion = tierIdx >= 4;
   const tourPlayer = tierIdx >= 3;
-  const trimColor = '#c9a84c';
+  const trimColor = '#e8e8ea';
   // crown for champion
   const crown = champion ? `
-    <path d="M62 30 L70 40 L75 28 L80 40 L88 30 L86 46 L64 46 Z" fill="#c9a84c" stroke="#9a7e2e" stroke-width="1"/>
-    <circle cx="75" cy="26" r="3" fill="#ffe9a8"/>` : '';
+    <path d="M62 30 L70 40 L75 28 L80 40 L88 30 L86 46 L64 46 Z" fill="#e8e8ea" stroke="#9aa0a6" stroke-width="1"/>
+    <circle cx="75" cy="26" r="3" fill="#ffffff"/>` : '';
   // outfit trim accent line
   const trim = goldTrim ? `<rect x="55" y="78" width="40" height="3" fill="${trimColor}"/>` : '';
   const polo = `
@@ -2570,8 +2602,8 @@ function buildCharSvg(tierIdx, kit, skin, hairId) {
   <svg viewBox="0 0 150 190" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <radialGradient id="auraGrad" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stop-color="#c9a84c" stop-opacity="0.9"/>
-        <stop offset="100%" stop-color="#c9a84c" stop-opacity="0"/>
+        <stop offset="0%" stop-color="#e8e8ea" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#e8e8ea" stop-opacity="0"/>
       </radialGradient>
     </defs>
     ${aura}
@@ -2637,7 +2669,7 @@ function renderCharacter() {
   const streakGlow = Math.min(streak, 30) * 1.6;
   const glow = baseGlow + streakGlow;
   if (glow > 4) {
-    aura.style.boxShadow = `0 0 ${glow}px ${glow*0.7}px rgba(201,168,76,${Math.min(0.7, 0.15 + glow/120)})`;
+    aura.style.boxShadow = `0 0 ${glow}px ${glow*0.7}px rgba(232,232,234,${Math.min(0.7, 0.15 + glow/120)})`;
     aura.classList.add('on');
   } else {
     aura.style.boxShadow = 'none';
