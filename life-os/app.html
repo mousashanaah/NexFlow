@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NexFlow — Life OS</title>
+<title>Mousa Shanaah — Road to the Tour</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -20,19 +20,55 @@
     --text: #e5e5e5;
     --muted: #6b6b6b;
     --border: #2a2a2a;
+    --accent2: #4ea3c9;
     --tab-h: 64px;
-    --header-h: 56px;
+    --header-h: 88px;
   }
 
   html, body {
     height: 100%;
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
     font-size: 16px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
+  }
+
+  /* Ambient animated background — dark, subtle, CSS-only */
+  #ambient {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(120% 80% at 50% -10%, rgba(201,168,76,0.10), transparent 60%),
+      radial-gradient(80% 60% at 110% 10%, rgba(78,163,201,0.05), transparent 60%),
+      #0a0a0a;
+  }
+  #ambient::before {
+    content: '';
+    position: absolute;
+    inset: -40%;
+    background: radial-gradient(closest-side, rgba(201,168,76,0.12), transparent 70%);
+    filter: blur(40px);
+    animation: ambientDrift 26s ease-in-out infinite;
+  }
+  #ambient::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px) 0 0 / 100% 44px,
+      linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px) 0 0 / 44px 100%;
+    -webkit-mask-image: radial-gradient(120% 100% at 50% 0%, #000 30%, transparent 80%);
+            mask-image: radial-gradient(120% 100% at 50% 0%, #000 30%, transparent 80%);
+    opacity: 0.5;
+  }
+  @keyframes ambientDrift {
+    0%,100% { transform: translate(-12%, -8%) scale(1); }
+    50%     { transform: translate(14%, 10%) scale(1.15); }
   }
 
   #app {
@@ -42,31 +78,112 @@
     max-width: 480px;
     margin: 0 auto;
     position: relative;
+    z-index: 1;
   }
 
-  /* Header */
+  /* Header — personal command-center identity banner */
   #header {
-    height: var(--header-h);
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    min-height: var(--header-h);
+    background:
+      linear-gradient(180deg, rgba(31,28,20,0.92), rgba(20,20,20,0.82));
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    border-bottom: 1px solid rgba(201,168,76,0.22);
     display: flex;
-    align-items: center;
-    padding: 0 20px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 18px 12px;
     flex-shrink: 0;
     z-index: 10;
+    position: relative;
+    overflow: hidden;
   }
+  #header::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201,168,76,0.6), transparent);
+  }
+  #header .hd-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  #header .hd-id { min-width: 0; }
   #header .logo {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    color: var(--accent);
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    line-height: 1.05;
+    background: linear-gradient(90deg, #f0dca0, var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 18px rgba(201,168,76,0.18);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   #header .sub {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--muted);
-    margin-left: 10px;
-    letter-spacing: 0.08em;
+    margin-top: 2px;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
+    white-space: nowrap;
+  }
+  #header .hd-streak {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1;
+  }
+  #header .hd-streak .hs-num {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--accent);
+    text-shadow: 0 0 12px rgba(201,168,76,0.45);
+  }
+  #header .hd-streak .hs-lbl {
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  #header .hd-xp {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #header .hd-lvl {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #header .hd-xp-track {
+    flex: 1;
+    height: 5px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  #header .hd-xp-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #9a7e2e, var(--accent), #f0dca0);
+    box-shadow: 0 0 8px rgba(201,168,76,0.5);
+    width: 0%;
+    transition: width 0.7s ease;
   }
 
   /* Tab content */
@@ -765,13 +882,213 @@
   .celebrate-icon { font-size: 56px; margin: 6px 0 12px; }
   .celebrate-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
   .celebrate-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+
+  /* ─── PREMIUM VISUAL UPGRADE ─────────────────────────────────────── */
+  /* Glass nav */
+  #bottom-nav {
+    background: linear-gradient(180deg, rgba(20,20,20,0.82), rgba(10,10,10,0.94));
+    backdrop-filter: blur(16px) saturate(1.2);
+    -webkit-backdrop-filter: blur(16px) saturate(1.2);
+    border-top: 1px solid rgba(201,168,76,0.18);
+  }
+  .nav-btn { transition: color 0.2s, transform 0.12s; }
+  .nav-btn:active { transform: scale(0.9); }
+  .nav-btn.active { color: var(--accent); text-shadow: 0 0 10px rgba(201,168,76,0.4); }
+  .nav-btn.active svg { filter: drop-shadow(0 0 5px rgba(201,168,76,0.55)); }
+
+  /* Confident typography */
+  .page-title {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: linear-gradient(90deg, #ffffff, #cfcfcf);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .section-label { color: #8a8a8a; }
+
+  /* Glass cards with depth */
+  .card {
+    background: linear-gradient(160deg, rgba(30,30,30,0.9), rgba(20,20,20,0.82));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 6px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+  .card.accent-card {
+    box-shadow: 0 6px 26px rgba(0,0,0,0.4), 0 0 0 1px rgba(201,168,76,0.25), inset 0 1px 0 rgba(201,168,76,0.08);
+  }
+
+  /* Tab fade/slide transition */
+  .tab-panel.active { animation: tabIn 0.34s cubic-bezier(.2,.7,.2,1); }
+  @keyframes tabIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Tactile buttons + gold glow on primary */
+  .btn-primary {
+    background: linear-gradient(135deg, #e0c873, var(--accent));
+    box-shadow: 0 6px 20px rgba(201,168,76,0.28);
+  }
+  .btn:active { transform: scale(0.97); }
+
+  /* Satisfying checkbox animation */
+  .habit-row, .nutri-row {
+    transition: border-color 0.2s, background 0.25s, transform 0.12s, box-shadow 0.25s;
+  }
+  .habit-row:active, .nutri-row:active { transform: scale(0.985); }
+  .habit-row.checked, .nutri-row.checked {
+    box-shadow: 0 0 0 1px rgba(34,197,94,0.4), 0 4px 16px rgba(34,197,94,0.12);
+  }
+  .habit-check { transition: transform 0.2s cubic-bezier(.2,.8,.3,1.6), background 0.2s, border-color 0.2s; }
+  .habit-row.checked .habit-check, .nutri-row.checked .habit-check {
+    animation: checkPop 0.4s cubic-bezier(.2,.8,.3,1.6);
+  }
+  @keyframes checkPop {
+    0%   { transform: scale(0.6); }
+    55%  { transform: scale(1.28); box-shadow: 0 0 0 6px rgba(34,197,94,0.25); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+  }
+
+  /* Animated bar fills */
+  .attr-fill, .xp-bar-fill, .stp-bar, .sg-bar, .hd-xp-fill {
+    transition: width 0.8s cubic-bezier(.2,.8,.2,1);
+  }
+  .attr-fill { box-shadow: 0 0 8px currentColor; }
+
+  /* Streak hero glow intensifies with streak */
+  .streak-big {
+    background: linear-gradient(180deg, #f0dca0, var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 0 18px rgba(201,168,76,0.35));
+    animation: streakGlow 3.4s ease-in-out infinite;
+  }
+  @keyframes streakGlow {
+    0%,100% { filter: drop-shadow(0 0 14px rgba(201,168,76,0.30)); }
+    50%     { filter: drop-shadow(0 0 26px rgba(201,168,76,0.55)); }
+  }
+
+  /* Save verdict overlay */
+  #verdict {
+    position: fixed; inset: 0; z-index: 150; display: none;
+    align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  #verdict.show { display: flex; }
+  .verdict-card {
+    text-align: center;
+    padding: 26px 40px;
+    border-radius: 20px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: verdictPop 0.45s cubic-bezier(.2,.9,.3,1.5);
+  }
+  .verdict-card.green {
+    background: rgba(15,30,18,0.85);
+    border: 1px solid var(--green);
+    box-shadow: 0 0 60px rgba(34,197,94,0.4);
+  }
+  .verdict-card.amber {
+    background: rgba(30,26,15,0.85);
+    border: 1px solid var(--accent);
+    box-shadow: 0 0 60px rgba(201,168,76,0.4);
+  }
+  .verdict-icon { font-size: 60px; line-height: 1; margin-bottom: 8px; }
+  .verdict-title {
+    font-size: 24px; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .verdict-card.green .verdict-title { color: var(--green); }
+  .verdict-card.amber .verdict-title { color: var(--accent); }
+  .verdict-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  @keyframes verdictPop {
+    0%   { transform: scale(0.5); opacity: 0; }
+    60%  { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ─── REST DAY ───────────────────────────────────────────────────── */
+  .badge-rest { background: rgba(78,163,201,0.15); color: var(--accent2); border: 1px solid rgba(78,163,201,0.4); }
+  .rest-toggle {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px;
+    border-radius: 14px;
+    margin-bottom: 18px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    background: linear-gradient(160deg, rgba(30,30,30,0.9), rgba(20,20,20,0.82));
+    border: 1px solid var(--border);
+    box-shadow: 0 6px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
+    transition: border-color 0.2s, background 0.25s, box-shadow 0.25s;
+  }
+  .rest-toggle.on {
+    border-color: var(--accent2);
+    background: linear-gradient(160deg, rgba(14,30,38,0.92), rgba(16,24,28,0.85));
+    box-shadow: 0 0 0 1px rgba(78,163,201,0.35), 0 6px 22px rgba(78,163,201,0.14);
+  }
+  .rest-toggle .rest-ic { font-size: 22px; line-height: 1; flex-shrink: 0; filter: grayscale(0.6) brightness(0.9); transition: filter 0.2s; }
+  .rest-toggle.on .rest-ic { filter: none; }
+  .rest-toggle .rest-txt { flex: 1; min-width: 0; }
+  .rest-toggle .rest-title { font-size: 15px; font-weight: 700; }
+  .rest-toggle.on .rest-title { color: var(--accent2); }
+  .rest-toggle .rest-sub { display: block; font-size: 12px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+  .rest-switch {
+    width: 46px; height: 26px; border-radius: 14px; flex-shrink: 0;
+    background: var(--surface); border: 1px solid var(--border);
+    position: relative; transition: background 0.2s, border-color 0.2s;
+  }
+  .rest-switch::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--muted); transition: transform 0.22s cubic-bezier(.2,.8,.3,1.4), background 0.2s;
+  }
+  .rest-toggle.on .rest-switch { background: rgba(78,163,201,0.25); border-color: var(--accent2); }
+  .rest-toggle.on .rest-switch::after { transform: translateX(20px); background: var(--accent2); }
+  /* rest-day styling for the habit form */
+  #today-form.is-rest .section-label.training-lbl::after {
+    content: ' · golf/gym optional today';
+    color: var(--accent2); font-weight: 600; letter-spacing: 0;
+  }
+  #today-form.is-rest .habit-row.golf-gym { opacity: 0.55; }
+  #today-form.is-rest .habit-row.golf-gym.checked { opacity: 1; }
+  /* streak calendar rest coloring */
+  .week-box.rest { background: rgba(78,163,201,0.15); border-color: var(--accent2); }
+  .week-box.rest .wnum { color: var(--accent2); }
+  .cal-cell.rest { background: rgba(78,163,201,0.15); border-color: var(--accent2); color: var(--accent2); }
+  .dot.rest { background: var(--accent2); }
+  .streak-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; font-size: 11px; color: var(--muted); }
+  .streak-legend .lg-item { display: flex; align-items: center; gap: 6px; }
+  .streak-legend .lg-dot { width: 11px; height: 11px; border-radius: 3px; border: 1px solid var(--border); }
+  .streak-legend .lg-dot.green { background: var(--green-dim); border-color: var(--green); }
+  .streak-legend .lg-dot.rest { background: rgba(78,163,201,0.15); border-color: var(--accent2); }
+  .streak-legend .lg-dot.red { background: var(--red-dim); border-color: var(--red); }
+
+  @media (prefers-reduced-motion: reduce) {
+    #ambient::before, .streak-big, .char-svg-wrap.animated svg, .char-aura.on { animation: none !important; }
+    .tab-panel.active { animation: none; }
+  }
 </style>
 </head>
 <body>
+<div id="ambient"></div>
 <div id="app">
   <div id="header">
-    <span class="logo">NEXFLOW</span>
-    <span class="sub">Life OS · Mousa Shanaah</span>
+    <div class="hd-top">
+      <div class="hd-id">
+        <div class="logo" id="hd-name">MOUSA SHANAAH</div>
+        <div class="sub" id="hd-tagline">Road to the Tour · Dec 2026</div>
+      </div>
+      <div class="hd-streak">
+        <span class="hs-num" id="hd-streak">0</span>
+        <span class="hs-lbl">Day Streak</span>
+      </div>
+    </div>
+    <div class="hd-xp">
+      <span class="hd-lvl" id="hd-lvl">LV 1 · ROOKIE</span>
+      <div class="hd-xp-track"><div class="hd-xp-fill" id="hd-xp-fill"></div></div>
+    </div>
   </div>
 
   <div id="content">
@@ -791,10 +1108,16 @@
 
       <!-- Entry form -->
       <div id="today-form">
-        <div class="section-label">ONE Objective</div>
-        <input type="text" id="t-objective" placeholder="e.g. Block 1 — posture retention through backswing">
+        <div class="rest-toggle" id="rest-toggle" onclick="toggleRestDay()">
+          <span class="rest-ic">🧘</span>
+          <div class="rest-txt">
+            <span class="rest-title">Rest Day</span>
+            <small class="rest-sub">Planned recovery — no gym, no golf course. Other habits still count.</small>
+          </div>
+          <div class="rest-switch"></div>
+        </div>
 
-        <div class="section-label">Training Habits</div>
+        <div class="section-label training-lbl">Training Habits</div>
         <div id="habit-list"></div>
 
         <div class="section-label">Performance Metrics</div>
@@ -1005,6 +1328,12 @@
         <div style="font-size:13px;color:var(--muted)">Longest: <span id="streak-longest" style="color:var(--text);font-weight:700">0</span> days</div>
       </div>
 
+      <div class="streak-legend">
+        <span class="lg-item"><span class="lg-dot green"></span>Green</span>
+        <span class="lg-item"><span class="lg-dot rest"></span>Rest day</span>
+        <span class="lg-item"><span class="lg-dot red"></span>Missed</span>
+      </div>
+
       <div class="section-label">This Week</div>
       <div class="week-grid" id="week-grid"></div>
 
@@ -1077,6 +1406,14 @@
 
 <div id="toast"></div>
 
+<div id="verdict">
+  <div class="verdict-card" id="verdict-card">
+    <div class="verdict-icon" id="verdict-icon"></div>
+    <div class="verdict-title" id="verdict-title"></div>
+    <div class="verdict-sub" id="verdict-sub"></div>
+  </div>
+</div>
+
 <div id="celebrate" onclick="closeCelebrate()">
   <div class="celebrate-card" onclick="event.stopPropagation()">
     <div class="celebrate-kicker" id="celebrate-kicker">Achievement Unlocked</div>
@@ -1114,6 +1451,52 @@ function showToast(msg, duration = 2200) {
   setTimeout(() => t.classList.remove('show'), duration);
 }
 
+// Save verdict — satisfying animated result for the daily log
+function showVerdict(green) {
+  const v = $('verdict'), card = $('verdict-card');
+  card.className = 'verdict-card ' + (green ? 'green' : 'amber');
+  $('verdict-icon').textContent = green ? '✅' : '⚡';
+  $('verdict-title').textContent = green ? 'GREEN DAY' : 'LOGGED';
+  $('verdict-sub').textContent = green ? 'A rep toward the card.' : 'Keep pushing — close the gap.';
+  v.classList.add('show');
+  if (navigator.vibrate) navigator.vibrate(green ? [20,40,30] : 20);
+  setTimeout(() => v.classList.remove('show'), 1400);
+}
+
+// Count-up animation for big numbers
+function countUp(el, to, dur = 900) {
+  if (!el) return;
+  to = Number(to) || 0;
+  const start = performance.now();
+  function step(now) {
+    const p = Math.min(1, (now - start) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(to * eased);
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = to;
+  }
+  requestAnimationFrame(step);
+}
+
+// Header HUD — keeps identity banner live across every screen
+function updateHeaderHud() {
+  const streak = currentStreak();
+  const xp = computeXP();
+  const level = levelFromXP(xp);
+  const tier = tierFor(level);
+  const el = $('hd-streak');
+  if (el && +el.textContent !== streak) countUp(el, streak, 700);
+  else if (el) el.textContent = streak;
+  $('hd-lvl').textContent = 'LV ' + level + ' · ' + tier.name;
+  const curBase = xpForLevel(level), nextReq = xpForLevel(level + 1);
+  const span = nextReq - curBase;
+  const pctXp = span ? Math.min(100, (xp - curBase) / span * 100) : 100;
+  $('hd-xp-fill').style.width = pctXp + '%';
+  // streak glow on the streak counter intensifies as it climbs
+  const g = Math.min(streak, 40);
+  el.style.textShadow = `0 0 ${8 + g * 0.6}px rgba(201,168,76,${Math.min(0.85, 0.35 + g/60)})`;
+}
+
 function pct(num, den) {
   if (!den || den === 0) return '—';
   return Math.round(num / den * 100) + '%';
@@ -1141,7 +1524,7 @@ function switchTab(name, btn) {
 
 // ─── TODAY TAB ─────────────────────────────────────────────────────
 const HABITS = [
-  { key: 'rangeDrills', label: 'Range Drills', sub: 'Execute the ONE objective' },
+  { key: 'rangeDrills', label: 'Range Drills', sub: 'Done with intent (tape/video)' },
   { key: 'shortGame', label: 'Short Game / Chipping', sub: null },
   { key: 'putting', label: 'Putting Session', sub: null },
   { key: 'gymWarmup', label: 'Gym — Dynamic Warmup', sub: null },
@@ -1153,14 +1536,29 @@ const HABITS = [
   { key: 'stateReset', label: 'State Reset Before Performance', sub: 'Breathing, visualisation, routine' },
 ];
 
+// Golf/gym-specific habits excluded from scoring on a rest day
+const REST_EXCLUDE = ['rangeDrills','shortGame','putting','gymWarmup','gymLifting','course9','course18'];
+
 let habitState = {};
+let restDay = false;
+
+function applyRestUI() {
+  $('rest-toggle').classList.toggle('on', restDay);
+  $('today-form').classList.toggle('is-rest', restDay);
+}
+
+function toggleRestDay() {
+  restDay = !restDay;
+  applyRestUI();
+}
 
 function buildHabitList() {
   const container = $('habit-list');
   container.innerHTML = '';
   HABITS.forEach(h => {
     const row = document.createElement('div');
-    row.className = 'habit-row' + (habitState[h.key] ? ' checked' : '');
+    row.className = 'habit-row' + (habitState[h.key] ? ' checked' : '')
+      + (REST_EXCLUDE.includes(h.key) ? ' golf-gym' : '');
     row.setAttribute('data-key', h.key);
     row.innerHTML = `
       <div class="habit-check">
@@ -1191,8 +1589,9 @@ function checkSavedDay() {
     $('saved-day-view').style.display = 'none';
     $('today-form').style.display = 'block';
     habitState = {};
+    restDay = false;
+    applyRestUI();
     buildHabitList();
-    $('t-objective').value = '';
     $('t-catmisses').value = '';
     $('t-stockshot').value = '';
     $('t-oneline').value = '';
@@ -1203,16 +1602,22 @@ function showSavedDay(d) {
   $('saved-day-view').style.display = 'block';
   $('today-form').style.display = 'none';
 
+  const isRest = !!d.restDay;
   const badge = $('saved-day-badge');
-  badge.innerHTML = d.green
+  const restTag = isRest ? '<span class="badge badge-rest" style="margin-left:8px">🧘 REST DAY</span>' : '';
+  badge.innerHTML = (d.green
     ? '<span class="badge badge-green">✓ GREEN DAY</span>'
-    : '<span class="badge badge-red">✗ RED DAY</span>';
+    : '<span class="badge badge-red">✗ RED DAY</span>') + restTag;
 
   const checked = HABITS.filter(h => d.habits[h.key]).map(h => h.label);
+  const habitDen = isRest ? HABITS.filter(h => !REST_EXCLUDE.includes(h.key)).length : HABITS.length;
+  const habitNum = isRest ? checked.filter(l => {
+    const h = HABITS.find(x => x.label === l); return h && !REST_EXCLUDE.includes(h.key);
+  }).length : checked.length;
   const content = $('saved-day-content');
   content.innerHTML = `
-    <div class="saved-row"><span class="saved-key">Objective</span><span>${d.objective || '—'}</span></div>
-    <div class="saved-row"><span class="saved-key">Habits Done</span><span>${checked.length} / ${HABITS.length}</span></div>
+    ${isRest ? '<div class="saved-row"><span class="saved-key">Day Type</span><span style="color:var(--accent2)">Rest Day</span></div>' : ''}
+    <div class="saved-row"><span class="saved-key">Habits Done</span><span>${habitNum} / ${habitDen}</span></div>
     <div class="saved-row"><span class="saved-key">Cat. Misses</span><span>${d.catMisses ?? '—'}</span></div>
     <div class="saved-row"><span class="saved-key">Stock-Shot /10</span><span>${d.stockShot ?? '—'}</span></div>
     <div class="saved-row"><span class="saved-key">What mattered</span><span style="max-width:60%;text-align:right">${d.oneLine || '—'}</span></div>
@@ -1224,7 +1629,8 @@ function editToday() {
   const d = days.find(x => x.date === today());
   if (!d) return;
   habitState = { ...d.habits };
-  $('t-objective').value = d.objective || '';
+  restDay = !!d.restDay;
+  applyRestUI();
   $('t-catmisses').value = d.catMisses ?? '';
   $('t-stockshot').value = d.stockShot ?? '';
   $('t-oneline').value = d.oneLine || '';
@@ -1236,28 +1642,41 @@ function editToday() {
 function saveDay() {
   const td = today();
   const catVal = $('t-catmisses').value;
-  const checkedCount = HABITS.filter(h => habitState[h.key]).length;
-  const green = (checkedCount / HABITS.length >= 0.8) && catVal !== '';
+  let green;
+  if (restDay) {
+    // Rest day: score only over non-golf/non-gym habits; waive cat-miss requirement.
+    const restHabits = HABITS.filter(h => !REST_EXCLUDE.includes(h.key));
+    const restChecked = restHabits.filter(h => habitState[h.key]).length;
+    green = restHabits.length ? (restChecked / restHabits.length >= 0.8) : true;
+  } else {
+    const checkedCount = HABITS.filter(h => habitState[h.key]).length;
+    green = (checkedCount / HABITS.length >= 0.8) && catVal !== '';
+  }
+
+  const days = load('nexflow_days') || [];
+  const idx = days.findIndex(d => d.date === td);
+  const existing = idx >= 0 ? days[idx] : null;
 
   const obj = {
     date: td,
-    objective: $('t-objective').value.trim(),
     habits: { ...habitState },
     catMisses: catVal !== '' ? parseInt(catVal) : null,
     stockShot: $('t-stockshot').value !== '' ? parseFloat($('t-stockshot').value) : null,
     oneLine: $('t-oneline').value.trim(),
+    restDay,
     green,
   };
+  // backward compat: keep any previously saved objective text
+  if (existing && existing.objective) obj.objective = existing.objective;
 
-  const days = load('nexflow_days') || [];
-  const idx = days.findIndex(d => d.date === td);
   if (idx >= 0) days[idx] = obj;
   else days.push(obj);
   save('nexflow_days', days);
 
-  showToast(green ? '✓ Green day saved!' : 'Day saved — keep pushing');
+  showVerdict(green);
   showSavedDay(obj);
   checkRpgProgress(false);
+  updateHeaderHud();
 }
 
 // ─── ROUND TAB ─────────────────────────────────────────────────────
@@ -1297,6 +1716,7 @@ function saveRound() {
   showToast('Round saved!');
   renderRoundList();
   checkRpgProgress(false);
+  updateHeaderHud();
 }
 
 function deleteRound(id) {
@@ -1603,6 +2023,7 @@ function saveNutrition() {
   showToast('Nutrition log saved!');
   renderNutriStreak();
   checkRpgProgress(false);
+  updateHeaderHud();
 }
 
 function renderNutriStreak() {
@@ -1656,8 +2077,8 @@ function renderStreak() {
   });
   if (streak > longest) longest = streak;
 
-  $('streak-num').textContent = streak;
-  $('streak-longest').textContent = longest;
+  countUp($('streak-num'), streak, 900);
+  countUp($('streak-longest'), longest, 900);
   $('streak-date-label').textContent = fmtDate(td);
 
   // This week
@@ -1673,7 +2094,7 @@ function renderStreak() {
     const entry = days.find(x => x.date === ds);
     const isFuture = ds > td;
     let cls = '';
-    if (!isFuture) cls = (entry && entry.green) ? 'green' : 'red';
+    if (!isFuture) cls = (entry && entry.green) ? (entry.restDay ? 'rest' : 'green') : 'red';
     const box = document.createElement('div');
     box.className = 'week-box ' + cls;
     box.innerHTML = `<div class="wday">${dayNames[i]}</div><div class="wnum">${dd.getDate()}</div>`;
@@ -1688,7 +2109,7 @@ function renderStreak() {
     dd.setDate(now.getDate() - i);
     const ds = dd.toISOString().slice(0, 10);
     const entry = days.find(x => x.date === ds);
-    let cls = entry ? (entry.green ? 'green' : 'red') : '';
+    let cls = entry ? (entry.green ? (entry.restDay ? 'rest' : 'green') : 'red') : '';
     if (ds === td) cls += ' today-cell';
     const cell = document.createElement('div');
     cell.className = 'cal-cell ' + cls;
@@ -2309,6 +2730,8 @@ function init() {
 
   // Build habit lists
   habitState = {};
+  restDay = false;
+  applyRestUI();
   buildHabitList();
   nutriHabitState = {};
   buildNutriList();
@@ -2337,6 +2760,8 @@ function init() {
   // afterwards, celebrate anything newly achieved since last visit.
   const firstRun = load(RPG_META) === null;
   checkRpgProgress(firstRun);
+
+  updateHeaderHud();
 }
 
 document.addEventListener('DOMContentLoaded', init);
