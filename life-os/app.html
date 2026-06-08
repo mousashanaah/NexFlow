@@ -1105,15 +1105,200 @@
   .streak-legend .lg-dot.rest { background: rgba(90,122,144,0.15); border-color: var(--accent2); }
   .streak-legend .lg-dot.red { background: var(--red-dim); border-color: var(--red); }
 
+  /* ─── COMMAND-CENTER HUD LAYER ───────────────────────────────────── */
+  /* monospace stack for data readouts / system text */
+  :root { --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+
+  /* Scanlines overlay — sits above grain, below content */
+  #scanlines {
+    position: fixed; inset: 0; z-index: 2; pointer-events: none;
+    background-image: repeating-linear-gradient(
+      180deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 3px);
+    opacity: 0.5; mix-blend-mode: overlay;
+  }
+
+  /* Mono treatment for numeric / system readouts */
+  .stat-val, .attr-num, .xp-meta, .lvl-pill, .stat-lbl, .attr-lbl,
+  .sg-val, .stp-val, .miss-dots, .round-score, .streak-big,
+  #header .hd-lvl, #header .hd-streak .hs-num, #header .hd-streak .hs-lbl,
+  .card-title, .section-label, .nav-btn, .badge, .page-date,
+  .week-box .wnum, .week-box .wday, .cal-cell {
+    font-family: var(--mono);
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+
+  /* Tactical corner brackets on major panels */
+  .hud-frame { position: relative; }
+  .hud-frame::before, .hud-frame::after {
+    content: ''; position: absolute; width: 12px; height: 12px;
+    pointer-events: none; z-index: 3;
+    border-color: rgba(232,232,234,0.45); border-style: solid; border-width: 0;
+  }
+  .hud-frame::before { top: 6px; left: 6px; border-top-width: 1px; border-left-width: 1px; }
+  .hud-frame::after  { bottom: 6px; right: 6px; border-bottom-width: 1px; border-right-width: 1px; }
+  /* second pair via inner span when present */
+  .hud-frame > .hud-corners { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+  .hud-frame > .hud-corners::before, .hud-frame > .hud-corners::after {
+    content: ''; position: absolute; width: 12px; height: 12px;
+    border-color: rgba(232,232,234,0.45); border-style: solid; border-width: 0;
+  }
+  .hud-frame > .hud-corners::before { top: 6px; right: 6px; border-top-width: 1px; border-right-width: 1px; }
+  .hud-frame > .hud-corners::after  { bottom: 6px; left: 6px; border-bottom-width: 1px; border-left-width: 1px; }
+
+  /* System status strip under the header */
+  #status-strip {
+    display: flex; gap: 8px; align-items: center; flex-wrap: nowrap;
+    padding: 5px 18px; font-family: var(--mono);
+    font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); border-bottom: 1px solid var(--border);
+    background: rgba(8,8,9,0.6);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    flex-shrink: 0; z-index: 9; overflow: hidden; white-space: nowrap;
+  }
+  #status-strip .ss-item { display: inline-flex; align-items: center; gap: 4px; }
+  #status-strip .ss-val { color: var(--accent); font-weight: 700; }
+  #status-strip .ss-sep { color: var(--border); }
+  #status-strip .ss-live { color: var(--green); }
+  #status-strip .ss-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+    box-shadow: 0 0 6px var(--green); animation: ssPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes ssPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  #status-strip .ss-spacer { flex: 1; }
+
+  /* Mono mission header on TODAY */
+  .mission-line {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent2); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .mission-line::before { content: '>'; color: var(--green); font-weight: 700; }
+
+  /* ─── BOOT SEQUENCE ──────────────────────────────────────────────── */
+  #boot {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #030303; display: flex; flex-direction: column;
+    align-items: flex-start; justify-content: center;
+    padding: 0 32px; overflow: hidden; cursor: pointer;
+    transition: opacity 0.5s ease;
+  }
+  #boot.gone { opacity: 0; pointer-events: none; }
+  #boot::before { /* scanlines + grain on boot */
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 3px);
+    opacity: 0.6;
+  }
+  #boot-lines {
+    font-family: var(--mono); font-size: 13px; line-height: 1.9;
+    color: #9aa0a6; white-space: pre; max-width: 100%;
+    text-shadow: 0 0 6px rgba(232,232,234,0.25);
+  }
+  #boot-lines .bl { display: block; opacity: 0; }
+  #boot-lines .bl.show { opacity: 1; }
+  #boot-lines .bl .ok { color: var(--green); }
+  #boot-title {
+    position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+    text-align: center; font-weight: 900; letter-spacing: 0.16em;
+    font-size: 30px; text-transform: uppercase;
+    background: linear-gradient(180deg,#ffffff,#9aa0a6);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 40px rgba(232,232,234,0.5);
+    opacity: 0; pointer-events: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  }
+  #boot-title.flash { animation: bootFlash 1.1s ease forwards; }
+  @keyframes bootFlash {
+    0% { opacity: 0; transform: translateY(-50%) scale(0.96); filter: blur(6px); }
+    25% { opacity: 1; filter: blur(0); }
+    70% { opacity: 1; transform: translateY(-50%) scale(1); }
+    100% { opacity: 0; }
+  }
+  #boot-skip {
+    position: absolute; bottom: 28px; left: 0; right: 0; text-align: center;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: #555;
+  }
+
+  /* ─── HERO: HOLOGRAM CHAMBER ──────────────────────────────────────── */
+  .char-hero { padding-top: 26px; }
+  .char-hero .chamber-tag {
+    position: absolute; top: 10px; left: 12px;
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--accent2);
+  }
+  .char-hero .chamber-tag.right { left: auto; right: 12px; color: var(--muted); }
+  /* hologram platform / projector ring beneath the figure */
+  .char-svg-wrap::before {
+    content: ''; position: absolute; left: 50%; bottom: 2px;
+    transform: translateX(-50%);
+    width: 132px; height: 30px; border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(170,190,210,0.30), rgba(120,150,180,0.06) 60%, transparent 75%);
+    z-index: 1; pointer-events: none;
+  }
+  .char-svg-wrap::after { /* rotating projector scan ring */
+    content: ''; position: absolute; left: 50%; bottom: -4px;
+    transform: translateX(-50%);
+    width: 120px; height: 36px; border-radius: 50%;
+    border: 1px solid rgba(170,190,210,0.30);
+    box-shadow: 0 0 18px rgba(150,180,210,0.25) inset;
+    z-index: 1; pointer-events: none;
+    animation: holoRing 4s linear infinite;
+  }
+  @keyframes holoRing {
+    0%,100% { opacity: 0.45; transform: translateX(-50%) scaleX(1); }
+    50% { opacity: 0.85; transform: translateX(-50%) scaleX(1.06); }
+  }
+  /* faint vertical hologram scanlines inside the chamber */
+  .char-svg-wrap {
+    background:
+      linear-gradient(180deg, transparent, rgba(120,150,180,0.04)),
+      repeating-linear-gradient(180deg, rgba(170,190,210,0.05) 0 1px, transparent 1px 4px);
+  }
+
+  /* operator dossier card */
+  .dossier-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+    background: var(--border); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden; margin-top: 12px;
+  }
+  .dossier-cell { background: var(--surface); padding: 9px 11px; }
+  .dossier-cell.full { grid-column: 1/-1; }
+  .dossier-cell .dk {
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 3px;
+  }
+  .dossier-cell .dv {
+    font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--text);
+  }
+  .dossier-cell .dv.accent { color: var(--accent); }
+
+  /* radar / hex stat web */
+  #radar-canvas { background: transparent; border-radius: 8px; }
+
+  /* trophy wall lock state */
+  .ach:not(.unlocked)::after {
+    content: '🔒'; position: absolute; top: 4px; right: 4px;
+    font-size: 8px; opacity: 0.5; filter: grayscale(1);
+  }
+  .ach.unlocked { box-shadow: 0 0 14px rgba(232,232,234,0.18), inset 0 1px 0 rgba(255,255,255,0.05); }
+
   @media (prefers-reduced-motion: reduce) {
-    #ambient::before, #ambient::after, #grain, .streak-big, .char-svg-wrap.animated svg, .char-aura.on { animation: none !important; }
+    #ambient::before, #ambient::after, #grain, .streak-big, .char-svg-wrap.animated svg, .char-aura.on,
+    .char-svg-wrap::after, #status-strip .ss-dot { animation: none !important; }
     .tab-panel.active { animation: none; }
+    #boot-title.flash { animation: none; opacity: 1; }
   }
 </style>
 </head>
 <body>
+<div id="boot" aria-hidden="true">
+  <div id="boot-lines"></div>
+  <div id="boot-title">Mousa Shanaah</div>
+  <div id="boot-skip">TAP TO SKIP</div>
+</div>
 <div id="ambient"></div>
 <div id="grain"></div>
+<div id="scanlines"></div>
 <div id="app">
   <div id="header">
     <div class="hd-top">
@@ -1132,10 +1317,21 @@
     </div>
   </div>
 
+  <div id="status-strip">
+    <span class="ss-item"><span class="ss-dot"></span><span class="ss-live" id="ss-status">ONLINE</span></span>
+    <span class="ss-sep">|</span>
+    <span class="ss-item">STREAK<span class="ss-val" id="ss-streak">00</span></span>
+    <span class="ss-sep">|</span>
+    <span class="ss-item">LVL<span class="ss-val" id="ss-lvl">01</span></span>
+    <span class="ss-spacer"></span>
+    <span class="ss-item" id="ss-date"></span>
+  </div>
+
   <div id="content">
     <!-- TAB 1: TODAY -->
     <div id="tab-today" class="tab-panel active">
       <div class="page-date" id="today-date-label"></div>
+      <div class="mission-line" id="mission-line">MISSION LOG</div>
       <div class="page-title">Today's Training</div>
 
       <!-- Saved view -->
@@ -1158,7 +1354,7 @@
           <div class="rest-switch"></div>
         </div>
 
-        <div class="section-label training-lbl">Training Habits</div>
+        <div class="section-label training-lbl">Daily Objectives</div>
         <div id="habit-list"></div>
 
         <div id="perf-metrics">
@@ -1317,9 +1513,13 @@
 
     <!-- TAB: CHARACTER -->
     <div id="tab-character" class="tab-panel">
+      <div class="mission-line">OPERATOR LOADOUT</div>
       <div class="page-title" style="margin-bottom:16px">Character</div>
 
-      <div class="char-hero">
+      <div class="char-hero hud-frame">
+        <span class="hud-corners"></span>
+        <span class="chamber-tag">CHAMBER · 01</span>
+        <span class="chamber-tag right">HOLO-PROJECTION</span>
         <div class="char-tier-name" id="char-tier">ROOKIE</div>
         <div class="char-name-line" id="char-name-display">Mousa</div>
         <div class="char-title-line" id="char-title-display"></div>
@@ -1335,17 +1535,29 @@
             <span id="xp-total">0 total XP</span>
           </div>
         </div>
+        <div class="dossier-grid">
+          <div class="dossier-cell"><div class="dk">Operator</div><div class="dv" id="dos-name">Mousa</div></div>
+          <div class="dossier-cell"><div class="dk">Clearance</div><div class="dv accent" id="dos-tier">ROOKIE</div></div>
+          <div class="dossier-cell"><div class="dk">Level</div><div class="dv accent" id="dos-level">01</div></div>
+          <div class="dossier-cell"><div class="dk">Total XP</div><div class="dv" id="dos-xp">0</div></div>
+          <div class="dossier-cell full"><div class="dk">Designation</div><div class="dv" id="dos-title">—</div></div>
+        </div>
+      </div>
+
+      <div class="section-label">Stat Web</div>
+      <div class="card hud-frame"><span class="hud-corners"></span>
+        <canvas id="radar-canvas" height="280"></canvas>
       </div>
 
       <div class="section-label">Attributes</div>
-      <div class="card" id="attr-panel"></div>
+      <div class="card hud-frame" id="attr-panel"></div>
 
-      <div class="section-label">Achievements <span id="ach-count" style="color:var(--accent)"></span></div>
+      <div class="section-label">Trophy Wall <span id="ach-count" style="color:var(--accent)"></span></div>
       <div class="ach-grid" id="ach-grid"></div>
       <div class="ach-detail" id="ach-detail">Tap a badge to see how to earn it.</div>
 
-      <div class="section-label">Customize</div>
-      <div class="card">
+      <div class="section-label">Configure Operator</div>
+      <div class="card hud-frame"><span class="hud-corners"></span>
         <div class="cust-group">
           <label class="cust-lbl">Name</label>
           <input type="text" id="cust-name" placeholder="Mousa" style="margin-bottom:0">
@@ -1558,6 +1770,13 @@ function updateHeaderHud() {
   // streak glow on the streak counter intensifies as it climbs
   const g = Math.min(streak, 40);
   el.style.textShadow = `0 0 ${8 + g * 0.6}px rgba(232,232,234,${Math.min(0.85, 0.35 + g/60)})`;
+
+  // System status strip readouts
+  const ssS = $('ss-streak'); if (ssS) ssS.textContent = String(streak).padStart(2,'0');
+  const ssL = $('ss-lvl'); if (ssL) ssL.textContent = String(level).padStart(2,'0');
+  const ssD = $('ss-date');
+  if (ssD) ssD.textContent = new Date().toLocaleDateString('en-GB',
+    { day:'2-digit', month:'short', year:'numeric' }).toUpperCase();
 }
 
 function pct(num, den) {
@@ -2634,6 +2853,84 @@ function buildCharSvg(tierIdx, kit, skin, hairId) {
   </svg>`;
 }
 
+// ─── RADAR / HEX STAT WEB ──────────────────────────────────────────
+function drawRadar(attrs) {
+  const canvas = $('radar-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth - 32; // minus card padding
+  const H = 280;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  const cx = W/2, cy = H/2 + 4;
+  const R = Math.min(W, H)/2 - 42;
+  const N = attrs.length;
+  const ang = i => -Math.PI/2 + i * (Math.PI*2/N);
+
+  // concentric rings
+  ctx.strokeStyle = 'rgba(232,232,234,0.10)';
+  ctx.lineWidth = 1;
+  [0.25,0.5,0.75,1].forEach(f => {
+    ctx.beginPath();
+    for (let i=0;i<N;i++){
+      const x = cx + Math.cos(ang(i))*R*f, y = cy + Math.sin(ang(i))*R*f;
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.closePath(); ctx.stroke();
+  });
+
+  // spokes
+  ctx.strokeStyle = 'rgba(232,232,234,0.14)';
+  for (let i=0;i<N;i++){
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.lineTo(cx + Math.cos(ang(i))*R, cy + Math.sin(ang(i))*R);
+    ctx.stroke();
+  }
+
+  // filled polygon (current values 0-100)
+  ctx.beginPath();
+  for (let i=0;i<N;i++){
+    const f = Math.max(0, Math.min(100, attrs[i].val))/100;
+    const x = cx + Math.cos(ang(i))*R*f, y = cy + Math.sin(ang(i))*R*f;
+    i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(170,190,210,0.16)';
+  ctx.fill();
+  ctx.strokeStyle = '#e8e8ea';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  // vertices
+  for (let i=0;i<N;i++){
+    const f = Math.max(0, Math.min(100, attrs[i].val))/100;
+    const x = cx + Math.cos(ang(i))*R*f, y = cy + Math.sin(ang(i))*R*f;
+    ctx.beginPath(); ctx.arc(x,y,2.6,0,Math.PI*2);
+    ctx.fillStyle = '#ffffff'; ctx.fill();
+  }
+
+  // axis labels
+  ctx.fillStyle = '#9aa0a6';
+  ctx.font = '9px ui-monospace, Menlo, Consolas, monospace';
+  for (let i=0;i<N;i++){
+    const a = ang(i);
+    const lx = cx + Math.cos(a)*(R+18);
+    const ly = cy + Math.sin(a)*(R+18);
+    ctx.textAlign = Math.abs(Math.cos(a)) < 0.3 ? 'center' : (Math.cos(a) > 0 ? 'left' : 'right');
+    ctx.textBaseline = 'middle';
+    ctx.fillText(attrs[i].lbl.toUpperCase(), lx, ly);
+    // value
+    ctx.fillStyle = '#e8e8ea';
+    ctx.fillText(String(attrs[i].val), lx, ly + 11);
+    ctx.fillStyle = '#9aa0a6';
+  }
+}
+
 // ─── RENDER ────────────────────────────────────────────────────────
 function renderCharacter() {
   const c = getChar();
@@ -2676,13 +2973,24 @@ function renderCharacter() {
     aura.classList.remove('on');
   }
 
-  // Attributes
-  $('attr-panel').innerHTML = computeAttributes().map(a => `
+  // Operator dossier
+  $('dos-name').textContent = c.name;
+  $('dos-tier').textContent = tier.name;
+  $('dos-level').textContent = String(level).padStart(2,'0');
+  $('dos-xp').textContent = xp.toLocaleString();
+  $('dos-title').textContent = c.title || '—';
+
+  // Attributes (bars)
+  const attrs = computeAttributes();
+  $('attr-panel').innerHTML = attrs.map(a => `
     <div class="attr-row">
       <span class="attr-lbl">${a.lbl}</span>
       <div class="attr-track"><div class="attr-fill" style="width:${a.val}%;background:${a.color}"></div></div>
       <span class="attr-num" style="color:${a.color}">${a.val}</span>
     </div>`).join('');
+
+  // Attributes (radar / hex stat web) — same values
+  drawRadar(attrs);
 
   // Achievements
   const achs = computeAchievements();
@@ -2787,8 +3095,72 @@ function checkRpgProgress(silent) {
   save(RPG_META, { lastLevel: level, seen: unlockedIds });
 }
 
+// ─── BOOT SEQUENCE ─────────────────────────────────────────────────
+function runBoot() {
+  const boot = $('boot');
+  if (!boot) return;
+  // play once per session (fresh launch), not on every tab switch
+  let already = false;
+  try { already = sessionStorage.getItem('nexflow_booted') === '1'; } catch {}
+  if (already) { boot.remove(); return; }
+  try { sessionStorage.setItem('nexflow_booted','1'); } catch {}
+
+  const reduce = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const c = getChar();
+  const opName = (c.name || 'Mousa').toUpperCase() + ' SHANAAH';
+  const lines = [
+    'INITIALIZING…',
+    'OPERATOR: ' + opName,
+    'CLEARANCE: ELITE',
+    'MISSION: ASIAN TOUR — DEC 2026',
+    'SYSTEM ONLINE'
+  ];
+
+  const linesEl = $('boot-lines');
+  const titleEl = $('boot-title');
+  const timers = [];
+  let finished = false;
+
+  function dismiss() {
+    if (finished) return;
+    finished = true;
+    timers.forEach(clearTimeout);
+    boot.classList.add('gone');
+    setTimeout(() => boot.remove(), 520);
+  }
+  boot.addEventListener('click', dismiss, { once: false });
+
+  if (reduce) {
+    // minimal: show all instantly, flash title briefly, dismiss
+    linesEl.innerHTML = lines.map(l =>
+      `<span class="bl show">&gt; ${l.replace('ONLINE','<span class="ok">ONLINE</span>')}</span>`).join('');
+    timers.push(setTimeout(dismiss, 700));
+    return;
+  }
+
+  // typewriter-ish reveal: one line every ~280ms
+  lines.forEach((l, i) => {
+    const span = document.createElement('span');
+    span.className = 'bl';
+    span.innerHTML = '&gt; ' + l.replace('ONLINE','<span class="ok">ONLINE</span>');
+    linesEl.appendChild(span);
+    timers.push(setTimeout(() => span.classList.add('show'), 180 + i * 280));
+  });
+
+  // title flash after lines, then dismiss
+  const titleAt = 180 + lines.length * 280 + 120;
+  timers.push(setTimeout(() => {
+    linesEl.style.transition = 'opacity 0.4s'; linesEl.style.opacity = '0';
+    titleEl.classList.add('flash');
+  }, titleAt));
+  timers.push(setTimeout(dismiss, titleAt + 1150));
+}
+
 // ─── INIT ──────────────────────────────────────────────────────────
 function init() {
+  runBoot();
   // Set date labels
   const td = today();
   const fmtd = fmtDate(td);
