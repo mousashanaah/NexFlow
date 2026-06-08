@@ -880,6 +880,40 @@
   .opt-chip.sel { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
   .opt-chip.locked { opacity: 0.4; cursor: not-allowed; }
 
+  /* ── ARMORY / LOADOUT panel ── */
+  .armory-slot { margin-bottom: 14px; }
+  .armory-slot:last-child { margin-bottom: 0; }
+  .armory-slot-lbl {
+    font-family: var(--mono); font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent2);
+    margin-bottom: 8px;
+  }
+  .armory-items { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .armory-item {
+    border: 1px solid var(--border); border-radius: 9px; padding: 9px 10px;
+    background: var(--surface); cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s; position: relative;
+    overflow: hidden;
+  }
+  .armory-item:active { transform: scale(0.97); }
+  .armory-item .ai-name {
+    font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--text);
+    letter-spacing: 0.02em; line-height: 1.2; margin-bottom: 3px;
+  }
+  .armory-item .ai-req {
+    font-family: var(--mono); font-size: 8.5px; color: var(--muted);
+    letter-spacing: 0.04em; line-height: 1.3; text-transform: uppercase;
+  }
+  .armory-item.locked { opacity: 0.5; cursor: not-allowed; }
+  .armory-item.locked .ai-req { color: var(--accent2); }
+  .armory-item.equipped {
+    border-color: var(--accent);
+    background: linear-gradient(150deg, #1d1f23, #16171a);
+    box-shadow: 0 0 12px rgba(232,232,234,0.18), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .armory-item.equipped .ai-name { color: var(--accent); }
+  .armory-item.equipped .ai-req { color: var(--green); font-weight: 700; }
+
   /* achievements grid */
   .ach-grid {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
@@ -1704,6 +1738,8 @@
           <div class="dossier-cell"><div class="dk">Clearance</div><div class="dv accent" id="dos-tier">ROOKIE</div></div>
           <div class="dossier-cell"><div class="dk">Level</div><div class="dv accent" id="dos-level">01</div></div>
           <div class="dossier-cell"><div class="dk">Total XP</div><div class="dv" id="dos-xp">0</div></div>
+          <div class="dossier-cell"><div class="dk">Frame</div><div class="dv accent" id="dos-frame">LEAN</div></div>
+          <div class="dossier-cell"><div class="dk">Loadout</div><div class="dv" id="dos-loadout">0 / 5</div></div>
           <div class="dossier-cell full"><div class="dk">Designation</div><div class="dv" id="dos-title">—</div></div>
         </div>
       </div>
@@ -1719,6 +1755,9 @@
       <div class="section-label">Trophy Wall <span id="ach-count" style="color:var(--accent)"></span></div>
       <div class="ach-grid" id="ach-grid"></div>
       <div class="ach-detail" id="ach-detail">Tap a badge to see how to earn it.</div>
+
+      <div class="sys-label">LOADOUT <span id="loadout-count" style="color:var(--accent);font-family:var(--mono);margin-left:auto;font-size:9px"></span></div>
+      <div class="card hud-frame" id="armory-panel"><span class="hud-corners"></span></div>
 
       <div class="section-label">Configure Operator</div>
       <div class="card hud-frame"><span class="hud-corners"></span>
@@ -2743,17 +2782,25 @@ const KIT_OPTS = ['#e8e8ea','#5a7a90','#c0453f','#3f9e6a','#9aa0a6','#3a3d42'];
 
 function getChar() {
   const c = load(CHAR_KEY) || {};
+  const eq = c.equipped || {};
   return {
     name: c.name || 'Mousa',
     skin: c.skin || SKIN_TONES[1],
     hair: c.hair || 'black',
     kit: c.kit || '#e8e8ea',
     title: c.title || '',
+    equipped: {
+      headwear: eq.headwear || null,
+      club: eq.club || null,
+      outfit: eq.outfit || null,
+      aura: eq.aura || null,
+      accessory: eq.accessory || null,
+    },
   };
 }
 function getMeta() {
   const m = load(RPG_META) || {};
-  return { lastLevel: m.lastLevel || 0, seen: m.seen || [] };
+  return { lastLevel: m.lastLevel || 0, seen: m.seen || [], seenItems: m.seenItems || [] };
 }
 
 // ─── XP & LEVEL ────────────────────────────────────────────────────
@@ -2977,27 +3024,216 @@ function unlockedTitles() {
   return computeAchievements().filter(a => a.done && a.title).map(a => a.title);
 }
 
+// ─── DATA METRICS (single source for item unlocks) ────────────────
+// Reuses the exact same real-logged metrics the achievements use.
+function rpgMetrics() {
+  const days = load('nexflow_days') || [];
+  const rounds = load('nexflow_rounds') || [];
+  const counts = habitCounts();
+  const lg = longestGreenStreak();
+  const xp = computeXP();
+  const level = levelFromXP(xp);
+  const tIdx = tierIndex(level);
+
+  const udA = rounds.reduce((a,r)=>a+(r.udAttempts||0),0);
+  const udM = rounds.reduce((a,r)=>a+(r.udMakes||0),0);
+  const udPct = udA ? udM/udA : 0;
+
+  return {
+    days, rounds, counts, lg, xp, level, tIdx, udPct,
+    firBest: rounds.some(r => r.firTotal && r.fir/r.firTotal > 0.70),
+    zeroRound: rounds.some(r => r.catMisses === 0),
+    subPar: rounds.some(r => r.score && r.par && r.score < r.par),
+    firstRound: rounds.length >= 1,
+  };
+}
+
+// ─── EQUIPMENT / LOADOUT SYSTEM ───────────────────────────────────
+// slot: HEADWEAR | CLUB | OUTFIT | AURA | ACCESSORY
+// unlocked(m) reads from rpgMetrics() — all from real logged data.
+const ITEMS = [
+  // ── HEADWEAR
+  { id:'tour_visor', slot:'headwear', name:'Tour Visor', req:'Reach Level 5', desc:'Sun-down tour visor.', unlocked:m=>m.level>=5 },
+  { id:'operator_cap', slot:'headwear', name:'Operator Cap', req:'7-day green streak', desc:'Field-issue ops cap.', unlocked:m=>m.lg>=7 },
+  { id:'crown_discipline', slot:'headwear', name:'Crown of Discipline', req:'30-day green streak', desc:'Forged from consistency.', unlocked:m=>m.lg>=30 },
+  { id:'champions_halo', slot:'headwear', name:"Champion's Halo", req:'Reach Champion tier (Lv 35)', desc:'A ring of cold light.', unlocked:m=>m.level>=35 },
+  // ── CLUB
+  { id:'forged_iron', slot:'club', name:'Forged Iron', req:'Log your first round', desc:'Standard forged blade iron.', unlocked:m=>m.firstRound },
+  { id:'precision_driver', slot:'club', name:'Precision Driver', req:'A round with FIR over 70%', desc:'Fairway-finding driver.', unlocked:m=>m.firBest },
+  { id:'the_scalpel', slot:'club', name:'The Scalpel', req:'U&D over 60% across 5+ rounds', desc:'Surgeon\'s wedge.', unlocked:m=>m.rounds.length>=5 && m.udPct>0.60 },
+  { id:'zero_blade', slot:'club', name:'Zero Blade', req:'A round with 0 catastrophic misses', desc:'Flawless contact, forged.', unlocked:m=>m.zeroRound },
+  { id:'platinum_shaft', slot:'club', name:'Platinum Shaft', req:'Shoot a round under par', desc:'Cold platinum precision.', unlocked:m=>m.subPar },
+  // ── OUTFIT
+  { id:'trainee_kit', slot:'outfit', name:'Trainee Kit', req:'Default', desc:'Standard issue training kit.', unlocked:m=>true },
+  { id:'pro_kit', slot:'outfit', name:'Pro Kit', req:'Reach Level 10', desc:'Tailored pro polo.', unlocked:m=>m.level>=10 },
+  { id:'tour_kit', slot:'outfit', name:'Tour Kit', req:'Reach Level 20', desc:'Tour-grade performance kit.', unlocked:m=>m.level>=20 },
+  { id:'blackout_kit', slot:'outfit', name:'Blackout Kit', req:'60-day green streak', desc:'Matte blackout machine kit.', unlocked:m=>m.lg>=60 },
+  // ── AURA
+  { id:'focus_glow', slot:'aura', name:'Focus Glow', req:'Reach Level 10', desc:'Soft cold focus field.', unlocked:m=>m.level>=10 },
+  { id:'cold_fire', slot:'aura', name:'Cold Fire', req:'Reach Level 25', desc:'Blue-white cold flame.', unlocked:m=>m.level>=25 },
+  { id:'phantom_aura', slot:'aura', name:'Phantom Aura', req:'100-day green streak', desc:'Ghost-grey phantom field.', unlocked:m=>m.lg>=100 },
+  { id:'storm', slot:'aura', name:'Storm', req:'Reach Champion tier (Lv 35)', desc:'Charged storm particles.', unlocked:m=>m.tIdx>=4 },
+  // ── ACCESSORY
+  { id:'range_glove', slot:'accessory', name:'Range Rat Glove', req:'Range drills logged 25x', desc:'Worn-in training glove.', unlocked:m=>(m.counts.rangeDrills||0)>=25 },
+  { id:'iron_chain', slot:'accessory', name:'Iron Chain', req:'Lifting logged 20x', desc:'Earned in the gym.', unlocked:m=>(m.counts.gymLifting||0)>=20 },
+  { id:'scholars_mark', slot:'accessory', name:"Scholar's Mark", req:'Quran/Reading logged 30x', desc:'Mark of the studious.', unlocked:m=>(m.counts.reading||0)>=30 },
+  { id:'builders_sigil', slot:'accessory', name:"Builder's Sigil", req:'NexFlow work logged 30x', desc:'Sigil of the builder.', unlocked:m=>(m.counts.nexflow||0)>=30 },
+];
+const ITEM_SLOTS = ['headwear','club','outfit','aura','accessory'];
+const SLOT_LABELS = { headwear:'HEADWEAR', club:'CLUB', outfit:'KIT', aura:'AURA', accessory:'ACCESSORY' };
+
+function unlockedItemIds() {
+  const m = rpgMetrics();
+  return ITEMS.filter(it => { try { return !!it.unlocked(m); } catch { return false; } }).map(it => it.id);
+}
+function itemById(id) { return ITEMS.find(it => it.id === id) || null; }
+
+function equipItem(slot, id) {
+  const c = getChar();
+  const eq = { ...c.equipped };
+  eq[slot] = (eq[slot] === id) ? null : id; // tap again to unequip
+  save(CHAR_KEY, { ...c, equipped: eq });
+  renderCharacter();
+}
+
+// ─── PHYSIQUE STAGES (evolving body) ──────────────────────────────
+// Computed from REAL work: strength attribute (gym warmup+lifting) blended
+// with overall level/consistency. Never set manually.
+const PHYSIQUE_STAGES = [
+  { name:'Lean',        shoulder:0,  torso:0,   arm:0   },
+  { name:'Conditioned', shoulder:5,  torso:3,   arm:1.5 },
+  { name:'Athletic',    shoulder:10, torso:6,   arm:3   },
+  { name:'Forged',      shoulder:15, torso:9,   arm:4.5 },
+];
+function physiqueStage() {
+  const attrs = computeAttributes();
+  const strength = (attrs.find(a => a.lbl === 'Strength') || { val:0 }).val;
+  const xp = computeXP();
+  const level = levelFromXP(xp);
+  // blend: strength-driven, lifted slightly by level/consistency
+  const score = strength * 0.75 + Math.min(level, 25) / 25 * 25;
+  let idx = 0;
+  if (score >= 78) idx = 3;
+  else if (score >= 52) idx = 2;
+  else if (score >= 26) idx = 1;
+  return { idx, ...PHYSIQUE_STAGES[idx] };
+}
+
 // ─── CHARACTER SVG ─────────────────────────────────────────────────
-function buildCharSvg(tierIdx, kit, skin, hairId) {
+function buildCharSvg(tierIdx, kit, skin, hairId, equipped, phys) {
+  equipped = equipped || {};
+  phys = phys || { idx:0, shoulder:0, torso:0, arm:0 };
   const hair = (HAIR_OPTS.find(h=>h.id===hairId)||HAIR_OPTS[0]).color;
   const goldTrim = tierIdx >= 1;
   const auraGlow = tierIdx >= 2;
   const champion = tierIdx >= 4;
   const tourPlayer = tierIdx >= 3;
   const trimColor = '#e8e8ea';
-  // crown for champion
-  const crown = champion ? `
-    <path d="M62 30 L70 40 L75 28 L80 40 L88 30 L86 46 L64 46 Z" fill="#e8e8ea" stroke="#9aa0a6" stroke-width="1"/>
-    <circle cx="75" cy="26" r="3" fill="#ffffff"/>` : '';
-  // outfit trim accent line
-  const trim = goldTrim ? `<rect x="55" y="78" width="40" height="3" fill="${trimColor}"/>` : '';
+
+  // ── PHYSIQUE: body widens with real training ──
+  const sh = phys.shoulder;      // shoulder spread (px each side)
+  const tw = phys.torso;         // torso taper widening
+  const aw = 9 + phys.arm;       // arm stroke width
+  // torso anchors
+  const lShoulderX = 55 - sh, rShoulderX = 95 + sh;
+  const lWaistX = 53 - tw, rWaistX = 97 + tw;
+
+  // ── OUTFIT / KIT ──
+  const oid = equipped.outfit;
+  let bodyColor = kit, kitTrim = '', collarOp = 0.35, kitStroke = '#0a0a0a';
+  if (oid === 'pro_kit') { kitTrim = `<rect x="${lShoulderX}" y="86" width="${rShoulderX-lShoulderX}" height="2.5" fill="${trimColor}" opacity="0.8"/>`; }
+  else if (oid === 'tour_kit') {
+    bodyColor = kit;
+    kitTrim = `<rect x="${lShoulderX}" y="84" width="${rShoulderX-lShoulderX}" height="2.5" fill="#5a7a90"/>
+               <rect x="${lShoulderX+4}" y="92" width="${rShoulderX-lShoulderX-8}" height="1.5" fill="${trimColor}" opacity="0.7"/>`;
+  } else if (oid === 'blackout_kit') {
+    bodyColor = '#16181b'; collarOp = 0.6; kitStroke = '#000';
+    kitTrim = `<rect x="${lShoulderX}" y="86" width="${rShoulderX-lShoulderX}" height="1.5" fill="#5a7a90" opacity="0.7"/>`;
+  } else { // trainee / default tier trim
+    if (goldTrim) kitTrim = `<rect x="${lShoulderX}" y="86" width="${rShoulderX-lShoulderX}" height="3" fill="${trimColor}"/>`;
+  }
+
   const polo = `
     <!-- torso / polo -->
-    <path d="M55 78 Q55 72 62 70 L88 70 Q95 72 95 78 L97 120 L53 120 Z" fill="${kit}" stroke="#0a0a0a" stroke-width="1.2"/>
+    <path d="M${lShoulderX} 78 Q${lShoulderX} 72 62 70 L88 70 Q95 72 ${rShoulderX} 78 L${rWaistX} 120 L${lWaistX} 120 Z" fill="${bodyColor}" stroke="${kitStroke}" stroke-width="1.2"/>
     <!-- collar -->
-    <path d="M68 70 L75 80 L82 70 Z" fill="#0a0a0a" opacity="0.35"/>
-    ${trim}`;
-  const aura = auraGlow ? `<ellipse cx="75" cy="100" rx="60" ry="80" fill="url(#auraGrad)" opacity="${champion?0.5:tourPlayer?0.35:0.22}"/>` : '';
+    <path d="M68 70 L75 80 L82 70 Z" fill="#0a0a0a" opacity="${collarOp}"/>
+    ${kitTrim}`;
+
+  // ── ARMS (width scales with physique) ──
+  const arms = `
+    <path d="M${lShoulderX} 80 Q44 90 46 108" stroke="${bodyColor}" stroke-width="${aw}" fill="none" stroke-linecap="round"/>
+    <path d="M${rShoulderX} 80 Q106 90 104 108" stroke="${bodyColor}" stroke-width="${aw}" fill="none" stroke-linecap="round"/>
+    <circle cx="46" cy="110" r="5" fill="${skin}"/>
+    <circle cx="104" cy="110" r="5" fill="${skin}"/>`;
+
+  // ── CLUB (equipped) ──
+  const cid = equipped.club;
+  let club = `
+    <line x1="104" y1="110" x2="124" y2="150" stroke="#9a9a9a" stroke-width="2.2"/>
+    <path d="M122 148 q6 2 6 8" stroke="#666" stroke-width="3" fill="none"/>`;
+  if (cid === 'forged_iron') club = `
+    <line x1="104" y1="110" x2="125" y2="151" stroke="#cfd2d6" stroke-width="2.4"/>
+    <path d="M123 149 l8 3 l-2 5 l-8 -3 z" fill="#b8bcc2" stroke="#7a7e85" stroke-width="0.6"/>`;
+  else if (cid === 'precision_driver') club = `
+    <line x1="104" y1="110" x2="127" y2="153" stroke="#3a3d42" stroke-width="2.6"/>
+    <ellipse cx="129" cy="153" rx="7" ry="5" fill="#5a7a90" stroke="#0a0a0a" stroke-width="0.8"/>`;
+  else if (cid === 'the_scalpel') club = `
+    <line x1="104" y1="110" x2="124" y2="150" stroke="#cfd2d6" stroke-width="2.2"/>
+    <path d="M121 147 l9 5 l-3 6 l-9 -5 z" fill="#e8e8ea" stroke="#9aa0a6" stroke-width="0.6"/>`;
+  else if (cid === 'zero_blade') club = `
+    <line x1="104" y1="110" x2="125" y2="151" stroke="#e8e8ea" stroke-width="2.4"/>
+    <path d="M123 149 l8 3 l-2 5 l-8 -3 z" fill="#ffffff" stroke="#9aa0a6" stroke-width="0.6"/>
+    <line x1="104" y1="110" x2="125" y2="151" stroke="#ffffff" stroke-width="0.8" opacity="0.6"/>`;
+  else if (cid === 'platinum_shaft') club = `
+    <line x1="104" y1="110" x2="126" y2="152" stroke="#dfe3e8" stroke-width="2.8"/>
+    <path d="M124 150 l8 3 l-2 5 l-8 -3 z" fill="#cfd6dd" stroke="#9aa0a6" stroke-width="0.6"/>`;
+
+  // ── ACCESSORY (equipped) ──
+  const acc = equipped.accessory;
+  let accessory = '';
+  if (acc === 'range_glove') accessory = `<circle cx="46" cy="110" r="6" fill="#e8e8ea" stroke="#9aa0a6" stroke-width="0.8"/>`;
+  else if (acc === 'iron_chain') accessory = `<path d="M68 70 Q75 80 82 70" stroke="#9aa0a6" stroke-width="2" fill="none"/><circle cx="75" cy="78" r="2.4" fill="#cfd2d6" stroke="#5a5a5a" stroke-width="0.6"/>`;
+  else if (acc === 'scholars_mark') accessory = `<rect x="${lShoulderX+3}" y="100" width="9" height="11" rx="1.5" fill="#3a3d42" stroke="#9aa0a6" stroke-width="0.7"/><line x1="${lShoulderX+7.5}" y1="100" x2="${lShoulderX+7.5}" y2="111" stroke="#9aa0a6" stroke-width="0.6"/>`;
+  else if (acc === 'builders_sigil') accessory = `<path d="M${rShoulderX-9} 96 l4 -4 l4 4 l-4 4 z" fill="none" stroke="#5a7a90" stroke-width="1.4"/>`;
+
+  // ── HEADWEAR (equipped overrides tier visor) ──
+  const hid = equipped.headwear;
+  let headwear = '';
+  if (hid === 'tour_visor') headwear = `<path d="M61 46 Q75 36 89 46 L94 47 L56 47 Z" fill="#5a7a90" stroke="#0a0a0a" stroke-width="0.6"/>`;
+  else if (hid === 'operator_cap') headwear = `
+    <path d="M60 47 Q75 33 90 47 Z" fill="#2a2d31"/>
+    <path d="M61 46 Q75 35 89 46 L95 48 L58 48 Z" fill="#1a1c1f"/>`;
+  else if (hid === 'crown_discipline') headwear = `
+    <path d="M62 42 L68 48 L75 38 L82 48 L88 42 L86 50 L64 50 Z" fill="#cfd2d6" stroke="#9aa0a6" stroke-width="1"/>`;
+  else if (hid === 'champions_halo') headwear = `
+    <ellipse cx="75" cy="36" rx="15" ry="4" fill="none" stroke="#ffffff" stroke-width="1.6" opacity="0.9"/>
+    <ellipse cx="75" cy="36" rx="15" ry="4" fill="none" stroke="#e8e8ea" stroke-width="3" opacity="0.25"/>`;
+  else {
+    // fallback: tier-based crown / visor as before
+    if (champion) headwear = `
+      <path d="M62 30 L70 40 L75 28 L80 40 L88 30 L86 46 L64 46 Z" fill="#e8e8ea" stroke="#9aa0a6" stroke-width="1"/>
+      <circle cx="75" cy="26" r="3" fill="#ffffff"/>`;
+    else if (tierIdx >= 2) headwear = `<path d="M61 46 Q75 34 89 46 L92 47 L58 47 Z" fill="${goldTrim?trimColor:'#1a1a1a'}"/>`;
+  }
+
+  // ── AURA (equipped effect overrides tier glow) ──
+  const aid = equipped.aura;
+  let aura = auraGlow ? `<ellipse cx="75" cy="100" rx="60" ry="80" fill="url(#auraGrad)" opacity="${champion?0.5:tourPlayer?0.35:0.22}"/>` : '';
+  let particles = '';
+  if (aid === 'focus_glow') aura = `<ellipse cx="75" cy="100" rx="58" ry="78" fill="url(#auraGrad)" opacity="0.4"/>`;
+  else if (aid === 'cold_fire') {
+    aura = `<ellipse cx="75" cy="100" rx="62" ry="82" fill="url(#auraCold)" opacity="0.55"/>`;
+    particles = `<circle cx="50" cy="120" r="1.6" fill="#9ec3e0"/><circle cx="100" cy="105" r="1.4" fill="#cfe0ef"/><circle cx="60" cy="90" r="1.2" fill="#9ec3e0"/>`;
+  } else if (aid === 'phantom_aura') {
+    aura = `<ellipse cx="75" cy="100" rx="62" ry="84" fill="url(#auraPhantom)" opacity="0.5"/>`;
+  } else if (aid === 'storm') {
+    aura = `<ellipse cx="75" cy="100" rx="64" ry="86" fill="url(#auraCold)" opacity="0.6"/>`;
+    particles = `<path d="M70 60 l-5 14 l6 0 l-5 14" stroke="#cfe0ef" stroke-width="1.4" fill="none" opacity="0.85"/>
+                 <circle cx="48" cy="110" r="1.6" fill="#9ec3e0"/><circle cx="104" cy="95" r="1.6" fill="#cfe0ef"/>
+                 <circle cx="92" cy="130" r="1.3" fill="#9ec3e0"/><circle cx="56" cy="135" r="1.3" fill="#cfe0ef"/>`;
+  }
+
   return `
   <svg viewBox="0 0 150 190" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -3005,8 +3241,17 @@ function buildCharSvg(tierIdx, kit, skin, hairId) {
         <stop offset="0%" stop-color="#e8e8ea" stop-opacity="0.9"/>
         <stop offset="100%" stop-color="#e8e8ea" stop-opacity="0"/>
       </radialGradient>
+      <radialGradient id="auraCold" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#9ec3e0" stop-opacity="0.95"/>
+        <stop offset="100%" stop-color="#9ec3e0" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="auraPhantom" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#aab4bc" stop-opacity="0.85"/>
+        <stop offset="100%" stop-color="#aab4bc" stop-opacity="0"/>
+      </radialGradient>
     </defs>
     ${aura}
+    ${particles}
     <!-- legs -->
     <rect x="62" y="118" width="11" height="50" rx="4" fill="#2a2a2a"/>
     <rect x="77" y="118" width="11" height="50" rx="4" fill="#2a2a2a"/>
@@ -3014,23 +3259,16 @@ function buildCharSvg(tierIdx, kit, skin, hairId) {
     <ellipse cx="65" cy="170" rx="10" ry="5" fill="#0a0a0a"/>
     <ellipse cx="84" cy="170" rx="10" ry="5" fill="#0a0a0a"/>
     ${polo}
-    <!-- arms -->
-    <path d="M55 80 Q44 90 46 108" stroke="${kit}" stroke-width="9" fill="none" stroke-linecap="round"/>
-    <path d="M95 80 Q106 90 104 108" stroke="${kit}" stroke-width="9" fill="none" stroke-linecap="round"/>
-    <circle cx="46" cy="110" r="5" fill="${skin}"/>
-    <circle cx="104" cy="110" r="5" fill="${skin}"/>
-    <!-- golf club -->
-    <line x1="104" y1="110" x2="124" y2="150" stroke="#9a9a9a" stroke-width="2.2"/>
-    <path d="M122 148 q6 2 6 8" stroke="#666" stroke-width="3" fill="none"/>
+    ${arms}
+    ${accessory}
+    ${club}
     <!-- neck -->
     <rect x="71" y="60" width="8" height="12" fill="${skin}"/>
     <!-- head -->
     <circle cx="75" cy="52" r="14" fill="${skin}" stroke="#0a0a0a" stroke-width="0.8"/>
     <!-- hair -->
     <path d="M61 50 Q62 36 75 36 Q88 36 89 50 Q84 44 75 44 Q66 44 61 50 Z" fill="${hair}"/>
-    ${crown}
-    <!-- cap visor for pro+ -->
-    ${tierIdx>=2 ? `<path d="M61 46 Q75 34 89 46 L92 47 L58 47 Z" fill="${goldTrim?trimColor:'#1a1a1a'}"/>` : ''}
+    ${headwear}
   </svg>`;
 }
 
@@ -3137,9 +3375,12 @@ function renderCharacter() {
   $('xp-progress').textContent = into + ' / ' + span + ' XP';
   $('xp-total').textContent = xp.toLocaleString() + ' total XP';
 
-  // SVG
-  $('char-svg').innerHTML = buildCharSvg(tIdx, c.kit, c.skin, c.hair);
+  // SVG (with equipped gear + evolving physique)
+  const phys = physiqueStage();
+  $('char-svg').innerHTML = buildCharSvg(tIdx, c.kit, c.skin, c.hair, c.equipped, phys);
   $('char-svg-wrap').classList.add('animated');
+  const frameEl = $('dos-frame');
+  if (frameEl) frameEl.textContent = phys.name.toUpperCase() + ' ' + ['I','II','III','IV'][phys.idx];
 
   // Aura scales with tier + streak
   const aura = $('char-aura');
@@ -3183,7 +3424,42 @@ function renderCharacter() {
       <div class="ach-name">${a.name}</div>
     </div>`).join('');
 
+  // Loadout / armory
+  buildArmory(c);
+
   buildCustomize();
+}
+
+// ─── ARMORY / LOADOUT PANEL ────────────────────────────────────────
+function buildArmory(c) {
+  const unlockedIds = unlockedItemIds();
+  const eq = c.equipped || {};
+  const totalUnlocked = unlockedIds.length;
+  const lc = $('loadout-count');
+  if (lc) lc.textContent = totalUnlocked + ' / ' + ITEMS.length + ' UNLOCKED';
+  const equippedCount = ITEM_SLOTS.filter(s => eq[s]).length;
+  const dl = $('dos-loadout');
+  if (dl) dl.textContent = equippedCount + ' / ' + ITEM_SLOTS.length;
+
+  const panel = $('armory-panel');
+  if (!panel) return;
+  let html = '<span class="hud-corners"></span>';
+  ITEM_SLOTS.forEach(slot => {
+    const items = ITEMS.filter(it => it.slot === slot);
+    html += `<div class="armory-slot"><div class="armory-slot-lbl">// ${SLOT_LABELS[slot]}</div><div class="armory-items">`;
+    items.forEach(it => {
+      const unlocked = unlockedIds.includes(it.id);
+      const equipped = eq[slot] === it.id;
+      const cls = 'armory-item' + (unlocked ? '' : ' locked') + (equipped ? ' equipped' : '');
+      const onclick = unlocked ? `onclick="equipItem('${slot}','${it.id}')"` : '';
+      html += `<div class="${cls}" ${onclick}>
+        <div class="ai-name">${unlocked ? '' : '🔒 '}${it.name}</div>
+        <div class="ai-req">${unlocked ? (equipped ? 'EQUIPPED' : it.desc) : it.req}</div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+  panel.innerHTML = html;
 }
 
 let _achCache = [];
@@ -3259,11 +3535,17 @@ function checkRpgProgress(silent) {
   const meta = getMeta();
   const achs = computeAchievements();
   const unlockedIds = achs.filter(a=>a.done).map(a=>a.id);
+  const unlockedItems = unlockedItemIds();
 
   if (!silent) {
     // new achievements
     achs.filter(a => a.done && !meta.seen.includes(a.id)).forEach(a => {
       queueCelebrate('Achievement Unlocked', a.icon, a.name, a.desc + (a.title ? ` · Title “${a.title}” unlocked!` : ''));
+    });
+    // new equipment items
+    unlockedItems.filter(id => !meta.seenItems.includes(id)).forEach(id => {
+      const it = itemById(id);
+      if (it) queueCelebrate('Item Unlocked', '🎖️', it.name, it.desc + ' · Equip it in the LOADOUT.');
     });
     // level up
     if (meta.lastLevel && level > meta.lastLevel) {
@@ -3273,7 +3555,7 @@ function checkRpgProgress(silent) {
     flushCelebrate();
   }
 
-  save(RPG_META, { lastLevel: level, seen: unlockedIds });
+  save(RPG_META, { lastLevel: level, seen: unlockedIds, seenItems: unlockedItems });
 }
 
 // ─── BOOT SEQUENCE ─────────────────────────────────────────────────
