@@ -2563,6 +2563,11 @@ function renderStreak() {
   const days = load('nexflow_days') || [];
   const td = today();
 
+  // Your journey starts at your first logged day — nothing before it counts as "missed".
+  const loggedDates = days.map(x => x.date).sort();
+  const startDate = loggedDates.length ? loggedDates[0] : null;
+  const started = ds => startDate && ds >= startDate && ds <= td;
+
   // Current streak
   let streak = 0;
   let d = new Date();
@@ -2602,9 +2607,9 @@ function renderStreak() {
     dd.setDate(now.getDate() - dow + i);
     const ds = dd.toISOString().slice(0, 10);
     const entry = days.find(x => x.date === ds);
-    const isFuture = ds > td;
     let cls = '';
-    if (!isFuture) cls = (entry && entry.green) ? (entry.restDay ? 'rest' : 'green') : 'red';
+    if (entry && entry.green) cls = entry.restDay ? 'rest' : 'green';
+    else if (started(ds)) cls = 'red'; // only "missed" once you've started and on/before today
     const box = document.createElement('div');
     box.className = 'week-box ' + cls;
     box.innerHTML = `<div class="wday">${dayNames[i]}</div><div class="wnum">${dd.getDate()}</div>`;
@@ -2619,7 +2624,9 @@ function renderStreak() {
     dd.setDate(now.getDate() - i);
     const ds = dd.toISOString().slice(0, 10);
     const entry = days.find(x => x.date === ds);
-    let cls = entry ? (entry.green ? (entry.restDay ? 'rest' : 'green') : 'red') : '';
+    let cls = '';
+    if (entry && entry.green) cls = entry.restDay ? 'rest' : 'green';
+    else if (entry || started(ds)) cls = 'red';
     if (ds === td) cls += ' today-cell';
     const cell = document.createElement('div');
     cell.className = 'cal-cell ' + cls;
@@ -2633,7 +2640,7 @@ function renderStreak() {
     const dd = new Date(now);
     dd.setDate(now.getDate() - dow + i);
     const ds = dd.toISOString().slice(0, 10);
-    if (ds <= td) thisWeekDays.push(ds);
+    if (started(ds)) thisWeekDays.push(ds);
   }
   const thisWeekGreen = thisWeekDays.filter(ds => days.find(x => x.date === ds && x.green)).length;
   $('disc-week').textContent = thisWeekDays.length ? Math.round(thisWeekGreen / thisWeekDays.length * 100) + '%' : '—';
@@ -2642,10 +2649,11 @@ function renderStreak() {
   for (let i = 29; i >= 0; i--) {
     const dd = new Date(now);
     dd.setDate(now.getDate() - i);
-    daysInMonth.push(dd.toISOString().slice(0, 10));
+    const ds = dd.toISOString().slice(0, 10);
+    if (started(ds)) daysInMonth.push(ds);
   }
   const monthGreen = daysInMonth.filter(ds => days.find(x => x.date === ds && x.green)).length;
-  $('disc-month').textContent = Math.round(monthGreen / daysInMonth.length * 100) + '%';
+  $('disc-month').textContent = daysInMonth.length ? Math.round(monthGreen / daysInMonth.length * 100) + '%' : '—';
 
   // Canvas chart
   drawMissChart();
