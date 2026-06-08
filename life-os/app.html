@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NexFlow — Life OS</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --card: #1c1c1c;
+    --accent: #c9a84c;
+    --accent-dim: rgba(201,168,76,0.15);
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,0.15);
+    --red: #ef4444;
+    --red-dim: rgba(239,68,68,0.15);
+    --text: #e5e5e5;
+    --muted: #6b6b6b;
+    --border: #2a2a2a;
+    --tab-h: 64px;
+    --header-h: 56px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* Header */
+  #header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  #header .logo {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+  }
+  #header .sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Tab content */
+  #content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 16px;
+  }
+
+  .tab-panel {
+    display: none;
+    padding: 20px 16px;
+    min-height: 100%;
+  }
+  .tab-panel.active { display: block; }
+
+  /* Bottom nav */
+  #bottom-nav {
+    height: var(--tab-h);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    padding: 0;
+  }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn svg { width: 22px; height: 22px; }
+
+  /* Typography */
+  .page-date {
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+  .page-title {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 24px;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    margin-top: 24px;
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .card.accent-card {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, #1c1c1c 0%, #1f1c14 100%);
+  }
+
+  /* Form elements */
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.03em;
+  }
+  input[type="text"], input[type="number"], input[type="date"], textarea, select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 15px;
+    padding: 13px 14px;
+    margin-bottom: 16px;
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, input[type="date"]:focus,
+  textarea:focus, select:focus {
+    border-color: var(--accent);
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.7);
+  }
+  textarea {
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.5;
+  }
+  select option { background: var(--card); }
+
+  .input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .input-row label { font-size: 12px; }
+
+  /* Buttons */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.98); opacity: 0.85; }
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0a0a;
+  }
+  .btn-ghost {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-danger {
+    background: var(--red-dim);
+    color: var(--red);
+    border: 1px solid rgba(239,68,68,0.3);
+    padding: 8px 14px;
+    width: auto;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+  .btn-sm {
+    padding: 8px 14px;
+    width: auto;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+
+  /* Checklist rows */
+  .habit-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    border: 1px solid var(--border);
+    transition: border-color 0.15s, background 0.15s;
+    min-height: 52px;
+  }
+  .habit-row.checked {
+    border-color: var(--green);
+    background: var(--green-dim);
+  }
+  .habit-check {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .habit-row.checked .habit-check {
+    background: var(--green);
+    border-color: var(--green);
+  }
+  .habit-check svg { display: none; }
+  .habit-row.checked .habit-check svg { display: block; }
+  .habit-label { font-size: 15px; font-weight: 500; flex: 1; }
+  .habit-label small { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
+
+  /* Status badges */
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .badge-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+  .badge-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .badge-gold { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(201,168,76,0.3); }
+
+  /* Stat grid */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .stat-box {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 14px;
+    border: 1px solid var(--border);
+  }
+  .stat-box.full { grid-column: 1/-1; }
+  .stat-val {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-val.gold { color: var(--accent); }
+  .stat-val.green { color: var(--green); }
+  .stat-val.red { color: var(--red); }
+  .stat-lbl { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+
+  /* Round list items */
+  .round-item {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .round-item .round-info { flex: 1; }
+  .round-item .round-score {
+    font-size: 22px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .round-item .round-date { font-size: 12px; color: var(--muted); }
+  .round-item .round-course { font-size: 14px; font-weight: 600; }
+  .round-item .round-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* Nutrition toggle rows */
+  .nutri-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    border: 1px solid var(--border);
+    transition: border-color 0.15s, background 0.15s;
+    min-height: 52px;
+  }
+  .nutri-row.checked {
+    border-color: var(--green);
+    background: var(--green-dim);
+  }
+
+  /* 3-way radio */
+  .radio-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .radio-opt {
+    padding: 12px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
+  }
+  .radio-opt.selected {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+  .radio-opt.selected.green-sel {
+    border-color: var(--green);
+    background: var(--green-dim);
+    color: var(--green);
+  }
+  .radio-opt.selected.red-sel {
+    border-color: var(--red);
+    background: var(--red-dim);
+    color: var(--red);
+  }
+
+  /* Streak dots */
+  .dot-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .dot-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+  .dot.green { background: var(--green); }
+  .dot.red { background: var(--red); }
+  .dot-lbl { font-size: 9px; color: var(--muted); }
+
+  /* Week boxes */
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+  .week-box {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+  .week-box.green { background: var(--green-dim); border-color: var(--green); }
+  .week-box.red { background: var(--red-dim); border-color: var(--red); }
+  .week-box .wday { font-size: 9px; color: var(--muted); font-weight: 700; text-transform: uppercase; }
+  .week-box .wnum { font-size: 13px; font-weight: 700; }
+  .week-box.green .wnum { color: var(--green); }
+  .week-box.red .wnum { color: var(--red); }
+
+  /* 30-day calendar */
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 20px;
+  }
+  .cal-cell {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .cal-cell.green { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+  .cal-cell.red { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+  .cal-cell.today-cell { border-color: var(--accent); }
+
+  /* Big streak number */
+  .streak-big {
+    font-size: 80px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .streak-sub {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  /* SG bars */
+  .sg-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .sg-label { font-size: 12px; color: var(--muted); width: 120px; flex-shrink: 0; }
+  .sg-bar-wrap { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .sg-bar { height: 100%; border-radius: 3px; transition: width 0.4s; }
+  .sg-val { font-size: 13px; font-weight: 700; width: 44px; text-align: right; flex-shrink: 0; }
+
+  /* Miss dots */
+  .miss-dots { font-size: 16px; letter-spacing: 2px; }
+
+  /* Saved day view */
+  #saved-day-view .saved-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  #saved-day-view .saved-row:last-child { border-bottom: none; }
+  #saved-day-view .saved-key { color: var(--muted); }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: calc(var(--tab-h) + 16px);
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 12px 20px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0;
+    transition: all 0.25s;
+    pointer-events: none;
+    z-index: 100;
+    white-space: nowrap;
+    max-width: calc(100vw - 40px);
+  }
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  /* North star section */
+  .ns-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .ns-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+  .ns-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  /* Canvas */
+  canvas {
+    display: block;
+    width: 100%;
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
+  /* Motivational banner */
+  .motive-banner {
+    background: linear-gradient(135deg, #1c1a12, #1c1c1c);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    margin-top: 24px;
+  }
+  .motive-banner p {
+    font-size: 14px;
+    color: var(--accent);
+    font-style: italic;
+    line-height: 1.6;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty-state .e-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; line-height: 1.6; }
+
+  /* Misc */
+  .flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .score-to-par {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .stp-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .stp-lbl { font-size: 12px; color: var(--muted); width: 90px; flex-shrink: 0; }
+  .stp-bar-wrap { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .stp-bar { height: 100%; border-radius: 4px; }
+  .stp-val { font-size: 12px; font-weight: 700; width: 24px; text-align: right; color: var(--text); flex-shrink: 0; }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <span class="logo">NEXFLOW</span>
+    <span class="sub">Life OS · Mousa Shanaah</span>
+  </div>
+
+  <div id="content">
+    <!-- TAB 1: TODAY -->
+    <div id="tab-today" class="tab-panel active">
+      <div class="page-date" id="today-date-label"></div>
+      <div class="page-title">Today's Training</div>
+
+      <!-- Saved view -->
+      <div id="saved-day-view" style="display:none">
+        <div class="flex-between" style="margin-bottom:16px">
+          <span id="saved-day-badge"></span>
+          <button class="btn btn-ghost btn-sm" onclick="editToday()">Edit Day</button>
+        </div>
+        <div class="card" id="saved-day-content"></div>
+      </div>
+
+      <!-- Entry form -->
+      <div id="today-form">
+        <div class="section-label">ONE Objective</div>
+        <input type="text" id="t-objective" placeholder="e.g. Block 1 — posture retention through backswing">
+
+        <div class="section-label">Training Habits</div>
+        <div id="habit-list"></div>
+
+        <div class="section-label">Performance Metrics</div>
+        <div class="input-row">
+          <div>
+            <label>Catastrophic Misses</label>
+            <input type="number" id="t-catmisses" min="0" max="20" placeholder="0">
+          </div>
+          <div>
+            <label>Stock-Shot Command /10</label>
+            <input type="number" id="t-stockshot" min="0" max="10" placeholder="7">
+          </div>
+        </div>
+
+        <div class="section-label">Reflection</div>
+        <textarea id="t-oneline" placeholder="One line — what mattered today"></textarea>
+
+        <button class="btn btn-primary" onclick="saveDay()">Save Day</button>
+      </div>
+    </div>
+
+    <!-- TAB 2: ROUND -->
+    <div id="tab-round" class="tab-panel">
+      <div class="page-title">Log a Round</div>
+
+      <div class="section-label">Round Details</div>
+      <div class="input-row">
+        <div>
+          <label>Date</label>
+          <input type="date" id="r-date">
+        </div>
+        <div>
+          <label>Par</label>
+          <input type="number" id="r-par" value="72" min="60" max="80">
+        </div>
+      </div>
+      <label>Course Name</label>
+      <input type="text" id="r-course" placeholder="e.g. Emirates Golf Club — Majlis">
+      <div class="input-row">
+        <div>
+          <label>Score</label>
+          <input type="number" id="r-score" placeholder="74">
+        </div>
+        <div>
+          <label>Total Putts</label>
+          <input type="number" id="r-putts" placeholder="30">
+        </div>
+      </div>
+
+      <div class="section-label">Tee to Green</div>
+      <div class="input-row">
+        <div>
+          <label>Fairways Hit</label>
+          <input type="number" id="r-fir" placeholder="8">
+        </div>
+        <div>
+          <label>Fairways Total</label>
+          <input type="number" id="r-firTotal" placeholder="14">
+        </div>
+      </div>
+      <div class="input-row">
+        <div>
+          <label>GIR Hit</label>
+          <input type="number" id="r-gir" placeholder="9">
+        </div>
+        <div>
+          <label>GIR Possible</label>
+          <input type="number" id="r-girTotal" placeholder="18">
+        </div>
+      </div>
+
+      <div class="section-label">Short Game</div>
+      <div class="input-row">
+        <div>
+          <label>Up-and-Down Att.</label>
+          <input type="number" id="r-udAttempts" placeholder="6">
+        </div>
+        <div>
+          <label>Up-and-Down Makes</label>
+          <input type="number" id="r-udMakes" placeholder="4">
+        </div>
+      </div>
+      <div class="input-row">
+        <div>
+          <label>Sand Saves Att.</label>
+          <input type="number" id="r-sandAttempts" placeholder="2">
+        </div>
+        <div>
+          <label>Sand Saves Makes</label>
+          <input type="number" id="r-sandMakes" placeholder="1">
+        </div>
+      </div>
+
+      <div class="section-label">⭐ North Star Metric</div>
+      <div class="card accent-card" style="margin-bottom:16px">
+        <div class="ns-header">
+          <div class="ns-dot"></div>
+          <div class="ns-title">Catastrophic Misses</div>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Snap hooks · shanks · hosel rockets that caused double bogey or worse. TARGET: 0 per round.</p>
+        <input type="number" id="r-catmisses" min="0" max="20" placeholder="0" style="margin-bottom:0">
+      </div>
+
+      <div class="section-label">Notes</div>
+      <textarea id="r-notes" placeholder="Round summary, key moments, what to work on..."></textarea>
+
+      <button class="btn btn-primary" onclick="saveRound()">Save Round</button>
+
+      <div class="divider"></div>
+      <div class="section-label">Recent Rounds</div>
+      <div id="round-list"></div>
+    </div>
+
+    <!-- TAB 3: STATS -->
+    <div id="tab-stats" class="tab-panel">
+      <div class="page-title">Analysis</div>
+      <div id="stats-content"></div>
+    </div>
+
+    <!-- TAB 4: NUTRITION -->
+    <div id="tab-nutrition" class="tab-panel">
+      <div class="page-date" id="nutri-date-label"></div>
+      <div class="page-title">Nutrition</div>
+
+      <div id="nutri-form">
+        <div class="section-label">Daily Habits</div>
+        <div id="nutri-habit-list"></div>
+
+        <div class="section-label">Snacking Honesty</div>
+        <div class="radio-group" id="snack-radio">
+          <div class="radio-opt green-sel" data-val="clean" onclick="selectSnack(this)">Clean Day</div>
+          <div class="radio-opt" data-val="slip" onclick="selectSnack(this)">Minor Slip</div>
+          <div class="radio-opt" data-val="blowup" onclick="selectSnack(this)">Full Blowup</div>
+        </div>
+
+        <div class="section-label">Notes</div>
+        <textarea id="n-notes" placeholder="Optional — anything worth logging"></textarea>
+
+        <button class="btn btn-primary" onclick="saveNutrition()">Save Nutrition Log</button>
+      </div>
+
+      <div class="divider"></div>
+      <div class="section-label">Last 7 Days</div>
+      <div id="nutri-streak"></div>
+    </div>
+
+    <!-- TAB 5: STREAK -->
+    <div id="tab-streak" class="tab-panel">
+      <div class="page-date" id="streak-date-label"></div>
+
+      <div style="text-align:center;padding:20px 0 8px">
+        <div class="streak-big" id="streak-num">0</div>
+        <div class="streak-sub">day green streak</div>
+        <div style="font-size:13px;color:var(--muted)">Longest: <span id="streak-longest" style="color:var(--text);font-weight:700">0</span> days</div>
+      </div>
+
+      <div class="section-label">This Week</div>
+      <div class="week-grid" id="week-grid"></div>
+
+      <div class="section-label">Last 30 Days</div>
+      <div class="cal-grid" id="cal-grid"></div>
+
+      <div class="section-label">Discipline</div>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-val" id="disc-week">—</div>
+          <div class="stat-lbl">This Week %</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="disc-month">—</div>
+          <div class="stat-lbl">This Month %</div>
+        </div>
+      </div>
+
+      <div class="ns-header" style="margin-top:8px;margin-bottom:10px">
+        <div class="ns-dot"></div>
+        <div class="ns-title">Catastrophic Miss Trend — Last 10 Rounds</div>
+      </div>
+      <canvas id="miss-chart" height="140"></canvas>
+
+      <div class="motive-banner">
+        <p>"Dec 2026. Asian Tour Q-School.<br>Every green day is a rep toward the card.<br>No days off from who you're becoming."</p>
+      </div>
+    </div>
+  </div>
+
+  <nav id="bottom-nav">
+    <button class="nav-btn active" data-tab="today" onclick="switchTab('today',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      Today
+    </button>
+    <button class="nav-btn" data-tab="round" onclick="switchTab('round',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+      </svg>
+      Round
+    </button>
+    <button class="nav-btn" data-tab="stats" onclick="switchTab('stats',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      Stats
+    </button>
+    <button class="nav-btn" data-tab="nutrition" onclick="switchTab('nutrition',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+      </svg>
+      Nutrition
+    </button>
+    <button class="nav-btn" data-tab="streak" onclick="switchTab('streak',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      Streak
+    </button>
+  </nav>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─── Utilities ────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const today = () => new Date().toISOString().slice(0, 10);
+const fmtDate = d => {
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+};
+const fmtShort = d => {
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+};
+
+function load(key) {
+  try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; }
+}
+function save(key, val) {
+  localStorage.setItem(key, JSON.stringify(val));
+}
+
+function showToast(msg, duration = 2200) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function pct(num, den) {
+  if (!den || den === 0) return '—';
+  return Math.round(num / den * 100) + '%';
+}
+function avg(arr) {
+  if (!arr.length) return 0;
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
+}
+
+// ─── Tab switching ─────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  $('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  $('content').scrollTop = 0;
+
+  if (name === 'stats') renderStats();
+  if (name === 'streak') renderStreak();
+  if (name === 'round') renderRoundList();
+  if (name === 'nutrition') renderNutriStreak();
+  if (name === 'today') checkSavedDay();
+}
+
+// ─── TODAY TAB ─────────────────────────────────────────────────────
+const HABITS = [
+  { key: 'rangeDrills', label: 'Range Drills', sub: 'Execute the ONE objective' },
+  { key: 'shortGame', label: 'Short Game / Chipping', sub: null },
+  { key: 'putting', label: 'Putting Session', sub: null },
+  { key: 'gymWarmup', label: 'Gym — Dynamic Warmup', sub: null },
+  { key: 'gymLifting', label: 'Gym — Lifting Session', sub: null },
+  { key: 'course9', label: 'On Course — 9 Holes', sub: null },
+  { key: 'course18', label: 'On Course — 18 Holes', sub: null },
+  { key: 'nexflow', label: 'NexFlow Work', sub: null },
+  { key: 'reading', label: 'Quran / Reading', sub: null },
+  { key: 'stateReset', label: 'State Reset Before Performance', sub: 'Breathing, visualisation, routine' },
+];
+
+let habitState = {};
+
+function buildHabitList() {
+  const container = $('habit-list');
+  container.innerHTML = '';
+  HABITS.forEach(h => {
+    const row = document.createElement('div');
+    row.className = 'habit-row' + (habitState[h.key] ? ' checked' : '');
+    row.setAttribute('data-key', h.key);
+    row.innerHTML = `
+      <div class="habit-check">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#0a0a0a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="2 7 5.5 10.5 12 3.5"/>
+        </svg>
+      </div>
+      <div class="habit-label">
+        ${h.label}
+        ${h.sub ? `<small>${h.sub}</small>` : ''}
+      </div>
+    `;
+    row.addEventListener('click', () => {
+      habitState[h.key] = !habitState[h.key];
+      row.classList.toggle('checked', habitState[h.key]);
+    });
+    container.appendChild(row);
+  });
+}
+
+function checkSavedDay() {
+  const days = load('nexflow_days') || [];
+  const td = today();
+  const saved = days.find(d => d.date === td);
+  if (saved) {
+    showSavedDay(saved);
+  } else {
+    $('saved-day-view').style.display = 'none';
+    $('today-form').style.display = 'block';
+    habitState = {};
+    buildHabitList();
+    $('t-objective').value = '';
+    $('t-catmisses').value = '';
+    $('t-stockshot').value = '';
+    $('t-oneline').value = '';
+  }
+}
+
+function showSavedDay(d) {
+  $('saved-day-view').style.display = 'block';
+  $('today-form').style.display = 'none';
+
+  const badge = $('saved-day-badge');
+  badge.innerHTML = d.green
+    ? '<span class="badge badge-green">✓ GREEN DAY</span>'
+    : '<span class="badge badge-red">✗ RED DAY</span>';
+
+  const checked = HABITS.filter(h => d.habits[h.key]).map(h => h.label);
+  const content = $('saved-day-content');
+  content.innerHTML = `
+    <div class="saved-row"><span class="saved-key">Objective</span><span>${d.objective || '—'}</span></div>
+    <div class="saved-row"><span class="saved-key">Habits Done</span><span>${checked.length} / ${HABITS.length}</span></div>
+    <div class="saved-row"><span class="saved-key">Cat. Misses</span><span>${d.catMisses ?? '—'}</span></div>
+    <div class="saved-row"><span class="saved-key">Stock-Shot /10</span><span>${d.stockShot ?? '—'}</span></div>
+    <div class="saved-row"><span class="saved-key">What mattered</span><span style="max-width:60%;text-align:right">${d.oneLine || '—'}</span></div>
+  `;
+}
+
+function editToday() {
+  const days = load('nexflow_days') || [];
+  const d = days.find(x => x.date === today());
+  if (!d) return;
+  habitState = { ...d.habits };
+  $('t-objective').value = d.objective || '';
+  $('t-catmisses').value = d.catMisses ?? '';
+  $('t-stockshot').value = d.stockShot ?? '';
+  $('t-oneline').value = d.oneLine || '';
+  buildHabitList();
+  $('saved-day-view').style.display = 'none';
+  $('today-form').style.display = 'block';
+}
+
+function saveDay() {
+  const td = today();
+  const catVal = $('t-catmisses').value;
+  const checkedCount = HABITS.filter(h => habitState[h.key]).length;
+  const green = (checkedCount / HABITS.length >= 0.8) && catVal !== '';
+
+  const obj = {
+    date: td,
+    objective: $('t-objective').value.trim(),
+    habits: { ...habitState },
+    catMisses: catVal !== '' ? parseInt(catVal) : null,
+    stockShot: $('t-stockshot').value !== '' ? parseFloat($('t-stockshot').value) : null,
+    oneLine: $('t-oneline').value.trim(),
+    green,
+  };
+
+  const days = load('nexflow_days') || [];
+  const idx = days.findIndex(d => d.date === td);
+  if (idx >= 0) days[idx] = obj;
+  else days.push(obj);
+  save('nexflow_days', days);
+
+  showToast(green ? '✓ Green day saved!' : 'Day saved — keep pushing');
+  showSavedDay(obj);
+}
+
+// ─── ROUND TAB ─────────────────────────────────────────────────────
+function saveRound() {
+  const r = {
+    date: $('r-date').value || today(),
+    course: $('r-course').value.trim(),
+    par: parseInt($('r-par').value) || 72,
+    score: parseInt($('r-score').value) || null,
+    fir: parseInt($('r-fir').value) || 0,
+    firTotal: parseInt($('r-firTotal').value) || 14,
+    gir: parseInt($('r-gir').value) || 0,
+    girTotal: parseInt($('r-girTotal').value) || 18,
+    putts: parseInt($('r-putts').value) || null,
+    udAttempts: parseInt($('r-udAttempts').value) || 0,
+    udMakes: parseInt($('r-udMakes').value) || 0,
+    sandAttempts: parseInt($('r-sandAttempts').value) || 0,
+    sandMakes: parseInt($('r-sandMakes').value) || 0,
+    catMisses: parseInt($('r-catmisses').value) || 0,
+    notes: $('r-notes').value.trim(),
+    id: Date.now(),
+  };
+
+  if (!r.score) { showToast('Enter a score to save'); return; }
+  if (!r.course) { showToast('Enter the course name'); return; }
+
+  const rounds = load('nexflow_rounds') || [];
+  rounds.unshift(r);
+  save('nexflow_rounds', rounds);
+
+  // Reset form
+  ['r-course','r-score','r-fir','r-firTotal','r-gir','r-girTotal',
+   'r-putts','r-udAttempts','r-udMakes','r-sandAttempts','r-sandMakes','r-catmisses','r-notes'].forEach(id => $(id).value = '');
+  $('r-par').value = 72;
+  $('r-date').value = '';
+
+  showToast('Round saved!');
+  renderRoundList();
+}
+
+function deleteRound(id) {
+  const rounds = (load('nexflow_rounds') || []).filter(r => r.id !== id);
+  save('nexflow_rounds', rounds);
+  renderRoundList();
+}
+
+function renderRoundList() {
+  const rounds = (load('nexflow_rounds') || []).slice(0, 5);
+  const el = $('round-list');
+  if (!rounds.length) {
+    el.innerHTML = '<div class="empty-state"><p>No rounds logged yet.</p></div>';
+    return;
+  }
+  el.innerHTML = rounds.map(r => {
+    const toPar = r.score - r.par;
+    const toParStr = toPar === 0 ? 'E' : (toPar > 0 ? '+' + toPar : toPar);
+    const scoreColor = toPar < 0 ? 'var(--green)' : toPar > 3 ? 'var(--red)' : 'var(--text)';
+    return `
+      <div class="round-item">
+        <div class="round-info">
+          <div class="round-course">${r.course}</div>
+          <div class="round-date">${fmtShort(r.date)}</div>
+          <div class="round-meta">Cat. Misses: <strong style="color:${r.catMisses === 0 ? 'var(--green)' : r.catMisses > 2 ? 'var(--red)' : 'var(--accent)'}">${r.catMisses}</strong> · ${pct(r.gir, r.girTotal)} GIR · ${r.putts ?? '—'} putts</div>
+        </div>
+        <div style="text-align:right">
+          <div class="round-score" style="color:${scoreColor}">${toParStr}</div>
+          <div style="font-size:12px;color:var(--muted)">${r.score}</div>
+          <button class="btn btn-danger" style="margin-top:8px" onclick="deleteRound(${r.id})">Delete</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── STATS TAB ─────────────────────────────────────────────────────
+function renderStats() {
+  const rounds = load('nexflow_rounds') || [];
+  const el = $('stats-content');
+
+  if (!rounds.length) {
+    el.innerHTML = `<div class="empty-state"><div class="e-icon">📊</div><p>Log your first round to unlock analysis.</p></div>`;
+    return;
+  }
+
+  const scores = rounds.map(r => r.score).filter(Boolean);
+  const pars = rounds.map(r => r.par);
+  const toPars = rounds.map((r, i) => r.score - r.par).filter((_, i) => rounds[i].score);
+  const last5 = rounds.slice(0, 5);
+  const last5scores = last5.map(r => r.score - r.par);
+
+  const scoringAvg = avg(scores).toFixed(1);
+  const last5avg = last5scores.length ? (avg(last5scores) >= 0 ? '+' : '') + avg(last5scores).toFixed(1) : '—';
+  const best = Math.min(...toPars);
+  const worst = Math.max(...toPars);
+  const bestStr = best === 0 ? 'E' : (best > 0 ? '+' + best : '' + best);
+  const worstStr = worst === 0 ? 'E' : (worst > 0 ? '+' + worst : '' + worst);
+
+  // Score to par buckets
+  const underPar = toPars.filter(t => t < 0).length;
+  const even = toPars.filter(t => t === 0).length;
+  const over1_5 = toPars.filter(t => t > 0 && t <= 5).length;
+  const over6 = toPars.filter(t => t > 5).length;
+  const total = toPars.length;
+
+  // Cat misses
+  const cats = rounds.map(r => r.catMisses);
+  const avgCat = avg(cats).toFixed(1);
+
+  // T2G
+  const allFir = rounds.reduce((a, r) => a + r.fir, 0);
+  const allFirT = rounds.reduce((a, r) => a + r.firTotal, 0);
+  const allGir = rounds.reduce((a, r) => a + r.gir, 0);
+  const allGirT = rounds.reduce((a, r) => a + r.girTotal, 0);
+  const allPutts = rounds.filter(r => r.putts).map(r => r.putts);
+  const avgPutts = allPutts.length ? avg(allPutts).toFixed(1) : '—';
+  const allUdA = rounds.reduce((a, r) => a + r.udAttempts, 0);
+  const allUdM = rounds.reduce((a, r) => a + r.udMakes, 0);
+
+  // SG estimates (simplified vs scratch)
+  const firPct = allFirT ? allFir / allFirT : 0.5;
+  const girPct = allGirT ? allGir / allGirT : 0.5;
+  const udPct = allUdA ? allUdM / allUdA : 0.5;
+  const avgPuttsNum = allPutts.length ? avg(allPutts) : 30;
+
+  // scratch benchmarks: FIR ~60%, GIR ~67%, U&D ~50%, putts ~30
+  const sgOTT = ((firPct - 0.60) * 5).toFixed(2);
+  const sgApp = ((girPct - 0.67) * 8).toFixed(2);
+  const sgShort = ((udPct - 0.50) * 4).toFixed(2);
+  const sgPutt = ((30 - avgPuttsNum) * 0.1).toFixed(2);
+
+  function sgColor(v) { return parseFloat(v) >= 0 ? 'var(--green)' : 'var(--red)'; }
+  function sgBar(v, max=2) {
+    const n = parseFloat(v);
+    const w = Math.min(Math.abs(n) / max * 100, 100);
+    return `<div class="sg-bar" style="width:${w}%;background:${sgColor(v)}"></div>`;
+  }
+  function sgSign(v) { return parseFloat(v) >= 0 ? '+' + v : v; }
+
+  // Miss dots for last 5
+  const missRows = last5.map(r => {
+    const dots = '●'.repeat(r.catMisses) + '○'.repeat(Math.max(0, 5 - r.catMisses));
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="font-size:11px;color:var(--muted);width:70px">${fmtShort(r.date)}</span>
+      <span class="miss-dots" style="color:${r.catMisses === 0 ? 'var(--green)' : r.catMisses > 2 ? 'var(--red)' : 'var(--accent)'}">${dots}</span>
+      <span style="font-size:13px;font-weight:700;color:${r.catMisses === 0 ? 'var(--green)' : r.catMisses > 2 ? 'var(--red)' : 'var(--accent)'}">${r.catMisses}</span>
+    </div>`;
+  }).join('');
+
+  function barRow(label, val, total) {
+    const w = total ? Math.round(val/total*100) : 0;
+    return `<div class="stp-row">
+      <span class="stp-lbl">${label}</span>
+      <div class="stp-bar-wrap"><div class="stp-bar" style="width:${w}%;background:var(--accent)"></div></div>
+      <span class="stp-val">${w}%</span>
+    </div>`;
+  }
+
+  el.innerHTML = `
+    <!-- SCORING -->
+    <div class="card">
+      <div class="card-title">Scoring</div>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-val">${scoringAvg}</div>
+          <div class="stat-lbl">Scoring Avg</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">${last5avg}</div>
+          <div class="stat-lbl">Last 5 Avg (to par)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val green">${bestStr}</div>
+          <div class="stat-lbl">Best Round</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val red">${worstStr}</div>
+          <div class="stat-lbl">Worst Round</div>
+        </div>
+      </div>
+      <div class="card-title" style="margin-top:4px">Score to Par Distribution</div>
+      <div class="score-to-par">
+        ${barRow('Under Par', underPar, total)}
+        ${barRow('Even', even, total)}
+        ${barRow('1–5 Over', over1_5, total)}
+        ${barRow('6+ Over', over6, total)}
+      </div>
+    </div>
+
+    <!-- NORTH STAR -->
+    <div class="card accent-card">
+      <div class="ns-header"><div class="ns-dot"></div><div class="ns-title">⭐ The North Star — Catastrophic Misses</div></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Snap hooks · shanks · hosel rockets causing double bogey or worse. Target: 0.</div>
+      <div class="stat-grid" style="margin-bottom:16px">
+        <div class="stat-box" style="border-color:var(--accent)">
+          <div class="stat-val gold">${avgCat}</div>
+          <div class="stat-lbl">Avg per Round</div>
+        </div>
+        <div class="stat-box" style="border-color:var(--accent)">
+          <div class="stat-val gold">${rounds.filter(r => r.catMisses === 0).length}</div>
+          <div class="stat-lbl">Clean Rounds</div>
+        </div>
+      </div>
+      <div class="card-title">Last 5 Rounds</div>
+      ${missRows}
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">Progress toward 0: ${rounds.length} rounds logged · ${rounds.filter(r=>r.catMisses===0).length} clean</div>
+    </div>
+
+    <!-- T2G -->
+    <div class="card">
+      <div class="card-title">Tee to Green</div>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-val">${pct(allFir, allFirT)}</div>
+          <div class="stat-lbl">Fairways Hit %</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">${pct(allGir, allGirT)}</div>
+          <div class="stat-lbl">GIR %</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">${avgPutts}</div>
+          <div class="stat-lbl">Avg Putts</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">${pct(allUdM, allUdA)}</div>
+          <div class="stat-lbl">Up-and-Down %</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SG SIMPLIFIED -->
+    <div class="card">
+      <div class="card-title">Estimated Strokes Gained (vs Scratch)</div>
+      <div style="margin-bottom:4px">
+        <div class="sg-row">
+          <span class="sg-label">Off the Tee</span>
+          <div class="sg-bar-wrap">${sgBar(sgOTT)}</div>
+          <span class="sg-val" style="color:${sgColor(sgOTT)}">${sgSign(sgOTT)}</span>
+        </div>
+        <div class="sg-row">
+          <span class="sg-label">Approach</span>
+          <div class="sg-bar-wrap">${sgBar(sgApp)}</div>
+          <span class="sg-val" style="color:${sgColor(sgApp)}">${sgSign(sgApp)}</span>
+        </div>
+        <div class="sg-row">
+          <span class="sg-label">Short Game</span>
+          <div class="sg-bar-wrap">${sgBar(sgShort)}</div>
+          <span class="sg-val" style="color:${sgColor(sgShort)}">${sgSign(sgShort)}</span>
+        </div>
+        <div class="sg-row">
+          <span class="sg-label">Putting</span>
+          <div class="sg-bar-wrap">${sgBar(sgPutt)}</div>
+          <span class="sg-val" style="color:${sgColor(sgPutt)}">${sgSign(sgPutt)}</span>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">Benchmarks: FIR 60% · GIR 67% · U&D 50% · 30 putts. Simplified estimate.</div>
+    </div>
+
+    <!-- SCORING PATTERN -->
+    <div class="card">
+      <div class="card-title">Scoring Pattern (Estimated)</div>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-val green">${avg(rounds.map(r => Math.max(0, r.gir - (r.putts ? Math.max(0,(r.putts - r.gir)):0)))).toFixed(1)}</div>
+          <div class="stat-lbl">Est. Birdies/Rnd</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">${avg(rounds.map(r => r.gir || 0)).toFixed(1)}</div>
+          <div class="stat-lbl">Avg GIR/Rnd</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val red">${avg(rounds.map(r => r.catMisses || 0)).toFixed(1)}</div>
+          <div class="stat-lbl">Avg Cat. Misses</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">${rounds.length}</div>
+          <div class="stat-lbl">Rounds Logged</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Log individual hole scores for full birdie/bogey breakdown.</div>
+    </div>
+  `;
+}
+
+// ─── NUTRITION TAB ─────────────────────────────────────────────────
+const NUTRI_HABITS = [
+  { key: 'protein', label: 'Protein Goal Hit', sub: 'Target: 150g+' },
+  { key: 'preMeal', label: 'Pre-Training Meal Done', sub: null },
+  { key: 'postMeal', label: 'Post-Training Meal Done', sub: null },
+  { key: 'hydration', label: 'Hydration 2L+', sub: null },
+  { key: 'noSnacking', label: 'No Unplanned Snacking', sub: null },
+  { key: 'triggerFoods', label: 'Trigger Foods Out of House/Bag', sub: null },
+];
+
+let nutriHabitState = {};
+let snackRating = 'clean';
+
+function buildNutriList() {
+  const container = $('nutri-habit-list');
+  container.innerHTML = '';
+  NUTRI_HABITS.forEach(h => {
+    const row = document.createElement('div');
+    row.className = 'nutri-row' + (nutriHabitState[h.key] ? ' checked' : '');
+    row.setAttribute('data-key', h.key);
+    row.innerHTML = `
+      <div class="habit-check">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#0a0a0a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="2 7 5.5 10.5 12 3.5"/>
+        </svg>
+      </div>
+      <div class="habit-label">
+        ${h.label}
+        ${h.sub ? `<small>${h.sub}</small>` : ''}
+      </div>
+    `;
+    row.addEventListener('click', () => {
+      nutriHabitState[h.key] = !nutriHabitState[h.key];
+      row.classList.toggle('checked', nutriHabitState[h.key]);
+    });
+    container.appendChild(row);
+  });
+}
+
+function selectSnack(el) {
+  document.querySelectorAll('#snack-radio .radio-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  snackRating = el.getAttribute('data-val');
+}
+
+function saveNutrition() {
+  const obj = {
+    date: today(),
+    habits: { ...nutriHabitState },
+    snackRating,
+    notes: $('n-notes').value.trim(),
+  };
+  const nut = load('nexflow_nutrition') || [];
+  const idx = nut.findIndex(n => n.date === obj.date);
+  if (idx >= 0) nut[idx] = obj;
+  else nut.push(obj);
+  save('nexflow_nutrition', nut);
+  showToast('Nutrition log saved!');
+  renderNutriStreak();
+}
+
+function renderNutriStreak() {
+  const nut = load('nexflow_nutrition') || [];
+  const el = $('nutri-streak');
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  el.innerHTML = '<div class="dot-row">' + days.map(d => {
+    const entry = nut.find(n => n.date === d);
+    let cls = '';
+    if (entry) {
+      const c = Object.values(entry.habits).filter(Boolean).length;
+      cls = (c >= 4 && entry.snackRating !== 'blowup') ? 'green' : 'red';
+    }
+    const dt = new Date(d + 'T00:00:00');
+    const lbl = dt.toLocaleDateString('en-GB', { day:'numeric', month:'short' }).replace(' ', ' ');
+    return `<div class="dot-day"><div class="dot ${cls}"></div><div class="dot-lbl">${lbl}</div></div>`;
+  }).join('') + '</div>';
+}
+
+// ─── STREAK TAB ────────────────────────────────────────────────────
+function renderStreak() {
+  const days = load('nexflow_days') || [];
+  const td = today();
+
+  // Current streak
+  let streak = 0;
+  let d = new Date();
+  while (true) {
+    const ds = d.toISOString().slice(0, 10);
+    const found = days.find(x => x.date === ds && x.green);
+    if (!found) break;
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+
+  // Longest streak
+  const sorted = [...days].filter(x => x.green).map(x => x.date).sort();
+  let longest = 0, cur = 0, prev = null;
+  sorted.forEach(ds => {
+    if (prev) {
+      const diff = (new Date(ds) - new Date(prev)) / 86400000;
+      cur = diff === 1 ? cur + 1 : 1;
+    } else cur = 1;
+    if (cur > longest) longest = cur;
+    prev = ds;
+  });
+  if (streak > longest) longest = streak;
+
+  $('streak-num').textContent = streak;
+  $('streak-longest').textContent = longest;
+  $('streak-date-label').textContent = fmtDate(td);
+
+  // This week
+  const weekGrid = $('week-grid');
+  weekGrid.innerHTML = '';
+  const dayNames = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+  const now = new Date(td + 'T00:00:00');
+  const dow = (now.getDay() + 6) % 7; // 0=Mon
+  for (let i = 0; i < 7; i++) {
+    const dd = new Date(now);
+    dd.setDate(now.getDate() - dow + i);
+    const ds = dd.toISOString().slice(0, 10);
+    const entry = days.find(x => x.date === ds);
+    const isFuture = ds > td;
+    let cls = '';
+    if (!isFuture) cls = (entry && entry.green) ? 'green' : 'red';
+    const box = document.createElement('div');
+    box.className = 'week-box ' + cls;
+    box.innerHTML = `<div class="wday">${dayNames[i]}</div><div class="wnum">${dd.getDate()}</div>`;
+    weekGrid.appendChild(box);
+  }
+
+  // Last 30 days calendar
+  const calGrid = $('cal-grid');
+  calGrid.innerHTML = '';
+  for (let i = 29; i >= 0; i--) {
+    const dd = new Date(now);
+    dd.setDate(now.getDate() - i);
+    const ds = dd.toISOString().slice(0, 10);
+    const entry = days.find(x => x.date === ds);
+    let cls = entry ? (entry.green ? 'green' : 'red') : '';
+    if (ds === td) cls += ' today-cell';
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell ' + cls;
+    cell.textContent = dd.getDate();
+    calGrid.appendChild(cell);
+  }
+
+  // Discipline %
+  const thisWeekDays = [];
+  for (let i = 0; i < 7; i++) {
+    const dd = new Date(now);
+    dd.setDate(now.getDate() - dow + i);
+    const ds = dd.toISOString().slice(0, 10);
+    if (ds <= td) thisWeekDays.push(ds);
+  }
+  const thisWeekGreen = thisWeekDays.filter(ds => days.find(x => x.date === ds && x.green)).length;
+  $('disc-week').textContent = thisWeekDays.length ? Math.round(thisWeekGreen / thisWeekDays.length * 100) + '%' : '—';
+
+  const daysInMonth = [];
+  for (let i = 29; i >= 0; i--) {
+    const dd = new Date(now);
+    dd.setDate(now.getDate() - i);
+    daysInMonth.push(dd.toISOString().slice(0, 10));
+  }
+  const monthGreen = daysInMonth.filter(ds => days.find(x => x.date === ds && x.green)).length;
+  $('disc-month').textContent = Math.round(monthGreen / daysInMonth.length * 100) + '%';
+
+  // Canvas chart
+  drawMissChart();
+}
+
+function drawMissChart() {
+  const canvas = $('miss-chart');
+  const rounds = (load('nexflow_rounds') || []).slice(0, 10).reverse();
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth;
+  const H = 140;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const padL = 28, padR = 12, padT = 12, padB = 28;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  // Background
+  ctx.fillStyle = '#141414';
+  ctx.fillRect(0, 0, W, H);
+
+  if (!rounds.length) {
+    ctx.fillStyle = '#6b6b6b';
+    ctx.font = '13px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('No rounds logged', W / 2, H / 2);
+    return;
+  }
+
+  const maxY = Math.max(10, Math.max(...rounds.map(r => r.catMisses)));
+  const n = rounds.length;
+
+  function xPos(i) { return padL + (i / Math.max(n - 1, 1)) * chartW; }
+  function yPos(v) { return padT + chartH - (v / maxY) * chartH; }
+
+  // Grid lines
+  ctx.strokeStyle = '#2a2a2a';
+  ctx.lineWidth = 1;
+  [0, 2, 5, 10].forEach(v => {
+    if (v > maxY) return;
+    const y = yPos(v);
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + chartW, y);
+    ctx.stroke();
+    ctx.fillStyle = '#6b6b6b';
+    ctx.font = `10px -apple-system, sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.fillText(v, padL - 4, y + 3.5);
+  });
+
+  // Target line at 0
+  ctx.strokeStyle = '#22c55e';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(padL, yPos(0));
+  ctx.lineTo(padL + chartW, yPos(0));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Data line
+  if (n > 1) {
+    ctx.strokeStyle = '#c9a84c';
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    rounds.forEach((r, i) => {
+      const x = xPos(i);
+      const y = yPos(r.catMisses);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Fill under line
+    ctx.save();
+    ctx.beginPath();
+    rounds.forEach((r, i) => {
+      const x = xPos(i), y = yPos(r.catMisses);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.lineTo(xPos(n - 1), yPos(0));
+    ctx.lineTo(xPos(0), yPos(0));
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(201,168,76,0.07)';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Dots
+  rounds.forEach((r, i) => {
+    const x = xPos(i), y = yPos(r.catMisses);
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    const dotColor = r.catMisses === 0 ? '#22c55e' : r.catMisses > 2 ? '#ef4444' : '#c9a84c';
+    ctx.fillStyle = dotColor;
+    ctx.fill();
+    ctx.strokeStyle = '#141414';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  // X labels (last/first)
+  ctx.fillStyle = '#6b6b6b';
+  ctx.font = '9px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  if (n >= 1) ctx.fillText(fmtShort(rounds[0].date), xPos(0), H - 6);
+  if (n >= 2) ctx.fillText(fmtShort(rounds[n-1].date), xPos(n-1), H - 6);
+
+  // Legend
+  ctx.fillStyle = '#22c55e';
+  ctx.font = '9px -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('─ Target: 0', padL + 2, padT + 8);
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────
+function init() {
+  // Set date labels
+  const td = today();
+  const fmtd = fmtDate(td);
+  $('today-date-label').textContent = fmtd;
+  $('nutri-date-label').textContent = fmtd;
+  $('streak-date-label').textContent = fmtd;
+
+  // Set default round date
+  $('r-date').value = td;
+
+  // Build habit lists
+  habitState = {};
+  buildHabitList();
+  nutriHabitState = {};
+  buildNutriList();
+
+  // Check if today already saved
+  checkSavedDay();
+
+  // Load nutrition state for today if exists
+  const nut = load('nexflow_nutrition') || [];
+  const todayNut = nut.find(n => n.date === td);
+  if (todayNut) {
+    nutriHabitState = { ...todayNut.habits };
+    buildNutriList();
+    snackRating = todayNut.snackRating || 'clean';
+    $('n-notes').value = todayNut.notes || '';
+    document.querySelectorAll('#snack-radio .radio-opt').forEach(o => {
+      o.classList.remove('selected');
+      if (o.getAttribute('data-val') === snackRating) o.classList.add('selected');
+    });
+  }
+
+  renderNutriStreak();
+  renderRoundList();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
