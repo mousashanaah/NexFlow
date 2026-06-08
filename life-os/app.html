@@ -1087,7 +1087,8 @@
   .rest-toggle.on .rest-switch { background: rgba(90,122,144,0.25); border-color: var(--accent2); }
   .rest-toggle.on .rest-switch::after { transform: translateX(20px); background: var(--accent2); }
   /* rest-day styling for the habit form */
-  #today-form.is-rest .section-label.training-lbl::after {
+  #today-form.is-rest .section-label.training-lbl::after,
+  #today-form.is-rest .sys-label.training-lbl::after {
     content: ' · golf/gym optional today';
     color: var(--accent2); font-weight: 600; letter-spacing: 0;
   }
@@ -1282,6 +1283,164 @@
   }
   .ach.unlocked { box-shadow: 0 0 14px rgba(232,232,234,0.18), inset 0 1px 0 rgba(255,255,255,0.05); }
 
+  /* ─── SHARED TACTICAL LANGUAGE (applied across all tabs) ─────────── */
+  /* // SECTION header — tactical mono section label */
+  .sys-label {
+    font-family: var(--mono);
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent2);
+    margin: 24px 0 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .sys-label::before { content: '//'; color: var(--green); opacity: 0.9; font-weight: 700; }
+  .sys-label::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, rgba(232,232,234,0.18), transparent);
+  }
+  .sys-label.first { margin-top: 0; }
+  .sys-label.danger { color: var(--red); }
+  .sys-label.danger::before { color: var(--red); content: '!!'; }
+
+  /* Generic mono readout for numbers */
+  .readout {
+    font-family: var(--mono);
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+
+  /* tighten corner brackets a touch for smaller cards & make them glow softly */
+  .hud-frame::before, .hud-frame::after,
+  .hud-frame > .hud-corners::before, .hud-frame > .hud-corners::after {
+    box-shadow: 0 0 4px rgba(232,232,234,0.10);
+  }
+
+  /* telemetry panel — sensor-readout block */
+  .telemetry { display: grid; gap: 1px; background: var(--border);
+    border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .telemetry.cols-2 { grid-template-columns: 1fr 1fr; }
+  .tele-cell { background: var(--surface); padding: 12px 13px; position: relative; }
+  .tele-cell .tk {
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 5px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .tele-cell .tk::before {
+    content: ''; width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent2); box-shadow: 0 0 5px var(--accent2); flex-shrink: 0;
+  }
+  .tele-cell .tv {
+    font-family: var(--mono); font-size: 17px; font-weight: 700; color: var(--text);
+    letter-spacing: 0.02em;
+  }
+
+  /* tactical mono node indicator on toggle rows */
+  .hab-node {
+    font-family: var(--mono); font-size: 12px; font-weight: 700;
+    color: var(--muted); flex-shrink: 0; width: 30px; text-align: center;
+    letter-spacing: -0.02em; transition: color 0.2s, text-shadow 0.2s;
+  }
+  .habit-row.checked .hab-node, .nutri-row.checked .hab-node {
+    color: var(--green); text-shadow: 0 0 8px rgba(63,158,106,0.6);
+  }
+  /* mono uppercase the toggle labels for tactical feel */
+  .habit-row .habit-label, .nutri-row .habit-label {
+    font-family: var(--mono); font-size: 13px; letter-spacing: 0.02em;
+    text-transform: uppercase; font-weight: 600;
+  }
+  .habit-row .habit-label small, .nutri-row .habit-label small {
+    text-transform: none; letter-spacing: 0; font-family: var(--mono); font-size: 10px;
+  }
+  /* status tag on the right edge of a complete row */
+  .hab-status {
+    font-family: var(--mono); font-size: 8px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); flex-shrink: 0;
+    opacity: 0; transition: opacity 0.2s; min-width: 42px; text-align: right;
+  }
+  .habit-row.checked .hab-status, .nutri-row.checked .hab-status {
+    opacity: 1; color: var(--green);
+  }
+  /* edge scanline on toggle rows */
+  .habit-row::after, .nutri-row::after {
+    content: ''; position: absolute; inset: 0; border-radius: 10px; pointer-events: none;
+    background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 4px);
+  }
+  .habit-row, .nutri-row { position: relative; overflow: hidden; }
+
+  /* logging micro-beat under save */
+  .log-beat {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); text-align: center;
+    margin-top: 10px; min-height: 14px;
+  }
+  .log-beat::before { content: '> '; color: var(--green); }
+
+  /* threat / critical alert frame for catastrophic-miss inputs */
+  .threat-frame {
+    border-color: rgba(192,69,63,0.5) !important;
+    background: linear-gradient(135deg, rgba(28,16,16,0.92), rgba(20,16,17,0.85)) !important;
+    box-shadow: 0 0 0 1px rgba(192,69,63,0.2), 0 6px 22px rgba(0,0,0,0.4) !important;
+  }
+  .threat-frame .ns-title { color: var(--red); }
+  .threat-frame .ns-dot { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .threat-tag {
+    font-family: var(--mono); font-size: 8px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--red); margin-left: auto;
+  }
+
+  /* instrument styling for bar tracks */
+  .stp-bar-wrap, .sg-bar-wrap {
+    background: rgba(0,0,0,0.45); border: 1px solid var(--border);
+    height: 7px; border-radius: 2px;
+  }
+  .stp-bar, .sg-bar { border-radius: 2px; box-shadow: 0 0 6px currentColor; }
+  .sg-label, .stp-lbl {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* reactor-core streak readout */
+  .reactor {
+    position: relative; padding: 26px 16px 22px; border-radius: 16px;
+    background: radial-gradient(120% 90% at 50% 10%, #1b1d21 0%, #0f1012 65%);
+    text-align: center; margin-bottom: 18px; overflow: hidden;
+  }
+  .reactor .core-tag {
+    position: absolute; top: 10px; font-family: var(--mono); font-size: 8px;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent2);
+  }
+  .reactor .core-tag.l { left: 12px; }
+  .reactor .core-tag.r { right: 12px; color: var(--muted); }
+  .reactor .core-lbl {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 2px;
+  }
+  .reactor::after {
+    content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-46%);
+    width: 200px; height: 200px; border-radius: 50%; pointer-events: none; z-index: 0;
+    border: 1px solid rgba(170,190,210,0.10);
+    box-shadow: inset 0 0 40px rgba(150,180,210,0.08);
+  }
+  .reactor > * { position: relative; z-index: 1; }
+
+  /* tactical grid framing for week/cal blocks */
+  .grid-frame {
+    padding: 12px 10px; border-radius: 10px;
+    background: rgba(10,11,12,0.5); border: 1px solid var(--border);
+    margin-bottom: 18px;
+  }
+
+  /* archive / data vault card */
+  .vault-tag {
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent2); margin-bottom: 4px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .vault-tag::before {
+    content: ''; width: 6px; height: 6px; border-radius: 1px;
+    background: var(--accent2); box-shadow: 0 0 6px var(--accent2);
+  }
+  .radio-opt {
+    font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em; font-size: 11px;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     #ambient::before, #ambient::after, #grain, .streak-big, .char-svg-wrap.animated svg, .char-aura.on,
     .char-svg-wrap::after, #status-strip .ss-dot { animation: none !important; }
@@ -1340,7 +1499,7 @@
           <span id="saved-day-badge"></span>
           <button class="btn btn-ghost btn-sm" onclick="editToday()">Edit Day</button>
         </div>
-        <div class="card" id="saved-day-content"></div>
+        <div class="card hud-frame" id="saved-day-content"><span class="hud-corners"></span></div>
       </div>
 
       <!-- Entry form -->
@@ -1348,17 +1507,17 @@
         <div class="rest-toggle" id="rest-toggle" onclick="toggleRestDay()">
           <span class="rest-ic">🧘</span>
           <div class="rest-txt">
-            <span class="rest-title">Rest Day</span>
+            <span class="rest-title">Standby · Recovery Mode</span>
             <small class="rest-sub">Planned recovery — no gym, no golf course. Other habits still count.</small>
           </div>
           <div class="rest-switch"></div>
         </div>
 
-        <div class="section-label training-lbl">Daily Objectives</div>
-        <div id="habit-list"></div>
+        <div class="sys-label training-lbl first">Daily Objectives</div>
+        <div id="habit-list" class="hud-frame" style="padding:8px 8px 1px;border-radius:12px;background:rgba(10,11,12,0.4);border:1px solid var(--border)"><span class="hud-corners"></span></div>
 
         <div id="perf-metrics">
-          <div class="section-label">Performance Metrics</div>
+          <div class="sys-label">Sensor Telemetry</div>
           <div class="input-row">
             <div>
               <label>Catastrophic Misses</label>
@@ -1371,18 +1530,20 @@
           </div>
         </div>
 
-        <div class="section-label">Reflection</div>
+        <div class="sys-label">Reflection</div>
         <textarea id="t-oneline" placeholder="One line — what mattered today"></textarea>
 
         <button class="btn btn-primary" onclick="saveDay()">Save Day</button>
+        <div class="log-beat" id="log-beat"></div>
       </div>
     </div>
 
     <!-- TAB 2: ROUND -->
     <div id="tab-round" class="tab-panel">
-      <div class="page-title">Log a Round</div>
+      <div class="mission-line">AFTER-ACTION REPORT</div>
+      <div class="page-title">Sortie Debrief</div>
 
-      <div class="section-label">Round Details</div>
+      <div class="sys-label first">Round Details</div>
       <div class="input-row">
         <div>
           <label>Date</label>
@@ -1414,7 +1575,7 @@
         </div>
       </div>
 
-      <div class="section-label">Tee to Green</div>
+      <div class="sys-label">Tee to Green</div>
       <div class="input-row">
         <div>
           <label>Fairways Hit</label>
@@ -1436,7 +1597,7 @@
         </div>
       </div>
 
-      <div class="section-label">Short Game</div>
+      <div class="sys-label">Short Game</div>
       <div class="input-row">
         <div>
           <label>Up-and-Down Att.</label>
@@ -1458,28 +1619,30 @@
         </div>
       </div>
 
-      <div class="section-label">⭐ North Star Metric</div>
-      <div class="card accent-card" style="margin-bottom:16px">
+      <div class="sys-label danger">Threat Readout — North Star</div>
+      <div class="card accent-card threat-frame hud-frame" style="margin-bottom:16px"><span class="hud-corners"></span>
         <div class="ns-header">
           <div class="ns-dot"></div>
           <div class="ns-title">Catastrophic Misses</div>
+          <span class="threat-tag">CRITICAL</span>
         </div>
         <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Snap hooks · shanks · hosel rockets that caused double bogey or worse. TARGET: 0 per round.</p>
         <input type="number" id="r-catmisses" min="0" max="20" placeholder="0" style="margin-bottom:0">
       </div>
 
-      <div class="section-label">Notes</div>
+      <div class="sys-label">Notes</div>
       <textarea id="r-notes" placeholder="Round summary, key moments, what to work on..."></textarea>
 
       <button class="btn btn-primary" onclick="saveRound()">Save Round</button>
 
       <div class="divider"></div>
-      <div class="section-label">Recent Rounds</div>
+      <div class="sys-label">Mission Records — Last 5</div>
       <div id="round-list"></div>
     </div>
 
     <!-- TAB 3: STATS -->
     <div id="tab-stats" class="tab-panel">
+      <div class="mission-line">INTELLIGENCE DASHBOARD</div>
       <div class="page-title">Analysis</div>
       <div id="stats-content"></div>
     </div>
@@ -1487,28 +1650,29 @@
     <!-- TAB 4: NUTRITION -->
     <div id="tab-nutrition" class="tab-panel">
       <div class="page-date" id="nutri-date-label"></div>
-      <div class="page-title">Nutrition</div>
+      <div class="mission-line">FUEL SYSTEMS</div>
+      <div class="page-title">Life Support</div>
 
       <div id="nutri-form">
-        <div class="section-label">Daily Habits</div>
-        <div id="nutri-habit-list"></div>
+        <div class="sys-label first">System Status</div>
+        <div id="nutri-habit-list" class="hud-frame" style="padding:8px 8px 1px;border-radius:12px;background:rgba(10,11,12,0.4);border:1px solid var(--border)"><span class="hud-corners"></span></div>
 
-        <div class="section-label">Snacking Honesty</div>
+        <div class="sys-label">Snacking Honesty</div>
         <div class="radio-group" id="snack-radio">
           <div class="radio-opt green-sel" data-val="clean" onclick="selectSnack(this)">Clean Day</div>
           <div class="radio-opt" data-val="slip" onclick="selectSnack(this)">Minor Slip</div>
           <div class="radio-opt" data-val="blowup" onclick="selectSnack(this)">Full Blowup</div>
         </div>
 
-        <div class="section-label">Notes</div>
+        <div class="sys-label">Notes</div>
         <textarea id="n-notes" placeholder="Optional — anything worth logging"></textarea>
 
         <button class="btn btn-primary" onclick="saveNutrition()">Save Nutrition Log</button>
       </div>
 
       <div class="divider"></div>
-      <div class="section-label">Last 7 Days</div>
-      <div id="nutri-streak"></div>
+      <div class="sys-label">Status Timeline — 7 Days</div>
+      <div id="nutri-streak" class="grid-frame hud-frame"><span class="hud-corners"></span></div>
     </div>
 
     <!-- TAB: CHARACTER -->
@@ -1585,10 +1749,14 @@
     <div id="tab-streak" class="tab-panel">
       <div class="page-date" id="streak-date-label"></div>
 
-      <div style="text-align:center;padding:20px 0 8px">
+      <div class="reactor hud-frame">
+        <span class="hud-corners"></span>
+        <span class="core-tag l">REACTOR · CORE</span>
+        <span class="core-tag r">STREAK COUNTER</span>
+        <div class="core-lbl">Consecutive Green Ops</div>
         <div class="streak-big" id="streak-num">0</div>
         <div class="streak-sub">day green streak</div>
-        <div style="font-size:13px;color:var(--muted)">Longest: <span id="streak-longest" style="color:var(--text);font-weight:700">0</span> days</div>
+        <div style="font-size:12px;color:var(--muted)" class="readout">PEAK: <span id="streak-longest" style="color:var(--text);font-weight:700">0</span> DAYS</div>
       </div>
 
       <div class="streak-legend">
@@ -1597,13 +1765,17 @@
         <span class="lg-item"><span class="lg-dot red"></span>Missed</span>
       </div>
 
-      <div class="section-label">This Week</div>
-      <div class="week-grid" id="week-grid"></div>
+      <div class="sys-label">Activity Grid — This Week</div>
+      <div class="grid-frame hud-frame"><span class="hud-corners"></span>
+        <div class="week-grid" id="week-grid" style="margin-bottom:0"></div>
+      </div>
 
-      <div class="section-label">Last 30 Days</div>
-      <div class="cal-grid" id="cal-grid"></div>
+      <div class="sys-label">Tactical Log — Last 30 Days</div>
+      <div class="grid-frame hud-frame"><span class="hud-corners"></span>
+        <div class="cal-grid" id="cal-grid" style="margin-bottom:0"></div>
+      </div>
 
-      <div class="section-label">Discipline</div>
+      <div class="sys-label">Discipline</div>
       <div class="stat-grid">
         <div class="stat-box">
           <div class="stat-val" id="disc-week">—</div>
@@ -1615,23 +1787,23 @@
         </div>
       </div>
 
-      <div class="ns-header" style="margin-top:8px;margin-bottom:10px">
-        <div class="ns-dot"></div>
-        <div class="ns-title">Catastrophic Miss Trend — Last 10 Rounds</div>
+      <div class="sys-label danger">Threat Trend — Last 10 Rounds</div>
+      <div class="card hud-frame" style="padding:10px"><span class="hud-corners"></span>
+        <canvas id="miss-chart" height="140"></canvas>
       </div>
-      <canvas id="miss-chart" height="140"></canvas>
 
       <div class="motive-banner">
         <p>"Dec 2026. Asian Tour Q-School.<br>Every green day is a rep toward the card.<br>No days off from who you're becoming."</p>
       </div>
 
       <!-- DATA BACKUP -->
-      <div class="section-label" style="margin-top:24px">Data Backup</div>
-      <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">
-        <p style="font-size:12px;color:var(--muted);line-height:1.5">Export your data regularly so no streak is ever lost to a browser wipe or new phone. Import to restore everything instantly.</p>
-        <button class="btn btn-primary" onclick="exportData()" style="font-size:13px;padding:12px">⬇ Export All Data</button>
+      <div class="sys-label">Archive · Data Vault</div>
+      <div class="card hud-frame" style="padding:16px;display:flex;flex-direction:column;gap:10px"><span class="hud-corners"></span>
+        <div class="vault-tag">SECURE STORAGE</div>
+        <p style="font-size:12px;color:var(--muted);line-height:1.5">Export your dossier regularly so no streak is ever lost to a browser wipe or new phone. Restore to recover everything instantly.</p>
+        <button class="btn btn-primary" onclick="exportData()" style="font-size:13px;padding:12px">⬇ EXPORT DOSSIER</button>
         <label class="btn-ghost" style="font-size:13px;padding:12px;cursor:pointer;text-align:center;border:1px solid rgba(232,232,234,.3);border-radius:10px;color:var(--muted)">
-          ⬆ Import Data
+          ⬆ RESTORE DOSSIER
           <input type="file" accept=".json" onchange="importData(event)" style="display:none">
         </label>
         <div id="backup-status" style="font-size:11px;color:var(--muted);text-align:center;min-height:16px"></div>
@@ -1845,6 +2017,7 @@ function buildHabitList() {
       + (REST_EXCLUDE.includes(h.key) ? ' golf-gym' : '');
     row.setAttribute('data-key', h.key);
     row.innerHTML = `
+      <span class="hab-node">${habitState[h.key] ? '[✓]' : '[ ]'}</span>
       <div class="habit-check">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#0a0a0a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="2 7 5.5 10.5 12 3.5"/>
@@ -1854,10 +2027,12 @@ function buildHabitList() {
         ${h.label}
         ${h.sub ? `<small>${h.sub}</small>` : ''}
       </div>
+      <span class="hab-status">ONLINE</span>
     `;
     row.addEventListener('click', () => {
       habitState[h.key] = !habitState[h.key];
       row.classList.toggle('checked', habitState[h.key]);
+      row.querySelector('.hab-node').textContent = habitState[h.key] ? '[✓]' : '[ ]';
     });
     container.appendChild(row);
   });
@@ -1899,11 +2074,11 @@ function showSavedDay(d) {
     const h = HABITS.find(x => x.label === l); return h && !REST_EXCLUDE.includes(h.key);
   }).length : checked.length;
   const content = $('saved-day-content');
-  content.innerHTML = `
+  content.innerHTML = `<span class="hud-corners"></span>
     ${isRest ? '<div class="saved-row"><span class="saved-key">Day Type</span><span style="color:var(--accent2)">Rest Day</span></div>' : ''}
-    <div class="saved-row"><span class="saved-key">Habits Done</span><span>${habitNum} / ${habitDen}</span></div>
-    <div class="saved-row"><span class="saved-key">Cat. Misses</span><span>${d.catMisses ?? '—'}</span></div>
-    <div class="saved-row"><span class="saved-key">Stock-Shot /10</span><span>${d.stockShot ?? '—'}</span></div>
+    <div class="saved-row"><span class="saved-key">Objectives Cleared</span><span class="readout">${habitNum} / ${habitDen}</span></div>
+    <div class="saved-row"><span class="saved-key">Cat. Misses</span><span class="readout">${d.catMisses ?? '—'}</span></div>
+    <div class="saved-row"><span class="saved-key">Stock-Shot /10</span><span class="readout">${d.stockShot ?? '—'}</span></div>
     <div class="saved-row"><span class="saved-key">What mattered</span><span style="max-width:60%;text-align:right">${d.oneLine || '—'}</span></div>
   `;
 }
@@ -1957,6 +2132,8 @@ function saveDay() {
   else days.push(obj);
   save('nexflow_days', days);
 
+  const lb = $('log-beat');
+  if (lb) { lb.textContent = 'LOGGING…'; setTimeout(() => { lb.textContent = 'ENTRY COMMITTED'; }, 700); }
   showVerdict(green);
   showSavedDay(obj);
   checkRpgProgress(false);
@@ -2023,15 +2200,15 @@ function renderRoundList() {
     const toParStr = toPar === 0 ? 'E' : (toPar > 0 ? '+' + toPar : toPar);
     const scoreColor = toPar < 0 ? 'var(--green)' : toPar > 3 ? 'var(--red)' : 'var(--text)';
     return `
-      <div class="round-item">
+      <div class="round-item hud-frame"><span class="hud-corners"></span>
         <div class="round-info">
           <div class="round-course">${r.course}</div>
-          <div class="round-date">${fmtShort(r.date)} · ${r.holes || 18} holes</div>
-          <div class="round-meta">Cat. Misses: <strong style="color:${r.catMisses === 0 ? 'var(--green)' : r.catMisses > 2 ? 'var(--red)' : 'var(--accent)'}">${r.catMisses}</strong> · ${pct(r.gir, r.girTotal)} GIR · ${r.putts ?? '—'} putts</div>
+          <div class="round-date readout">▸ ${fmtShort(r.date)} · ${r.holes || 18}H</div>
+          <div class="round-meta readout">MISS <strong style="color:${r.catMisses === 0 ? 'var(--green)' : r.catMisses > 2 ? 'var(--red)' : 'var(--accent)'}">${r.catMisses}</strong> · GIR ${pct(r.gir, r.girTotal)} · ${r.putts ?? '—'} PUTT</div>
         </div>
         <div style="text-align:right">
           <div class="round-score" style="color:${scoreColor}">${toParStr}</div>
-          <div style="font-size:12px;color:var(--muted)">${r.score}</div>
+          <div style="font-size:12px;color:var(--muted)" class="readout">${r.score}</div>
           <button class="btn btn-danger" style="margin-top:8px" onclick="deleteRound(${r.id})">Delete</button>
         </div>
       </div>
@@ -2128,8 +2305,8 @@ function renderStats() {
 
   el.innerHTML = `
     <!-- SCORING -->
-    <div class="card">
-      <div class="card-title">Scoring</div>
+    <div class="sys-label first">Scoring</div>
+    <div class="card hud-frame"><span class="hud-corners"></span>
       <div class="stat-grid">
         <div class="stat-box">
           <div class="stat-val">${scoringAvg}</div>
@@ -2148,7 +2325,7 @@ function renderStats() {
           <div class="stat-lbl">Worst Round</div>
         </div>
       </div>
-      <div class="card-title" style="margin-top:4px">Score to Par Distribution</div>
+      <div class="card-title readout" style="margin-top:4px">// Score-to-Par Distribution</div>
       <div class="score-to-par">
         ${barRow('Under Par', underPar, total)}
         ${barRow('Even', even, total)}
@@ -2158,27 +2335,27 @@ function renderStats() {
     </div>
 
     <!-- NORTH STAR -->
-    <div class="card accent-card">
-      <div class="ns-header"><div class="ns-dot"></div><div class="ns-title">⭐ The North Star — Catastrophic Misses</div></div>
+    <div class="sys-label danger">Threat Analysis — Catastrophic Misses</div>
+    <div class="card accent-card threat-frame hud-frame"><span class="hud-corners"></span>
       <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Snap hooks · shanks · hosel rockets causing double bogey or worse. Target: 0.</div>
       <div class="stat-grid" style="margin-bottom:16px">
-        <div class="stat-box" style="border-color:var(--accent)">
-          <div class="stat-val gold">${avgCat}</div>
+        <div class="stat-box" style="border-color:rgba(192,69,63,0.4)">
+          <div class="stat-val red">${avgCat}</div>
           <div class="stat-lbl">Avg per 18</div>
         </div>
-        <div class="stat-box" style="border-color:var(--accent)">
-          <div class="stat-val gold">${rounds.filter(r => r.catMisses === 0).length}</div>
+        <div class="stat-box" style="border-color:rgba(192,69,63,0.4)">
+          <div class="stat-val green">${rounds.filter(r => r.catMisses === 0).length}</div>
           <div class="stat-lbl">Clean Rounds</div>
         </div>
       </div>
-      <div class="card-title">Last 5 Rounds</div>
+      <div class="card-title readout">// Threat Log — Last 5</div>
       ${missRows}
       <div style="font-size:11px;color:var(--muted);margin-top:8px">Progress toward 0: ${rounds.length} rounds logged · ${rounds.filter(r=>r.catMisses===0).length} clean</div>
     </div>
 
     <!-- T2G -->
-    <div class="card">
-      <div class="card-title">Tee to Green</div>
+    <div class="sys-label">Tee-to-Green</div>
+    <div class="card hud-frame"><span class="hud-corners"></span>
       <div class="stat-grid">
         <div class="stat-box">
           <div class="stat-val">${pct(allFir, allFirT)}</div>
@@ -2200,8 +2377,9 @@ function renderStats() {
     </div>
 
     <!-- SG SIMPLIFIED -->
-    <div class="card">
-      <div class="card-title">Estimated Strokes Gained (vs Scratch)</div>
+    <div class="sys-label">Strokes Gained</div>
+    <div class="card hud-frame"><span class="hud-corners"></span>
+      <div class="card-title readout">// Estimated vs Scratch</div>
       <div style="margin-bottom:4px">
         <div class="sg-row">
           <span class="sg-label">Off the Tee</span>
@@ -2228,8 +2406,8 @@ function renderStats() {
     </div>
 
     <!-- SCORING PATTERN -->
-    <div class="card">
-      <div class="card-title">Scoring Pattern (Estimated)</div>
+    <div class="sys-label">Scoring Pattern</div>
+    <div class="card hud-frame"><span class="hud-corners"></span>
       <div class="stat-grid">
         <div class="stat-box">
           <div class="stat-val green">${avg(rounds.map(r => Math.max(0, r.gir - (r.putts ? Math.max(0,(r.putts - r.gir)):0)))).toFixed(1)}</div>
@@ -2274,6 +2452,7 @@ function buildNutriList() {
     row.className = 'nutri-row' + (nutriHabitState[h.key] ? ' checked' : '');
     row.setAttribute('data-key', h.key);
     row.innerHTML = `
+      <span class="hab-node">${nutriHabitState[h.key] ? '[✓]' : '[ ]'}</span>
       <div class="habit-check">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#0a0a0a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="2 7 5.5 10.5 12 3.5"/>
@@ -2283,10 +2462,12 @@ function buildNutriList() {
         ${h.label}
         ${h.sub ? `<small>${h.sub}</small>` : ''}
       </div>
+      <span class="hab-status">ONLINE</span>
     `;
     row.addEventListener('click', () => {
       nutriHabitState[h.key] = !nutriHabitState[h.key];
       row.classList.toggle('checked', nutriHabitState[h.key]);
+      row.querySelector('.hab-node').textContent = nutriHabitState[h.key] ? '[✓]' : '[ ]';
     });
     container.appendChild(row);
   });
