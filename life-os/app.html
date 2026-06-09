@@ -3301,219 +3301,224 @@ function buildCharSvg(tierIdx, kit, skin, hairId, equipped, phys) {
   const auraGlow = tierIdx >= 2;
   const champion = tierIdx >= 4;
 
-  // Kit color = glowing armor panel accent. Brightness scales with tier.
-  const kitOp  = Math.min(0.55 + tierIdx * 0.1, 1.0);
-  const struct  = `rgba(200,210,220,${Math.min(0.22 + tierIdx*0.06, 0.55)})`; // structural silver
-  const dimCol  = `rgba(180,190,200,0.13)`;
-  const reactorOp = Math.min(0.45 + tierIdx * 0.13, 1.0);
+  const kitOp    = Math.min(0.60 + tierIdx * 0.09, 1.0);
+  const struct   = `rgba(200,212,224,${Math.min(0.28 + tierIdx*0.07, 0.65)})`;
+  const dimCol   = `rgba(170,185,200,0.14)`;
+  const reactorOp = Math.min(0.50 + tierIdx * 0.12, 1.0);
   const hairColor = (HAIR_OPTS.find(h=>h.id===hairId)||HAIR_OPTS[0]).color;
 
-  // Glow helper — draws line twice: thick+transparent base + sharp edge
-  const pg = (d, sw=1.2, op=null) => {
-    const o = op !== null ? op : kitOp;
-    return `<path d="${d}" fill="none" stroke="${kit}" stroke-width="${sw*3.5}" opacity="${o*0.13}" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="${d}" fill="none" stroke="${kit}" stroke-width="${sw}" opacity="${o}" stroke-linecap="round" stroke-linejoin="round"/>`;
-  };
-  const lg = (x1,y1,x2,y2, sw=1.2, op=null) => pg(`M${x1} ${y1} L${x2} ${y2}`, sw, op);
-  const cg = (cx,cy,r, sw=1.2, op=null) => {
-    const o = op !== null ? op : kitOp;
-    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${kit}" stroke-width="${r*2.5}" opacity="${o*0.1}"/>
-            <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${kit}" stroke-width="${sw}" opacity="${o}"/>`;
-  };
-
-  const sh = phys.shoulder, tw = phys.torso;
+  const sh = phys.shoulder, tw = phys.torso, aw = phys.arm;
   const lSX = 54 - sh, rSX = 96 + sh;
-  const lWX = 61 - tw, rWX = 89 + tw;
-  const armW = 1.4 + phys.arm * 0.22;
+  const lWX = 62 - tw, rWX = 88 + tw;
+  const uaw = 5.5 + aw * 0.48;  // upper arm half-width
+  const law = 3.8 + aw * 0.33;  // lower arm half-width
 
-  // ── DOT-GRID BACKGROUND + DEFS ──
-  const bpGrid = `
-    <defs>
-      <pattern id="bpg" width="9" height="9" patternUnits="userSpaceOnUse">
-        <circle cx="0" cy="0" r="0.5" fill="rgba(80,100,120,0.11)"/>
-      </pattern>
-    </defs>
-    <rect width="150" height="190" fill="url(#bpg)"/>
-  `;
+  // Panel: dark filled closed shape + kit-colour glow edge
+  const panel = (d, sw=1.2, fo=0.78, eo=null) => {
+    const e = eo !== null ? eo : kitOp;
+    return `<path d="${d}" fill="rgba(6,7,9,${fo})" stroke="none"/>
+            <path d="${d}" fill="${kit}" opacity="${e*0.06}" stroke="none"/>
+            <path d="${d}" fill="none" stroke="${kit}" stroke-width="${sw*3.5}" opacity="${e*0.11}" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="${d}" fill="none" stroke="${kit}" stroke-width="${sw}" opacity="${e}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  };
+  // Glow line only (no fill)
+  const gl = (d, sw=0.8, eo=null) => {
+    const e = eo !== null ? eo : kitOp * 0.65;
+    return `<path d="${d}" fill="none" stroke="${kit}" stroke-width="${sw*3}" opacity="${e*0.12}" stroke-linecap="round"/>
+            <path d="${d}" fill="none" stroke="${kit}" stroke-width="${sw}" opacity="${e}" stroke-linecap="round"/>`;
+  };
+  // Glow circle
+  const cg = (cx,cy,r, sw=1.2, eo=null) => {
+    const e = eo !== null ? eo : kitOp;
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="rgba(6,7,9,0.75)" stroke="none"/>
+            <circle cx="${cx}" cy="${cy}" r="${r}" fill="${kit}" opacity="${e*0.06}" stroke="none"/>
+            <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${kit}" stroke-width="${r*3}" opacity="${e*0.09}"/>
+            <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${kit}" stroke-width="${sw}" opacity="${e}"/>`;
+  };
 
-  // ── AURA (kit-colored orbit rings) ──
+  // ── DOT-GRID BACKGROUND ──
+  const bpGrid = `<defs><pattern id="bpg" width="9" height="9" patternUnits="userSpaceOnUse">
+    <circle cx="0" cy="0" r="0.5" fill="rgba(80,100,120,0.10)"/></pattern></defs>
+    <rect width="150" height="190" fill="url(#bpg)"/>`;
+
+  // ── AURA ──
   const aid = equipped.aura;
   let aura = '', particles = '';
-  if (auraGlow || aid) {
-    const dashRing = (rx,ry,op,da) => `
-      <ellipse cx="75" cy="100" rx="${rx}" ry="${ry}" fill="${kit}" opacity="${op*0.05}" stroke="none"/>
-      <ellipse cx="75" cy="100" rx="${rx}" ry="${ry}" fill="none" stroke="${kit}" stroke-width="0.8" opacity="${op}" stroke-dasharray="${da}"/>`;
-    if (aid === 'storm' || aid === 'cold_fire') {
-      aura = dashRing(65,84,0.35,'4 5') + dashRing(72,92,0.16,'2 8');
-      if (aid === 'storm') particles = `
-        <path d="M70 60 l-5 14 l6 0 l-5 14" stroke="${kit}" stroke-width="1.3" fill="none" opacity="0.7"/>
-        <circle cx="46" cy="112" r="1.4" fill="${kit}" opacity="0.8"/><circle cx="106" cy="95" r="1.4" fill="${kit}" opacity="0.8"/>`;
-    } else {
-      aura = dashRing(60,80,0.22,'3 7');
-    }
+  const dashRing = (rx,ry,op,da) =>
+    `<ellipse cx="75" cy="96" rx="${rx}" ry="${ry}" fill="${kit}" opacity="${op*0.04}" stroke="none"/>
+     <ellipse cx="75" cy="96" rx="${rx}" ry="${ry}" fill="none" stroke="${kit}" stroke-width="0.85" opacity="${op}" stroke-dasharray="${da}"/>`;
+  if (aid === 'storm') {
+    aura = dashRing(68,86,0.42,'4 4') + dashRing(76,94,0.22,'2 6') + dashRing(84,102,0.11,'1 9');
+    particles = `<path d="M68 58 l-6 15 l7 0 l-6 15" stroke="${kit}" stroke-width="1.6" fill="none" opacity="0.75"/>
+      <circle cx="41" cy="116" r="1.7" fill="${kit}" opacity="0.85"/><circle cx="111" cy="90" r="1.7" fill="${kit}" opacity="0.85"/>
+      <circle cx="43" cy="87" r="1.2" fill="${kit}" opacity="0.55"/><circle cx="109" cy="117" r="1.2" fill="${kit}" opacity="0.55"/>`;
+  } else if (aid === 'cold_fire') {
+    aura = dashRing(66,84,0.38,'4 5') + dashRing(74,92,0.18,'2 8');
+    particles = `<circle cx="41" cy="116" r="1.5" fill="${kit}" opacity="0.8"/>
+      <circle cx="111" cy="90" r="1.5" fill="${kit}" opacity="0.8"/><circle cx="52" cy="76" r="1.2" fill="${kit}" opacity="0.6"/>`;
+  } else if (auraGlow || aid === 'focus_glow') {
+    aura = dashRing(64,82,0.28,'3 6');
+  } else if (aid === 'phantom_aura') {
+    aura = dashRing(62,80,0.22,'2 5') + dashRing(70,88,0.12,'1 8');
   }
 
-  // ── ANNOTATION DIMENSION LINES ──
+  // ── ANNOTATION LINES ──
   const annotations = tierIdx >= 1 ? `
-    <line x1="${lSX}" y1="74" x2="${lSX-14}" y2="63" stroke="${dimCol}" stroke-width="0.5"/>
-    <line x1="${lSX-20}" y1="63" x2="${lSX-6}" y2="63" stroke="${dimCol}" stroke-width="0.5"/>
-    <line x1="${rSX+14}" y1="36" x2="${rSX+14}" y2="170" stroke="${dimCol}" stroke-width="0.45"/>
-    <line x1="${rSX+11}" y1="36" x2="${rSX+17}" y2="36" stroke="${dimCol}" stroke-width="0.45"/>
-    <line x1="${rSX+11}" y1="170" x2="${rSX+17}" y2="170" stroke="${dimCol}" stroke-width="0.45"/>
-    <text x="${rSX+22}" y="104" font-family="monospace" font-size="4" fill="${dimCol}" transform="rotate(90,${rSX+22},104)">HEIGHT 171cm</text>
-  ` : '';
+    <line x1="${lSX-2}" y1="76" x2="${lSX-16}" y2="65" stroke="${dimCol}" stroke-width="0.5"/>
+    <line x1="${lSX-23}" y1="65" x2="${lSX-9}" y2="65" stroke="${dimCol}" stroke-width="0.5"/>
+    <line x1="${rSX+16}" y1="33" x2="${rSX+16}" y2="173" stroke="${dimCol}" stroke-width="0.44"/>
+    <line x1="${rSX+13}" y1="33" x2="${rSX+19}" y2="33" stroke="${dimCol}" stroke-width="0.44"/>
+    <line x1="${rSX+13}" y1="173" x2="${rSX+19}" y2="173" stroke="${dimCol}" stroke-width="0.44"/>
+    <text x="${rSX+25}" y="105" font-family="monospace" font-size="3.8" fill="${dimCol}" transform="rotate(90,${rSX+25},105)">HEIGHT 171cm</text>
+    <text x="${rSX+25}" y="68" font-family="monospace" font-size="3.8" fill="${dimCol}" transform="rotate(90,${rSX+25},68)">SHANAAH</text>
+  ` : `<text x="75" y="184" text-anchor="middle" font-family="monospace" font-size="4" fill="${dimCol}" letter-spacing="0.09em">SHANAAH SYSTEMS</text>`;
 
-  // ── LEGS — kit-color glowing panel edges ──
+  // ── BOOTS ──
+  const boots = `
+    ${panel(`M56 168 L74 168 L76 174 L54 174 Z`, 1.1)}
+    ${panel(`M76 168 L94 168 L96 174 L74 174 Z`, 1.1)}
+    ${gl(`M57 170 L73 170`, 0.55, kitOp*0.45)}
+    ${gl(`M77 170 L93 170`, 0.55, kitOp*0.45)}`;
+
+  // ── LEGS ──
+  const lTX = 59 - sh*0.18, rTX = 91 + sh*0.18;
   const legs = `
-    <!-- left thigh -->
-    ${pg(`M63 120 L63 145 L72 145 L72 120`, 1, kitOp*0.9)}
-    <!-- left shin -->
-    ${pg(`M63 145 L63 168 L72 168 L72 145`, 1, kitOp*0.7)}
-    <!-- left knee joint indicator -->
-    <line x1="63" y1="145" x2="72" y2="145" stroke="${struct}" stroke-width="1.2"/>
-    <!-- right thigh -->
-    ${pg(`M78 120 L78 145 L87 145 L87 120`, 1, kitOp*0.9)}
-    <!-- right shin -->
-    ${pg(`M78 145 L78 168 L87 168 L87 145`, 1, kitOp*0.7)}
-    <line x1="78" y1="145" x2="87" y2="145" stroke="${struct}" stroke-width="1.2"/>
-    <!-- boots -->
-    ${pg(`M60 168 L75 168 L77 172 L58 172 Z`, 1)}
-    ${pg(`M75 168 L90 168 L92 172 L73 172 Z`, 1)}
-  `;
+    ${panel(`M${lTX} 122 Q${lTX-1} 128 ${lTX-1} 146 L${lTX+11} 146 Q${lTX+12} 128 ${lTX+11} 122 Z`, 1.1, 0.74)}
+    ${panel(`M${lTX-1} 146 L${lTX-2} 168 L${lTX+12} 168 L${lTX+11} 146 Z`, 1.1, 0.74)}
+    ${panel(`M${lTX-3} 142 Q${lTX+5} 138 ${lTX+13} 142 Q${lTX+13} 150 ${lTX+5} 151 Q${lTX-3} 150 ${lTX-3} 142 Z`, 1, 0.82)}
+    ${panel(`M${rTX} 122 Q${rTX+1} 128 ${rTX+1} 146 L${rTX-11} 146 Q${rTX-12} 128 ${rTX-11} 122 Z`, 1.1, 0.74)}
+    ${panel(`M${rTX+1} 146 L${rTX+2} 168 L${rTX-12} 168 L${rTX-11} 146 Z`, 1.1, 0.74)}
+    ${panel(`M${rTX+3} 142 Q${rTX-5} 138 ${rTX-13} 142 Q${rTX-13} 150 ${rTX-5} 151 Q${rTX+3} 150 ${rTX+3} 142 Z`, 1, 0.82)}
+    ${boots}`;
 
-  // ── TORSO — main armor panel in kit color ──
+  // ── TORSO ──
+  const oid = equipped.outfit;
+  const torsoFill = oid === 'blackout_kit' ? 0.90 : 0.76;
   const torso = `
-    <!-- outer shoulder line -->
-    ${lg(lSX, 78, rSX, 78, 1, kitOp)}
-    <!-- main torso outline (glowing kit panels) -->
-    ${pg(`M${lSX} 78 L${lWX} 120 L${rWX} 120 L${rSX} 78 Z`, 1.4)}
-    <!-- inner chest plate -->
-    ${pg(`M${lSX+8} 80 L${lWX+8} 114 L${rWX-8} 114 L${rSX-8} 80 Z`, 0.7, kitOp*0.55)}
-    <!-- collar V -->
-    ${pg(`M68 70 L75 80 L82 70`, 1.1)}
-    <!-- neck -->
-    <rect x="71" y="63" width="8" height="8" fill="${skin}" opacity="0.6"/>
-    <rect x="71" y="63" width="8" height="8" fill="none" stroke="${struct}" stroke-width="0.7"/>
-    <!-- waist seam -->
-    ${lg(lWX, 120, rWX, 120, 0.8, kitOp*0.7)}
-    <!-- shoulder pads (circles at joint) -->
-    ${cg(lSX, 79, 5, 1.1)}
-    ${cg(rSX, 79, 5, 1.1)}
-    <!-- outfit-specific panel detail -->
-    ${equipped.outfit === 'pro_kit' ? `
-      ${lg(lSX, 85, rSX, 85, 0.7, kitOp*0.6)}
-      ${lg(lWX+4, 116, rWX-4, 116, 0.7, kitOp*0.5)}
-    ` : ''}
-    ${equipped.outfit === 'tour_kit' ? `
-      ${lg(lSX+9, 82, rSX-9, 82, 0.7, kitOp*0.55)}
-      ${pg(`M${lSX+12} 86 L${lSX+10} 108 L${rWX-10} 108 L${rSX-12} 86 Z`, 0.6, kitOp*0.4)}
-    ` : ''}
-    ${equipped.outfit === 'blackout_kit' ? `
-      <rect x="${lSX}" y="78" width="${rSX-lSX}" height="${120-78}" fill="rgba(0,0,0,0.28)" stroke="none"/>
-      ${lg(lSX, 99, rSX, 99, 0.6, kitOp*0.45)}
-    ` : ''}
-  `;
+    ${panel(`M${lSX} 76 L${lWX} 122 L${rWX} 122 L${rSX} 76 Z`, 1.5, torsoFill)}
+    ${gl(`M${lSX+7} 78 Q${lSX+5} 90 ${lWX+9} 102 L 73 102 L 73 80 L${lSX+9} 78`, 0.8, kitOp*0.5)}
+    ${gl(`M${rSX-7} 78 Q${rSX-5} 90 ${rWX-9} 102 L 77 102 L 77 80 L${rSX-9} 78`, 0.8, kitOp*0.5)}
+    ${gl(`M75 78 L75 102`, 0.65, kitOp*0.45)}
+    ${gl(`M${lWX+9} 102 L${rWX-9} 102`, 0.7, kitOp*0.5)}
+    ${gl(`M${lWX+8} 110 L${rWX-8} 110`, 0.65, kitOp*0.42)}
+    ${gl(`M${lWX+6} 118 L${rWX-6} 118`, 0.6, kitOp*0.35)}
+    ${panel(`M68 72 L75 80 L82 72 Z`, 1, 0.75)}
+    ${panel(`M70 63 L70 72 L80 72 L80 63 Z`, 0.85, 0.82)}
+    ${panel(`M${lSX-3} 72 L${lSX-9} 83 L${lSX+5} 85 L${lSX+6} 74 Z`, 1.05, 0.84)}
+    ${panel(`M${rSX+3} 72 L${rSX+9} 83 L${rSX-5} 85 L${rSX-6} 74 Z`, 1.05, 0.84)}
+    ${gl(`M${lWX} 122 L${rWX} 122`, 0.85, kitOp*0.7)}
+    ${oid === 'pro_kit'    ? gl(`M${lSX} 83 L${rSX} 83`,0.9,kitOp*0.7)+gl(`M${lWX+4} 118 L${rWX-4} 118`,0.9,kitOp*0.6) : ''}
+    ${oid === 'tour_kit'   ? gl(`M${lSX+8} 85 L75 97 L${rSX-8} 85`,1.0,kitOp*0.7)+gl(`M${lSX+10} 91 L${rSX-10} 91`,0.7,kitOp*0.5) : ''}
+    ${oid === 'blackout_kit' ? `<rect x="${lSX}" y="76" width="${rSX-lSX}" height="47" fill="rgba(0,0,0,0.32)" stroke="none"/>`+gl(`M${lSX} 98 L${rSX} 98`,0.85,kitOp*0.5) : ''}`;
 
-  // ── ARC REACTOR — silver/white, not blue ──
+  // ── ARC REACTOR ──
   const rr = 6.5 + tw * 0.5;
+  const spokes = Array.from({length:8},(_,i)=>{
+    const a=(i/8)*Math.PI*2, x1=75+rr*0.42*Math.cos(a), y1=96+rr*0.42*Math.sin(a), x2=75+rr*0.88*Math.cos(a), y2=96+rr*0.88*Math.sin(a);
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(215,225,235,${reactorOp*0.38})" stroke-width="0.55"/>`;
+  }).join('');
   const reactor = `
-    <circle cx="75" cy="96" r="${rr*1.5}" fill="rgba(220,230,240,0.025)" stroke="none"/>
-    <circle cx="75" cy="96" r="${rr}" fill="none" stroke="rgba(220,225,230,${reactorOp})" stroke-width="1.6"/>
-    <circle cx="75" cy="96" r="${rr*0.6}" fill="none" stroke="rgba(220,225,230,${reactorOp*0.7})" stroke-width="0.9"/>
-    ${tierIdx >= 1 ? `<circle cx="75" cy="96" r="${rr*0.25}" fill="rgba(230,235,240,${reactorOp})"/>` : ''}
-    ${auraGlow ? `<circle cx="75" cy="96" r="${rr*1.8}" fill="rgba(220,230,240,${reactorOp*0.06})" stroke="none"/>` : ''}
-  `;
+    <circle cx="75" cy="96" r="${rr*1.9}" fill="rgba(220,230,240,${reactorOp*0.035})" stroke="none"/>
+    <circle cx="75" cy="96" r="${rr}" fill="rgba(6,7,9,0.5)" stroke="rgba(215,225,235,${reactorOp})" stroke-width="1.8"/>
+    ${spokes}
+    <circle cx="75" cy="96" r="${rr*0.60}" fill="none" stroke="rgba(215,225,235,${reactorOp*0.70})" stroke-width="0.9"/>
+    <circle cx="75" cy="96" r="${rr*0.26}" fill="rgba(230,235,242,${reactorOp})"/>`;
 
-  // ── ARMS — upper arm / forearm panels ──
+  // ── ARMS ──
   const arms = `
-    <!-- left upper arm -->
-    ${pg(`M${lSX} 80 Q${lSX-9} 92 ${lSX-8} 100`, armW)}
-    <!-- left forearm -->
-    ${pg(`M${lSX-8} 100 Q${lSX-9} 106 ${lSX-7} 111`, armW*0.85, kitOp*0.8)}
-    <!-- left elbow joint -->
-    <line x1="${lSX-10}" y1="100" x2="${lSX-5}" y2="100" stroke="${struct}" stroke-width="1.1"/>
-    <!-- left hand (skin tint) -->
-    <circle cx="${lSX-7}" cy="113" r="4" fill="${skin}" opacity="0.55"/>
-    <circle cx="${lSX-7}" cy="113" r="4" fill="none" stroke="${struct}" stroke-width="0.8"/>
-    <!-- right upper arm -->
-    ${pg(`M${rSX} 80 Q${rSX+9} 92 ${rSX+8} 100`, armW)}
-    <!-- right forearm -->
-    ${pg(`M${rSX+8} 100 Q${rSX+9} 106 ${rSX+7} 111`, armW*0.85, kitOp*0.8)}
-    <line x1="${rSX+10}" y1="100" x2="${rSX+5}" y2="100" stroke="${struct}" stroke-width="1.1"/>
-    <circle cx="${rSX+7}" cy="113" r="4" fill="${skin}" opacity="0.55"/>
-    <circle cx="${rSX+7}" cy="113" r="4" fill="none" stroke="${struct}" stroke-width="0.8"/>
-  `;
+    ${panel(`M${lSX+uaw*0.15} 82 Q${lSX-uaw*0.85} 91 ${lSX-uaw*0.65} 103 L${lSX+uaw*0.65} 103 Q${lSX+uaw*0.85} 91 ${lSX+uaw*0.55} 82 Z`, 1.15, 0.80)}
+    ${cg(lSX, 103, 4+aw*0.22, 0.95)}
+    ${panel(`M${lSX-law*0.65} 105 Q${lSX-law} 111 ${lSX-law*0.85} 117 L${lSX+law*0.85} 117 Q${lSX+law} 111 ${lSX+law*0.65} 105 Z`, 1.05, 0.80)}
+    <line x1="${lSX-law}" y1="117" x2="${lSX+law}" y2="117" stroke="${struct}" stroke-width="1.3"/>
+    ${panel(`M${lSX-law*0.72} 117 Q${lSX-law*0.82} 123 ${lSX} 124 Q${lSX+law*0.82} 123 ${lSX+law*0.72} 117 Z`, 0.95, 0.72)}
+    ${gl(`M${lSX-1.5} 118 L${lSX-1.5} 123`,0.5,kitOp*0.4)}${gl(`M${lSX+1.5} 118 L${lSX+1.5} 123`,0.5,kitOp*0.4)}
+    ${panel(`M${rSX-uaw*0.15} 82 Q${rSX+uaw*0.85} 91 ${rSX+uaw*0.65} 103 L${rSX-uaw*0.65} 103 Q${rSX-uaw*0.85} 91 ${rSX-uaw*0.55} 82 Z`, 1.15, 0.80)}
+    ${cg(rSX, 103, 4+aw*0.22, 0.95)}
+    ${panel(`M${rSX+law*0.65} 105 Q${rSX+law} 111 ${rSX+law*0.85} 117 L${rSX-law*0.85} 117 Q${rSX-law} 111 ${rSX-law*0.65} 105 Z`, 1.05, 0.80)}
+    <line x1="${rSX-law}" y1="117" x2="${rSX+law}" y2="117" stroke="${struct}" stroke-width="1.3"/>
+    ${panel(`M${rSX+law*0.72} 117 Q${rSX+law*0.82} 123 ${rSX} 124 Q${rSX-law*0.82} 123 ${rSX-law*0.72} 117 Z`, 0.95, 0.72)}
+    ${gl(`M${rSX-1.5} 118 L${rSX-1.5} 123`,0.5,kitOp*0.4)}${gl(`M${rSX+1.5} 118 L${rSX+1.5} 123`,0.5,kitOp*0.4)}`;
 
-  // ── CLUB (kit color for equipped weapons) ──
+  // ── CLUB ──
   const cid = equipped.club;
-  const hx = rSX + 7, hy = 113;
-  let club = `
-    <line x1="${hx}" y1="${hy}" x2="${hx+14}" y2="${hy+36}" stroke="${struct}" stroke-width="1.3"/>
-    <path d="M${hx+12} ${hy+34} l6 2 l-2 5 l-6-2 z" fill="none" stroke="${struct}" stroke-width="0.7"/>
-  `;
-  if (['forged_iron','the_scalpel','zero_blade'].includes(cid)) {
-    club = pg(`M${hx} ${hy} L${hx+14} ${hy+38}`, 1.4) + pg(`M${hx+12} ${hy+36} l8 3 l-2 6 l-8-3 Z`, 0.9);
-  } else if (['precision_driver','platinum_shaft'].includes(cid)) {
-    club = pg(`M${hx} ${hy} L${hx+15} ${hy+39}`, 1.6) + `<ellipse cx="${hx+16}" cy="${hx+40-(hx-75)}" rx="6" ry="4" fill="none" stroke="${kit}" stroke-width="1" opacity="${kitOp}"/>`;
+  const hx = rSX + law*0.5, hy = 121;
+  let club;
+  if (cid === 'forged_iron' || cid === 'the_scalpel') {
+    club = panel(`M${hx} ${hy} L${hx+13} ${hy+39}`,1.5,0.6)
+      + panel(`M${hx+11} ${hy+37} l9 3 l-3 8 l-9-3 Z`,1.05,0.82);
+  } else if (cid === 'zero_blade') {
+    club = panel(`M${hx} ${hy} L${hx+13} ${hy+41}`,1.9,0.55,kitOp)
+      + panel(`M${hx+10} ${hy+38} l11 4 l-4 9 l-11-4 Z`,1.1,0.80)
+      + gl(`M${hx} ${hy} L${hx+13} ${hy+41}`,0.7,kitOp*0.5);
+  } else if (cid === 'precision_driver') {
+    club = panel(`M${hx} ${hy} L${hx+13} ${hy+40}`,1.6,0.6)
+      + panel(`M${hx+9} ${hy+37} Q${hx+17} ${hy+38} ${hx+19} ${hy+45} Q${hx+17} ${hy+52} ${hx+8} ${hy+52} Q${hx} ${hy+50} ${hx+2} ${hy+43} Z`,1.15,0.83);
+  } else if (cid === 'platinum_shaft') {
+    club = panel(`M${hx-0.5} ${hy} L${hx+14} ${hy+43}`,2.1,0.6)
+      + panel(`M${hx+11} ${hy+40} l10 3 l-3 9 l-10-3 Z`,1.2,0.85)
+      + gl(`M${hx-0.5} ${hy} L${hx+14} ${hy+43}`,0.6,0.3);
+  } else {
+    club = panel(`M${hx} ${hy} L${hx+12} ${hy+37}`,1.4,0.55)
+      + panel(`M${hx+10} ${hy+35} l7 3 l-2 6 l-7-3 Z`,1,0.8);
   }
 
-  // ── HEAD — skin-tint face, hair silhouette, eye slits ──
+  // ── HEAD ──
   const head = `
-    <!-- face — skin tint fill -->
-    <circle cx="75" cy="52" r="14" fill="${skin}" opacity="0.45"/>
-    <circle cx="75" cy="52" r="14" fill="none" stroke="${struct}" stroke-width="1.2"/>
-    <!-- structural face cross -->
-    <line x1="75" y1="40" x2="75" y2="64" stroke="${dimCol}" stroke-width="0.5"/>
-    <line x1="63" y1="52" x2="87" y2="52" stroke="${dimCol}" stroke-width="0.5"/>
-    <!-- hair — filled silhouette in actual hair color -->
-    <path d="M61 50 Q61 35 75 35 Q89 35 89 50 Q85 43 75 43 Q65 43 61 50 Z" fill="${hairColor}" opacity="0.9"/>
-    <path d="M61 50 Q61 35 75 35 Q89 35 89 50 Q85 43 75 43 Q65 43 61 50 Z" fill="none" stroke="${struct}" stroke-width="0.7"/>
-    <!-- eye lines — kit color, bright -->
-    ${lg(67,49,72,49, 1.5, kitOp)}
-    ${lg(78,49,83,49, 1.5, kitOp)}
-  `;
+    <path d="M62 51 Q62 33 75 31 Q88 33 88 51 Q88 63 75 65 Q62 63 62 51 Z" fill="${skin}" opacity="0.44" stroke="none"/>
+    ${panel(`M62 51 Q62 33 75 31 Q88 33 88 51 Q88 63 75 65 Q62 63 62 51 Z`,1.25,0.0)}
+    <line x1="75" y1="36" x2="75" y2="65" stroke="${dimCol}" stroke-width="0.5"/>
+    <line x1="63" y1="51" x2="87" y2="51" stroke="${dimCol}" stroke-width="0.5"/>
+    ${panel(`M63 45 Q65 41 75 41 Q85 41 87 45 L87 50 Q85 47 75 47 Q65 47 63 50 Z`,1.05,0.87,kitOp)}
+    <line x1="65" y1="47" x2="72" y2="47" stroke="${kit}" stroke-width="2.8" opacity="${kitOp}" stroke-linecap="round"/>
+    <line x1="65" y1="47" x2="72" y2="47" stroke="${kit}" stroke-width="7" opacity="${kitOp*0.13}" stroke-linecap="round"/>
+    <line x1="78" y1="47" x2="85" y2="47" stroke="${kit}" stroke-width="2.8" opacity="${kitOp}" stroke-linecap="round"/>
+    <line x1="78" y1="47" x2="85" y2="47" stroke="${kit}" stroke-width="7" opacity="${kitOp*0.13}" stroke-linecap="round"/>
+    <path d="M62 50 Q62 31 75 30 Q88 31 88 50 Q84 43 75 43 Q66 43 62 50 Z" fill="${hairColor}" opacity="0.90"/>
+    <path d="M62 50 Q62 31 75 30 Q88 31 88 50 Q84 43 75 43 Q66 43 62 50 Z" fill="none" stroke="${struct}" stroke-width="0.7"/>
+    ${gl(`M68 62 Q75 66 82 62`,0.75,kitOp*0.42)}`;
 
   // ── HEADWEAR ──
   const hid = equipped.headwear;
   let headwear = '';
-  if (hid === 'tour_visor' || hid === 'operator_cap') {
-    headwear = pg(`M61 47 Q75 36 89 47 L94 48 L56 48 Z`, 1.1);
+  if (hid === 'tour_visor') {
+    headwear = panel(`M58 43 Q62 37 75 36 Q88 37 92 43 L96 44 L96 46 L54 46 L54 44 Z`,1.25,0.9,kitOp);
+  } else if (hid === 'operator_cap') {
+    headwear = panel(`M61 50 Q61 32 75 30 Q89 32 89 50 Q85 43 75 43 Q65 43 61 50 Z`,1.1,0.92,kitOp)
+      + panel(`M56 44 L94 44 L97 46 L53 46 Z`,1.0,0.88,kitOp);
   } else if (hid === 'crown_discipline') {
-    headwear = pg(`M63 43 L69 49 L75 38 L81 49 L87 43 L85 50 L65 50 Z`, 1.1);
+    headwear = panel(`M64 43 L70 50 L75 37 L80 50 L86 43 L84 51 L66 51 Z`,1.25,0.87,kitOp*1.1)
+      + cg(75, 37, 3, 1.1, kitOp);
   } else if (hid === 'champions_halo') {
-    headwear = cg(75, 35, 16, 1.5, kitOp*0.9);
+    headwear = cg(75, 26, 17, 1.7, kitOp*0.95)
+      + cg(75, 26, 13.5, 0.85, kitOp*0.5)
+      + `<circle cx="75" cy="26" r="2.5" fill="${kit}" opacity="${kitOp*0.75}"/>`;
   } else if (champion) {
-    headwear = pg(`M63 30 L70 40 L75 28 L80 40 L87 30 L85 46 L65 46 Z`, 1.2);
+    headwear = panel(`M65 30 L70 40 L75 28 L80 40 L85 30 L83 47 L67 47 Z`,1.25,0.82,kitOp);
   } else if (tierIdx >= 2) {
-    headwear = pg(`M61 47 Q75 35 89 47 L91 48 L59 48 Z`, 1);
+    headwear = panel(`M60 46 Q62 37 75 35 Q88 37 90 46 L93 47 L57 47 Z`,1.05,0.87,kitOp);
   }
 
   // ── ACCESSORY ──
   const acc = equipped.accessory;
   let accessory = '';
-  if (acc === 'range_glove') accessory = cg(lSX-7, 113, 5.5, 1.1);
-  else if (acc === 'iron_chain') accessory = pg(`M68 70 Q75 78 82 70`, 1.2);
-  else if (acc === 'scholars_mark') accessory = `<rect x="${lSX-5}" y="98" width="9" height="12" rx="1" fill="none" stroke="${kit}" stroke-width="0.9" opacity="${kitOp}"/>`;
-  else if (acc === 'builders_sigil') accessory = pg(`M${rSX-10} 96 l4-4 l4 4 l-4 4 Z`, 1.2);
+  if (acc === 'range_glove') {
+    accessory = panel(`M${lSX-law-1.5} 116 Q${lSX-law*0.8} 113 ${lSX} 113 Q${lSX+law*0.8} 113 ${lSX+law+1.5} 116 L${lSX+law*0.72} 117 Q${lSX+law*0.82} 123 ${lSX} 124 Q${lSX-law*0.82} 123 ${lSX-law*0.72} 117 Z`,0.95,0.88,kitOp)
+      + gl(`M${lSX-law*0.5} 118 L${lSX-law*0.5} 123`,0.5,kitOp*0.45)+gl(`M${lSX+law*0.5} 118 L${lSX+law*0.5} 123`,0.5,kitOp*0.45);
+  } else if (acc === 'iron_chain') {
+    accessory = gl(`M67 62 Q68 68 70 73 Q75 76 80 73 Q82 68 83 62`,1.3,kitOp*0.85)
+      + cg(75, 76, 4, 1.1, kitOp);
+  } else if (acc === 'scholars_mark') {
+    accessory = panel(`M${lSX-6} 93 L${lSX-6} 109 L${lSX+6} 109 L${lSX+6} 93 Z`,1.05,0.87,kitOp)
+      + gl(`M${lSX-5} 97 L${lSX+5} 97`,0.55,kitOp*0.5)+gl(`M${lSX-5} 101 L${lSX+5} 101`,0.55,kitOp*0.5)
+      + gl(`M${lSX-5} 105 L${lSX+5} 105`,0.55,kitOp*0.5)+gl(`M${lSX} 93 L${lSX} 109`,0.5,kitOp*0.35);
+  } else if (acc === 'builders_sigil') {
+    accessory = panel(`M${rSX-1} 87 L${rSX+7} 95 L${rSX-1} 103 L${rSX-9} 95 Z`,1.3,0.72,kitOp)
+      + cg(rSX-1, 95, 3, 0.9, kitOp*0.65);
+  }
 
-  // ── WATERMARK ──
-  const watermark = `<text x="75" y="184" text-anchor="middle" font-family="monospace" font-size="4.5" fill="${dimCol}" letter-spacing="0.12em">SHANAAH SYSTEMS</text>`;
-
-  return `
-  <svg viewBox="0 0 150 190" xmlns="http://www.w3.org/2000/svg">
-    ${bpGrid}
-    ${aura}
-    ${particles}
-    ${annotations}
-    ${legs}
-    ${torso}
-    ${reactor}
-    ${arms}
-    ${accessory}
-    ${club}
-    ${head}
-    ${headwear}
-    ${watermark}
+  return `<svg viewBox="0 0 150 190" xmlns="http://www.w3.org/2000/svg">
+    ${bpGrid}${aura}${particles}${annotations}
+    ${legs}${torso}${reactor}${arms}${accessory}${club}${head}${headwear}
   </svg>`;
 }
 
