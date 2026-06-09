@@ -1544,6 +1544,49 @@
   /* rest day dims golf/gym tiles */
   #today-form.is-rest .mission-tile.golf-gym { opacity: 0.3; pointer-events: none; }
   #today-form.is-rest .mission-tile.golf-gym.cleared { opacity: 0.7; pointer-events: auto; }
+
+  /* Nutrition tiles use steel-blue accent */
+  .mission-tile.fuel-cleared {
+    border-color: rgba(90,122,144,0.55) !important;
+    background: rgba(90,122,144,0.07) !important;
+    box-shadow: 0 0 18px rgba(90,122,144,0.07), inset 0 0 14px rgba(90,122,144,0.04) !important;
+  }
+  .mission-tile.fuel-cleared::before, .mission-tile.fuel-cleared::after { border-color: var(--accent2) !important; }
+
+  /* Snack honesty selector — tactical HUD style */
+  .snack-hud {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; margin-bottom: 16px;
+  }
+  .snack-opt {
+    position: relative; overflow: hidden; border-radius: 5px;
+    border: 1px solid var(--border); background: rgba(8,9,10,0.85);
+    padding: 14px 6px 10px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.2s, background 0.2s;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .snack-opt::before, .snack-opt::after {
+    content: ''; position: absolute; width: 6px; height: 6px;
+    border-color: rgba(255,255,255,0.15); border-style: solid; transition: border-color 0.2s;
+  }
+  .snack-opt::before { top: 3px; left: 3px; border-width: 1px 0 0 1px; }
+  .snack-opt::after  { bottom: 3px; right: 3px; border-width: 0 1px 1px 0; }
+  .snack-opt .so-code { font-family: var(--mono); font-size: 8px; letter-spacing: 0.14em; color: var(--muted); }
+  .snack-opt .so-name { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text); }
+  .snack-opt .so-bar { width: 100%; height: 2px; background: var(--border); border-radius: 1px; margin-top: 4px; transition: background 0.2s; }
+  /* clean = green, slip = amber, blowup = red */
+  .snack-opt[data-val="clean"].selected { border-color: rgba(63,158,106,0.55); background: rgba(63,158,106,0.07); }
+  .snack-opt[data-val="clean"].selected .so-code,.snack-opt[data-val="clean"].selected .so-name { color: var(--green); }
+  .snack-opt[data-val="clean"].selected .so-bar { background: var(--green); }
+  .snack-opt[data-val="clean"].selected::before,.snack-opt[data-val="clean"].selected::after { border-color: var(--green); }
+  .snack-opt[data-val="slip"].selected { border-color: rgba(200,150,60,0.55); background: rgba(200,150,60,0.07); }
+  .snack-opt[data-val="slip"].selected .so-code,.snack-opt[data-val="slip"].selected .so-name { color: #c89640; }
+  .snack-opt[data-val="slip"].selected .so-bar { background: #c89640; }
+  .snack-opt[data-val="slip"].selected::before,.snack-opt[data-val="slip"].selected::after { border-color: #c89640; }
+  .snack-opt[data-val="blowup"].selected { border-color: rgba(192,69,63,0.55); background: rgba(192,69,63,0.07); }
+  .snack-opt[data-val="blowup"].selected .so-code,.snack-opt[data-val="blowup"].selected .so-name { color: var(--red); }
+  .snack-opt[data-val="blowup"].selected .so-bar { background: var(--red); }
+  .snack-opt[data-val="blowup"].selected::before,.snack-opt[data-val="blowup"].selected::after { border-color: var(--red); }
 </style>
 </head>
 <body>
@@ -1754,11 +1797,17 @@
         <div class="sys-label first">System Status</div>
         <div id="nutri-habit-list" class="hud-frame" style="padding:8px 8px 1px;border-radius:12px;background:rgba(10,11,12,0.4);border:1px solid var(--border)"><span class="hud-corners"></span></div>
 
-        <div class="sys-label">Snacking Honesty</div>
-        <div class="radio-group" id="snack-radio">
-          <div class="radio-opt green-sel" data-val="clean" onclick="selectSnack(this)">Clean Day</div>
-          <div class="radio-opt" data-val="slip" onclick="selectSnack(this)">Minor Slip</div>
-          <div class="radio-opt" data-val="blowup" onclick="selectSnack(this)">Full Blowup</div>
+        <div class="sys-label">// Integrity Assessment</div>
+        <div class="snack-hud" id="snack-radio">
+          <div class="snack-opt selected" data-val="clean" onclick="selectSnack(this)">
+            <div class="so-code">INT·01</div><div class="so-name">Clean</div><div class="so-bar"></div>
+          </div>
+          <div class="snack-opt" data-val="slip" onclick="selectSnack(this)">
+            <div class="so-code">INT·02</div><div class="so-name">Slip</div><div class="so-bar"></div>
+          </div>
+          <div class="snack-opt" data-val="blowup" onclick="selectSnack(this)">
+            <div class="so-code">INT·03</div><div class="so-name">Critical</div><div class="so-bar"></div>
+          </div>
         </div>
 
         <div class="sys-label">Notes</div>
@@ -2085,15 +2134,14 @@ const HABITS = [
   { key: 'putting', label: 'Putting Session', sub: null },
   { key: 'gymWarmup', label: 'Gym — Dynamic Warmup', sub: null },
   { key: 'gymLifting', label: 'Gym — Lifting Session', sub: null },
-  { key: 'course9', label: 'On Course — 9 Holes', sub: null },
-  { key: 'course18', label: 'On Course — 18 Holes', sub: null },
+  { key: 'onCourse', label: 'On Course', sub: null },
   { key: 'nexflow', label: 'NexFlow Work', sub: null },
   { key: 'reading', label: 'Quran / Reading', sub: null },
   { key: 'stateReset', label: 'State Reset Before Performance', sub: 'Breathing, visualisation, routine' },
 ];
 
 // Golf/gym-specific habits excluded from scoring on a rest day
-const REST_EXCLUDE = ['rangeDrills','shortGame','putting','gymWarmup','gymLifting','course9','course18'];
+const REST_EXCLUDE = ['rangeDrills','shortGame','putting','gymWarmup','gymLifting','onCourse'];
 
 let habitState = {};
 let restDay = false;
@@ -2110,7 +2158,7 @@ function toggleRestDay() {
   applyRestUI();
 }
 
-const MISSION_CODES = ['GOLF·01','GOLF·02','GOLF·03','PHYS·01','PHYS·02','FIELD·01','FIELD·02','SYS·01','SYS·02','SYS·03'];
+const MISSION_CODES = ['GOLF·01','GOLF·02','GOLF·03','PHYS·01','PHYS·02','FIELD·01','SYS·01','SYS·02','SYS·03'];
 const CR_R = 44, CR_CIRC = 2 * Math.PI * CR_R;
 
 function updateCommandRing() {
@@ -2577,36 +2625,67 @@ let nutriHabitState = {};
 let snackRating = 'clean';
 
 function buildNutriList() {
+  const NUTRI_CODES = ['FUEL·01','FUEL·02','FUEL·03','FUEL·04','FUEL·05','FUEL·06'];
+  const NR = 40, NCIRC = 2 * Math.PI * NR;
   const container = $('nutri-habit-list');
-  container.innerHTML = '';
-  NUTRI_HABITS.forEach(h => {
-    const row = document.createElement('div');
-    row.className = 'nutri-row' + (nutriHabitState[h.key] ? ' checked' : '');
-    row.setAttribute('data-key', h.key);
-    row.innerHTML = `
-      <span class="hab-node">${nutriHabitState[h.key] ? '[✓]' : '[ ]'}</span>
-      <div class="habit-check">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#0a0a0a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="2 7 5.5 10.5 12 3.5"/>
-        </svg>
-      </div>
-      <div class="habit-label">
-        ${h.label}
-        ${h.sub ? `<small>${h.sub}</small>` : ''}
-      </div>
-      <span class="hab-status">ONLINE</span>
+  const nticks = Array.from({length:20},(_,i)=>{
+    const a=(i/20)*Math.PI*2-Math.PI/2;
+    const r1=48,r2=i%5===0?42:45;
+    return `<line x1="${52+r1*Math.cos(a)}" y1="${52+r1*Math.sin(a)}" x2="${52+r2*Math.cos(a)}" y2="${52+r2*Math.sin(a)}" stroke="rgba(255,255,255,0.1)" stroke-width="${i%5===0?1.4:0.7}"/>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="command-ring-wrap">
+      <svg class="command-ring-svg" width="112" height="112" viewBox="0 0 104 104">
+        ${nticks}
+        <circle class="cr-bg-ring" cx="52" cy="52" r="${NR}" stroke-width="3"/>
+        <circle id="ncr-arc" cx="52" cy="52" r="${NR}" stroke-width="3" fill="none"
+          stroke="${'#5a7a90'}" stroke-linecap="round" stroke-dasharray="${NCIRC}" stroke-dashoffset="${NCIRC}"
+          transform="rotate(-90 52 52)" style="transition:stroke-dashoffset 0.55s cubic-bezier(0.34,1.3,0.64,1)"/>
+        <text id="ncr-count" x="52" y="48" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="20" font-weight="700" fill="var(--text)">0</text>
+        <text x="52" y="65" text-anchor="middle" font-family="monospace" font-size="10" fill="var(--muted)">/ ${NUTRI_HABITS.length}</text>
+      </svg>
+      <div class="cr-label">// FUEL SYSTEMS STATUS</div>
+    </div>
+    <div class="mission-grid" id="nutri-mission-grid"></div>
+  `;
+
+  const grid = $('nutri-mission-grid');
+  NUTRI_HABITS.forEach((h, i) => {
+    const tile = document.createElement('div');
+    tile.className = 'mission-tile' + (nutriHabitState[h.key] ? ' cleared fuel-cleared' : '');
+    tile.setAttribute('data-key', h.key);
+    tile.innerHTML = `
+      <div class="mt-scan"></div>
+      <div class="mt-code" style="${nutriHabitState[h.key]?'color:var(--accent2)':''}">${NUTRI_CODES[i]||'FUEL·??'}</div>
+      <div class="mt-name">${h.label}${h.sub?`<br><span style="font-size:9px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400">${h.sub}</span>`:''}</div>
+      <div class="mt-status" style="${nutriHabitState[h.key]?'color:var(--accent2)':''}">${nutriHabitState[h.key]?'▶ ACTIVE':'◌ STANDBY'}</div>
     `;
-    row.addEventListener('click', () => {
+    tile.addEventListener('click', () => {
       nutriHabitState[h.key] = !nutriHabitState[h.key];
-      row.classList.toggle('checked', nutriHabitState[h.key]);
-      row.querySelector('.hab-node').textContent = nutriHabitState[h.key] ? '[✓]' : '[ ]';
+      const on = nutriHabitState[h.key];
+      tile.classList.toggle('cleared', on);
+      tile.querySelector('.mt-code').style.color = on ? 'var(--accent2)' : '';
+      tile.querySelector('.mt-status').textContent = on ? '▶ ACTIVE' : '◌ STANDBY';
+      tile.querySelector('.mt-status').style.color = on ? 'var(--accent2)' : '';
+      updateNutriRing();
     });
-    container.appendChild(row);
+    grid.appendChild(tile);
   });
+  updateNutriRing();
+}
+
+function updateNutriRing() {
+  const arc = $('ncr-arc'), cnt = $('ncr-count');
+  if (!arc || !cnt) return;
+  const NR = 40, NCIRC = 2 * Math.PI * NR;
+  const checked = NUTRI_HABITS.filter(h => nutriHabitState[h.key]).length;
+  arc.style.strokeDashoffset = NCIRC - (checked / NUTRI_HABITS.length) * NCIRC;
+  cnt.textContent = checked;
 }
 
 function selectSnack(el) {
-  document.querySelectorAll('#snack-radio .radio-opt').forEach(o => o.classList.remove('selected'));
+  document.querySelectorAll('#snack-radio .snack-opt').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
   snackRating = el.getAttribute('data-val');
 }
@@ -3224,14 +3303,181 @@ function physiqueStage() {
 function buildCharSvg(tierIdx, kit, skin, hairId, equipped, phys) {
   equipped = equipped || {};
   phys = phys || { idx:0, shoulder:0, torso:0, arm:0 };
-  const hair = (HAIR_OPTS.find(h=>h.id===hairId)||HAIR_OPTS[0]).color;
-  const goldTrim = tierIdx >= 1;
   const auraGlow = tierIdx >= 2;
   const champion = tierIdx >= 4;
   const tourPlayer = tierIdx >= 3;
-  const trimColor = '#e8e8ea';
 
-  // ── PHYSIQUE: body widens with real training ──
+  // Schematic brightness scales with tier
+  const baseOp = Math.min(0.35 + tierIdx * 0.13, 0.95);
+  const lineCol = `rgba(215,222,230,${baseOp})`;
+  const dimCol  = `rgba(160,175,190,0.18)`;
+  const accentCol = tierIdx >= 2 ? '#5a7a90' : 'rgba(90,122,144,0.55)';
+  const reactorOp = 0.35 + tierIdx * 0.14;
+
+  const sh = phys.shoulder, tw = phys.torso;
+  const lSX = 55 - sh, rSX = 95 + sh;
+  const lWX = 60 - tw, rWX = 90 + tw;
+  const armW = 1.6 + phys.arm * 0.25;
+
+  // Blueprint dot-grid background
+  const bpGrid = `
+    <defs>
+      <pattern id="bpg" width="9" height="9" patternUnits="userSpaceOnUse">
+        <circle cx="0" cy="0" r="0.55" fill="rgba(80,110,140,0.12)"/>
+      </pattern>
+      <radialGradient id="auraGrad" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#e8e8ea" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#e8e8ea" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="auraCold" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#9ec3e0" stop-opacity="0.95"/>
+        <stop offset="100%" stop-color="#9ec3e0" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="auraPhantom" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#aab4bc" stop-opacity="0.85"/>
+        <stop offset="100%" stop-color="#aab4bc" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="150" height="190" fill="url(#bpg)"/>
+  `;
+
+  // Head — schematic circle + face crosshair + eye lines
+  const head = `
+    <circle cx="75" cy="52" r="14" fill="none" stroke="${lineCol}" stroke-width="1.3"/>
+    <line x1="75" y1="40" x2="75" y2="64" stroke="${dimCol}" stroke-width="0.55"/>
+    <line x1="63" y1="52" x2="87" y2="52" stroke="${dimCol}" stroke-width="0.55"/>
+    <line x1="68" y1="49" x2="72" y2="49" stroke="${accentCol}" stroke-width="1.6" stroke-linecap="round"/>
+    <line x1="78" y1="49" x2="82" y2="49" stroke="${accentCol}" stroke-width="1.6" stroke-linecap="round"/>
+    <rect x="71" y="64" width="8" height="8" fill="none" stroke="${lineCol}" stroke-width="0.9"/>
+  `;
+
+  // Torso — outline + chest plate structure
+  const torso = `
+    <line x1="${lSX}" y1="78" x2="${rSX}" y2="78" stroke="${lineCol}" stroke-width="1"/>
+    <path d="M${lSX} 78 L${lWX} 120 L${rWX} 120 L${rSX} 78 Z" fill="none" stroke="${lineCol}" stroke-width="1.3"/>
+    <path d="M${lSX+7} 78 L${lSX+9} 94 L${lWX+7} 112 L${rWX-7} 112 L${rSX-9} 94 L${rSX-7} 78" fill="none" stroke="${dimCol}" stroke-width="0.7"/>
+    <path d="M68 70 L75 78 L82 70" fill="none" stroke="${lineCol}" stroke-width="1"/>
+    <line x1="${lWX}" y1="120" x2="${rWX}" y2="120" stroke="${lineCol}" stroke-width="0.8"/>
+  `;
+
+  // Arc reactor — chest power core
+  const rr = 6.5 + tw * 0.5;
+  const reactor = `
+    <circle cx="75" cy="96" r="${rr}" fill="none" stroke="${accentCol}" stroke-width="1.5" opacity="${reactorOp}"/>
+    <circle cx="75" cy="96" r="${rr*0.58}" fill="none" stroke="${accentCol}" stroke-width="0.9" opacity="${reactorOp*0.75}"/>
+    ${tierIdx >= 1 ? `<circle cx="75" cy="96" r="${rr*0.24}" fill="${accentCol}" opacity="${reactorOp}"/>` : ''}
+    ${auraGlow ? `<circle cx="75" cy="96" r="${rr*1.4}" fill="${accentCol}" opacity="0.05" stroke="none"/>` : ''}
+  `;
+
+  // Arms — outline paths + hand circles
+  const arms = `
+    <path d="M${lSX} 80 Q${lSX-10} 94 ${lSX-8} 109" fill="none" stroke="${lineCol}" stroke-width="${armW}" stroke-linecap="round"/>
+    <circle cx="${lSX-8}" cy="111" r="3" fill="none" stroke="${lineCol}" stroke-width="0.9"/>
+    <path d="M${rSX} 80 Q${rSX+10} 94 ${rSX+8} 109" fill="none" stroke="${lineCol}" stroke-width="${armW}" stroke-linecap="round"/>
+    <circle cx="${rSX+8}" cy="111" r="3" fill="none" stroke="${lineCol}" stroke-width="0.9"/>
+  `;
+
+  // Legs — outline rects + knee joint lines + feet
+  const legs = `
+    <rect x="62" y="120" width="10" height="48" rx="2" fill="none" stroke="${lineCol}" stroke-width="1.1"/>
+    <rect x="78" y="120" width="10" height="48" rx="2" fill="none" stroke="${lineCol}" stroke-width="1.1"/>
+    <line x1="62" y1="144" x2="72" y2="144" stroke="${dimCol}" stroke-width="0.6"/>
+    <line x1="78" y1="144" x2="88" y2="144" stroke="${dimCol}" stroke-width="0.6"/>
+    <path d="M59 168 L73 168 L75 172 L57 172 Z" fill="none" stroke="${lineCol}" stroke-width="0.9"/>
+    <path d="M77 168 L91 168 L93 172 L75 172 Z" fill="none" stroke="${lineCol}" stroke-width="0.9"/>
+  `;
+
+  // Annotation dimension lines (tier 1+)
+  const annotations = tierIdx >= 1 ? `
+    <line x1="${lSX-1}" y1="74" x2="${lSX-14}" y2="65" stroke="${dimCol}" stroke-width="0.55"/>
+    <line x1="${lSX-20}" y1="65" x2="${lSX-8}" y2="65" stroke="${dimCol}" stroke-width="0.55"/>
+    <line x1="${rSX+13}" y1="38" x2="${rSX+13}" y2="170" stroke="${dimCol}" stroke-width="0.5"/>
+    <line x1="${rSX+10}" y1="38" x2="${rSX+16}" y2="38" stroke="${dimCol}" stroke-width="0.5"/>
+    <line x1="${rSX+10}" y1="170" x2="${rSX+16}" y2="170" stroke="${dimCol}" stroke-width="0.5"/>
+  ` : '';
+
+  // Club (schematic outlines)
+  const cid = equipped.club;
+  const hx = rSX + 8, hy = 111;
+  let club = `
+    <line x1="${hx}" y1="${hy}" x2="${hx+15}" y2="${hy+38}" stroke="rgba(180,185,192,0.45)" stroke-width="1.4"/>
+    <path d="M${hx+13} ${hy+36} l6 2 l-2 6 l-6-2 z" fill="none" stroke="rgba(150,155,162,0.5)" stroke-width="0.8"/>
+  `;
+  if (['forged_iron','the_scalpel','zero_blade'].includes(cid)) {
+    club = `
+      <line x1="${hx}" y1="${hy}" x2="${hx+15}" y2="${hy+40}" stroke="${lineCol}" stroke-width="1.6"/>
+      <path d="M${hx+13} ${hy+38} l8 3 l-2 6 l-8-3 z" fill="none" stroke="${lineCol}" stroke-width="0.9"/>
+    `;
+  } else if (['precision_driver','platinum_shaft'].includes(cid)) {
+    club = `
+      <line x1="${hx}" y1="${hy}" x2="${hx+16}" y2="${hy+41}" stroke="${lineCol}" stroke-width="1.8"/>
+      <ellipse cx="${hx+17}" cy="${hy+42}" rx="6" ry="4" fill="none" stroke="${accentCol}" stroke-width="1"/>
+    `;
+  }
+
+  // Headwear (schematic)
+  const hid = equipped.headwear;
+  let headwear = '';
+  if (hid === 'tour_visor' || hid === 'operator_cap') {
+    headwear = `<path d="M61 47 Q75 36 89 47 L95 48 L57 48 Z" fill="none" stroke="${accentCol}" stroke-width="1.1"/>`;
+  } else if (hid === 'crown_discipline') {
+    headwear = `<path d="M62 43 L68 49 L75 38 L82 49 L88 43 L86 50 L64 50 Z" fill="none" stroke="${lineCol}" stroke-width="1.1"/>`;
+  } else if (hid === 'champions_halo') {
+    headwear = `<ellipse cx="75" cy="35" rx="16" ry="4" fill="none" stroke="${lineCol}" stroke-width="1.4" opacity="0.9"/>`;
+  } else if (champion) {
+    headwear = `<path d="M62 30 L70 40 L75 28 L80 40 L88 30 L86 46 L64 46 Z" fill="none" stroke="${lineCol}" stroke-width="1.2"/>`;
+  } else if (tierIdx >= 2) {
+    headwear = `<path d="M61 47 Q75 35 89 47 L91 48 L59 48 Z" fill="none" stroke="${lineCol}" stroke-width="1"/>`;
+  }
+
+  // Aura (dashed orbit rings instead of filled gradients)
+  const aid = equipped.aura;
+  let aura = '';
+  let particles = '';
+  if (aid === 'cold_fire' || aid === 'storm') {
+    aura = `
+      <ellipse cx="75" cy="100" rx="62" ry="82" fill="none" stroke="${accentCol}" stroke-width="0.9" opacity="0.35" stroke-dasharray="4 6"/>
+      <ellipse cx="75" cy="100" rx="70" ry="90" fill="none" stroke="${accentCol}" stroke-width="0.5" opacity="0.16" stroke-dasharray="2 9"/>
+    `;
+    if (aid === 'storm') particles = `
+      <path d="M70 60 l-5 14 l6 0 l-5 14" stroke="${accentCol}" stroke-width="1.3" fill="none" opacity="0.7"/>
+      <circle cx="48" cy="110" r="1.4" fill="${accentCol}"/><circle cx="104" cy="95" r="1.4" fill="${accentCol}"/>
+    `;
+  } else if (auraGlow || aid === 'focus_glow' || aid === 'phantom_aura') {
+    aura = `<ellipse cx="75" cy="100" rx="60" ry="80" fill="none" stroke="${lineCol}" stroke-width="0.6" opacity="0.15" stroke-dasharray="3 8"/>`;
+  }
+
+  // Accessory (schematic)
+  const acc = equipped.accessory;
+  let accessory = '';
+  if (acc === 'range_glove') accessory = `<circle cx="${lSX-8}" cy="111" r="4.5" fill="none" stroke="${lineCol}" stroke-width="1"/>`;
+  else if (acc === 'iron_chain') accessory = `<path d="M68 70 Q75 78 82 70" fill="none" stroke="${lineCol}" stroke-width="1.2"/>`;
+  else if (acc === 'scholars_mark') accessory = `<rect x="${lSX-4}" y="99" width="9" height="12" rx="1" fill="none" stroke="${lineCol}" stroke-width="0.8"/>`;
+  else if (acc === 'builders_sigil') accessory = `<path d="M${rSX-9} 96 l4-4 l4 4 l-4 4 z" fill="none" stroke="${accentCol}" stroke-width="1.2"/>`;
+
+  // Watermark label
+  const watermark = `<text x="75" y="184" text-anchor="middle" font-family="monospace" font-size="4.5" fill="rgba(90,122,144,0.38)" letter-spacing="0.12em">SHANAAH SYSTEMS</text>`;
+
+  return `
+  <svg viewBox="0 0 150 190" xmlns="http://www.w3.org/2000/svg">
+    ${bpGrid}
+    ${aura}
+    ${particles}
+    ${annotations}
+    ${legs}
+    ${torso}
+    ${reactor}
+    ${arms}
+    ${accessory}
+    ${club}
+    ${head}
+    ${headwear}
+    ${watermark}
+  </svg>`;
+}
+
+// ─── (dead code removed — schematic version above) ──────────────────
+function _unused_buildCharSvgOld_placeholder() {
   const sh = phys.shoulder;      // shoulder spread (px each side)
   const tw = phys.torso;         // torso taper widening
   const aw = 9 + phys.arm;       // arm stroke width
@@ -3754,7 +4000,7 @@ function init() {
     buildNutriList();
     snackRating = todayNut.snackRating || 'clean';
     $('n-notes').value = todayNut.notes || '';
-    document.querySelectorAll('#snack-radio .radio-opt').forEach(o => {
+    document.querySelectorAll('#snack-radio .snack-opt').forEach(o => {
       o.classList.remove('selected');
       if (o.getAttribute('data-val') === snackRating) o.classList.add('selected');
     });
