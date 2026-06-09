@@ -1851,8 +1851,7 @@
           <div class="dossier-cell"><div class="dk">Level</div><div class="dv accent" id="dos-level">01</div></div>
           <div class="dossier-cell"><div class="dk">Total XP</div><div class="dv" id="dos-xp">0</div></div>
           <div class="dossier-cell"><div class="dk">Frame</div><div class="dv accent" id="dos-frame">LEAN</div></div>
-          <div class="dossier-cell"><div class="dk">Loadout</div><div class="dv" id="dos-loadout">0 / 5</div></div>
-          <div class="dossier-cell full"><div class="dk">Designation</div><div class="dv" id="dos-title">—</div></div>
+          <div class="dossier-cell full"><div class="dk">Loadout</div><div class="dv" id="dos-loadout">0 / 5</div></div>
         </div>
       </div>
 
@@ -1888,10 +1887,6 @@
         <div class="cust-group">
           <span class="cust-lbl">Kit Color</span>
           <div class="opt-row" id="cust-kit"></div>
-        </div>
-        <div class="cust-group">
-          <span class="cust-lbl">Title</span>
-          <div class="opt-row" id="cust-title"></div>
         </div>
       </div>
     </div>
@@ -3404,6 +3399,19 @@ function buildCharSvg(tierIdx, kit, skin, hairId, equipped, phys) {
     <!-- shoulder pads (circles at joint) -->
     ${cg(lSX, 79, 5, 1.1)}
     ${cg(rSX, 79, 5, 1.1)}
+    <!-- outfit-specific panel detail -->
+    ${equipped.outfit === 'pro_kit' ? `
+      ${lg(lSX, 85, rSX, 85, 0.7, kitOp*0.6)}
+      ${lg(lWX+4, 116, rWX-4, 116, 0.7, kitOp*0.5)}
+    ` : ''}
+    ${equipped.outfit === 'tour_kit' ? `
+      ${lg(lSX+9, 82, rSX-9, 82, 0.7, kitOp*0.55)}
+      ${pg(`M${lSX+12} 86 L${lSX+10} 108 L${rWX-10} 108 L${rSX-12} 86 Z`, 0.6, kitOp*0.4)}
+    ` : ''}
+    ${equipped.outfit === 'blackout_kit' ? `
+      <rect x="${lSX}" y="78" width="${rSX-lSX}" height="${120-78}" fill="rgba(0,0,0,0.28)" stroke="none"/>
+      ${lg(lSX, 99, rSX, 99, 0.6, kitOp*0.45)}
+    ` : ''}
   `;
 
   // ── ARC REACTOR — silver/white, not blue ──
@@ -3637,7 +3645,6 @@ function renderCharacter() {
   $('dos-tier').textContent = tier.name;
   $('dos-level').textContent = String(level).padStart(2,'0');
   $('dos-xp').textContent = xp.toLocaleString();
-  $('dos-title').textContent = c.title || '—';
 
   // Attributes (bars)
   const attrs = computeAttributes();
@@ -3726,11 +3733,6 @@ function buildCustomize() {
   $('cust-kit').innerHTML = KIT_OPTS.map(k =>
     `<div class="opt-swatch ${c.kit===k?'sel':''}" style="background:${k}" onclick="setChar({kit:'${k}'})"></div>`).join('');
 
-  const titles = unlockedTitles();
-  let html = `<div class="opt-chip ${!c.title?'sel':''}" onclick="setChar({title:''})">None</div>`;
-  if (!titles.length) html += `<div class="opt-chip locked">Unlock via achievements</div>`;
-  html += titles.map(t => `<div class="opt-chip ${c.title===t?'sel':''}" onclick="setChar({title:'${t.replace(/'/g,"\\'")}'})">${t}</div>`).join('');
-  $('cust-title').innerHTML = html;
 }
 // name input -> save on change
 document.addEventListener('input', e => {
