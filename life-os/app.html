@@ -1481,6 +1481,69 @@
     .tab-panel.active { animation: none; }
     #boot-title.flash { animation: none; opacity: 1; }
   }
+
+  /* ── MISSION TILE GRID (replaces flat habit list) ── */
+  .command-ring-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    margin: 4px 0 18px; position: relative;
+  }
+  .command-ring-svg { overflow: visible; }
+  .cr-bg-ring { fill: none; stroke: rgba(255,255,255,0.06); }
+  .cr-arc { fill: none; stroke: var(--green); stroke-linecap: round;
+    transition: stroke-dashoffset 0.55s cubic-bezier(0.34,1.3,0.64,1); }
+  .cr-count { font-family: var(--mono); font-size: 22px; font-weight: 700; fill: var(--text); }
+  .cr-denom { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+  .cr-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+
+  .mission-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 7px;
+  }
+  .mission-tile {
+    position: relative; background: rgba(8,9,10,0.85);
+    border: 1px solid var(--border); border-radius: 5px;
+    padding: 11px 11px 9px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    overflow: hidden; min-height: 74px;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .mission-tile::before, .mission-tile::after {
+    content: ''; position: absolute;
+    width: 7px; height: 7px;
+    border-color: rgba(255,255,255,0.18); border-style: solid;
+    transition: border-color 0.2s;
+  }
+  .mission-tile::before { top: 4px; left: 4px; border-width: 1px 0 0 1px; }
+  .mission-tile::after  { bottom: 4px; right: 4px; border-width: 0 1px 1px 0; }
+  .mission-tile.cleared {
+    border-color: rgba(63,158,106,0.55);
+    background: rgba(63,158,106,0.07);
+    box-shadow: 0 0 18px rgba(63,158,106,0.07), inset 0 0 14px rgba(63,158,106,0.04);
+  }
+  .mission-tile.cleared::before, .mission-tile.cleared::after { border-color: var(--green); }
+  .mt-scan {
+    position: absolute; inset: 0; pointer-events: none; border-radius: 5px;
+    background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.016) 0 1px, transparent 1px 4px);
+  }
+  .mt-code {
+    font-family: var(--mono); font-size: 8px; letter-spacing: 0.14em;
+    color: var(--muted); text-transform: uppercase; transition: color 0.2s;
+  }
+  .mission-tile.cleared .mt-code { color: var(--green); }
+  .mt-name {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--text); line-height: 1.3; flex: 1;
+  }
+  .mt-status {
+    font-family: var(--mono); font-size: 8px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); transition: color 0.2s;
+  }
+  .mission-tile.cleared .mt-status { color: var(--green); }
+  /* rest day dims golf/gym tiles */
+  #today-form.is-rest .mission-tile.golf-gym { opacity: 0.3; pointer-events: none; }
+  #today-form.is-rest .mission-tile.golf-gym.cleared { opacity: 0.7; pointer-events: auto; }
 </style>
 </head>
 <body>
@@ -2047,34 +2110,64 @@ function toggleRestDay() {
   applyRestUI();
 }
 
+const MISSION_CODES = ['GOLF·01','GOLF·02','GOLF·03','PHYS·01','PHYS·02','FIELD·01','FIELD·02','SYS·01','SYS·02','SYS·03'];
+const CR_R = 44, CR_CIRC = 2 * Math.PI * CR_R;
+
+function updateCommandRing() {
+  const arc = $('cr-arc'), cnt = $('cr-count');
+  if (!arc || !cnt) return;
+  const checked = HABITS.filter(h => habitState[h.key]).length;
+  arc.style.strokeDashoffset = CR_CIRC - (checked / HABITS.length) * CR_CIRC;
+  cnt.textContent = checked;
+}
+
 function buildHabitList() {
   const container = $('habit-list');
-  container.innerHTML = '';
-  HABITS.forEach(h => {
-    const row = document.createElement('div');
-    row.className = 'habit-row' + (habitState[h.key] ? ' checked' : '')
+  const ticks = Array.from({length: 24}, (_, i) => {
+    const a = (i / 24) * Math.PI * 2 - Math.PI / 2;
+    const r1 = 52, r2 = i % 6 === 0 ? 45 : 49;
+    const sw = i % 6 === 0 ? 1.5 : 0.7;
+    return `<line x1="${60+r1*Math.cos(a)}" y1="${60+r1*Math.sin(a)}" x2="${60+r2*Math.cos(a)}" y2="${60+r2*Math.sin(a)}" stroke="rgba(255,255,255,0.11)" stroke-width="${sw}"/>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="command-ring-wrap">
+      <svg class="command-ring-svg" width="128" height="128" viewBox="0 0 120 120">
+        ${ticks}
+        <circle class="cr-bg-ring" cx="60" cy="60" r="${CR_R}" stroke-width="3"/>
+        <circle class="cr-arc" id="cr-arc" cx="60" cy="60" r="${CR_R}" stroke-width="3"
+          stroke-dasharray="${CR_CIRC}" stroke-dashoffset="${CR_CIRC}"
+          transform="rotate(-90 60 60)" style="stroke-dashoffset:${CR_CIRC}"/>
+        <text class="cr-count" id="cr-count" x="60" y="56" text-anchor="middle" dominant-baseline="central">0</text>
+        <text class="cr-denom" x="60" y="73" text-anchor="middle">/ ${HABITS.length}</text>
+      </svg>
+      <div class="cr-label">// DAILY OPS STATUS</div>
+    </div>
+    <div class="mission-grid" id="mission-grid"></div>
+  `;
+
+  const grid = $('mission-grid');
+  HABITS.forEach((h, i) => {
+    const tile = document.createElement('div');
+    tile.className = 'mission-tile'
+      + (habitState[h.key] ? ' cleared' : '')
       + (REST_EXCLUDE.includes(h.key) ? ' golf-gym' : '');
-    row.setAttribute('data-key', h.key);
-    row.innerHTML = `
-      <span class="hab-node">${habitState[h.key] ? '[✓]' : '[ ]'}</span>
-      <div class="habit-check">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#0a0a0a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="2 7 5.5 10.5 12 3.5"/>
-        </svg>
-      </div>
-      <div class="habit-label">
-        ${h.label}
-        ${h.sub ? `<small>${h.sub}</small>` : ''}
-      </div>
-      <span class="hab-status">ONLINE</span>
+    tile.setAttribute('data-key', h.key);
+    tile.innerHTML = `
+      <div class="mt-scan"></div>
+      <div class="mt-code">${MISSION_CODES[i] || 'SYS·??'}</div>
+      <div class="mt-name">${h.label}</div>
+      <div class="mt-status">${habitState[h.key] ? '▶ CLEARED' : '◌ STANDBY'}</div>
     `;
-    row.addEventListener('click', () => {
+    tile.addEventListener('click', () => {
       habitState[h.key] = !habitState[h.key];
-      row.classList.toggle('checked', habitState[h.key]);
-      row.querySelector('.hab-node').textContent = habitState[h.key] ? '[✓]' : '[ ]';
+      tile.classList.toggle('cleared', habitState[h.key]);
+      tile.querySelector('.mt-status').textContent = habitState[h.key] ? '▶ CLEARED' : '◌ STANDBY';
+      updateCommandRing();
     });
-    container.appendChild(row);
+    grid.appendChild(tile);
   });
+  updateCommandRing();
 }
 
 function checkSavedDay() {
