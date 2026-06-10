@@ -60,6 +60,35 @@
     });
   }
 
+  /* ---------- Custom Balls landing: two-line studio + FAQ ---------- */
+  const cbLines = $$("#ballLines [data-line]");
+  if (cbLines.length) {
+    const l1 = $("#line1"), l2 = $("#line2");
+    const syncCB = () => {
+      if (cbLines[0]) cbLines[0].textContent = (l1.value.trim() || "YOUR").toUpperCase();
+      if (cbLines[1]) cbLines[1].textContent = (l2.value.trim() || "NAME").toUpperCase();
+    };
+    l1?.addEventListener("input", syncCB);
+    l2?.addEventListener("input", syncCB);
+    syncCB();
+    $("#swatches")?.addEventListener("click", (e) => {
+      const sw = e.target.closest(".swatch"); if (!sw) return;
+      $$("#swatches .swatch").forEach((s) => s.classList.remove("active")); sw.classList.add("active");
+      cbLines.forEach((b) => (b.style.color = sw.dataset.color));
+    });
+    const drop = $("#logoDrop");
+    drop?.addEventListener("click", () => {
+      drop.textContent = "✓  Great — attach your logo when you order or via WhatsApp.";
+      drop.style.color = "#7ac72e"; drop.style.borderColor = "#7ac72e";
+    });
+  }
+  $("#faq")?.addEventListener("click", (e) => {
+    const q = e.target.closest(".faq-q"); if (!q) return;
+    const item = q.parentElement, wasOpen = item.classList.contains("open");
+    $$("#faq .faq-item").forEach((i) => i.classList.remove("open"));
+    if (!wasOpen) item.classList.add("open");
+  });
+
   /* ---------- Cart count helper ---------- */
   const updateCartCount = async () => {
     try {

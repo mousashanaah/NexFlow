@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Custom Golf Balls — Free Printing | Golf4Less</title>
+  <meta name="description" content="Personalise tour-quality golf balls with your name, logo or text. FREE custom printing on 3+ dozen. Perfect for tournaments, corporate gifting and golf days across MENA & Africa." />
+  <link rel="icon" type="image/svg+xml" href="assets/img/logo-mark.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+
+  <div class="announce" aria-hidden="true">
+    <div class="track">
+      <span>⛳ <b>FREE</b> custom ball printing on 3+ dozen</span>
+      <span>🎁 Perfect for tournaments &amp; corporate gifting</span>
+      <span>🚚 Fast delivery across the <b>GCC &amp; Africa</b></span>
+      <span>💬 Bulk orders on <b>WhatsApp</b></span>
+      <span>⛳ <b>FREE</b> custom ball printing on 3+ dozen</span>
+      <span>🎁 Perfect for tournaments &amp; corporate gifting</span>
+      <span>🚚 Fast delivery across the <b>GCC &amp; Africa</b></span>
+      <span>💬 Bulk orders on <b>WhatsApp</b></span>
+    </div>
+  </div>
+
+  <header class="header" id="header">
+    <div class="wrap nav">
+      <a class="brand" href="index.html" aria-label="Golf4Less home">
+        <img class="mark" src="assets/img/logo-mark.svg" alt="" />
+        <span class="word">GOLF<b>4</b>LESS</span>
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="index.html#deals">Deals</a>
+        <a href="collection.html">Shop</a>
+        <a href="custom-balls.html" class="hot">Custom Balls</a>
+        <a href="index.html#corporate">Corporate</a>
+        <a href="index.html#social">Watch</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="icon-btn" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
+        <button class="icon-btn" aria-label="Account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></button>
+        <a class="icon-btn" href="checkout.html" aria-label="Cart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14l-1.5 12.5a1.5 1.5 0 0 1-1.5 1.5H8a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg><span class="cart-count" id="cartCount">0</span></a>
+        <button class="icon-btn burger" id="burger" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO + STUDIO -->
+  <section class="wrap cb-hero">
+    <div class="cb-hero-grid">
+      <div class="reveal">
+        <span class="eyebrow">Free Custom Printing</span>
+        <h1 class="display">Your Name.<br>On Every Ball.<br><span class="pop">Free.</span></h1>
+        <p class="lede">Design tour-quality golf balls in seconds — add a name, message or your company logo. <strong>Free printing on every order of 3 dozen or more.</strong></p>
+        <div class="cb-hero-cta">
+          <a href="#pricing" class="btn btn-dark">See Pricing
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a href="#bulk" class="btn btn-ghost">Get a Bulk Quote</a>
+        </div>
+        <div class="hero-trust" style="margin-top:30px">
+          <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Free print on 3+ dozen</div>
+          <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Names · text · logos</div>
+          <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> 5–7 day turnaround</div>
+        </div>
+      </div>
+
+      <!-- Live studio -->
+      <div class="studio reveal">
+        <div class="studio-stage">
+          <div class="studio-ball">
+            <img src="assets/img/golfball.svg" alt="Customisable golf ball" />
+            <div class="lines" id="ballLines"><b data-line>YOUR</b><b data-line>NAME</b></div>
+          </div>
+        </div>
+        <div class="studio-ctrls">
+          <div>
+            <label>Line 1</label>
+            <input type="text" id="line1" maxlength="10" placeholder="e.g. AHMED" value="YOUR" />
+          </div>
+          <div class="studio-row">
+            <div>
+              <label>Line 2</label>
+              <input type="text" id="line2" maxlength="10" placeholder="e.g. 2026" value="NAME" />
+            </div>
+            <div>
+              <label>Text colour</label>
+              <div class="swatches" id="swatches">
+                <span class="swatch active" style="background:#0e0e0e" data-color="#0e0e0e"></span>
+                <span class="swatch" style="background:#7ac72e" data-color="#7ac72e"></span>
+                <span class="swatch" style="background:#e23b3b" data-color="#e23b3b"></span>
+                <span class="swatch" style="background:#2f6fe0" data-color="#2f6fe0"></span>
+                <span class="swatch" style="background:#e0a02f" data-color="#e0a02f"></span>
+              </div>
+            </div>
+          </div>
+          <div class="logo-drop" id="logoDrop">📷 &nbsp;Uploading a company logo? Tap here — we'll handle the rest.</div>
+          <a href="#pricing" class="btn btn-green" style="justify-content:center">Personalise &amp; Order</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" style="padding-top:30px">
+    <div class="wrap">
+      <div class="section-head center reveal">
+        <span class="eyebrow">How It Works</span>
+        <h2 class="display">Three Steps to Personalised Balls</h2>
+      </div>
+      <div class="cb-steps">
+        <div class="cb-step reveal"><span class="ic">⛳</span><div class="num">1</div><h3>Choose Your Ball</h3><p>Pick from tour-quality balls — Titleist, Callaway, Srixon or our great-value Golf4Less line.</p></div>
+        <div class="cb-step reveal"><span class="ic">✏️</span><div class="num">2</div><h3>Personalise It</h3><p>Add a name, message, date or upload a logo. Preview it live before you order.</p></div>
+        <div class="cb-step reveal"><span class="ic">🚚</span><div class="num">3</div><h3>We Print &amp; Ship</h3><p>We print in-house and deliver across the GCC &amp; Africa in 5–7 days. Free on 3+ dozen.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- USE CASES -->
+  <section class="section" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">Made For</span>
+        <h2 class="display">One Ball, Endless Occasions</h2>
+      </div>
+      <div class="usecases">
+        <div class="usecase green reveal"><span class="emoji">🏆</span><h4>Tournaments</h4><p>Branded balls for every player — event name, sponsor logo and date, ready for tee-off.</p></div>
+        <div class="usecase reveal"><span class="emoji">🏢</span><h4>Corporate Gifting</h4><p>Impress clients and reward teams with logoed balls. Banks, real estate, hospitality — sorted.</p></div>
+        <div class="usecase reveal"><span class="emoji">🎁</span><h4>Personal Gifts</h4><p>Birthdays, Father's Day, retirements. A gift that lands every time.</p></div>
+        <div class="usecase reveal"><span class="emoji">💍</span><h4>Weddings &amp; Events</h4><p>Custom favours and keepsakes for the golf-loving couple or guests.</p></div>
+        <div class="usecase reveal"><span class="emoji">⛳</span><h4>Golf Days</h4><p>Society days, charity scrambles and member events — unify the field.</p></div>
+        <div class="usecase green reveal"><span class="emoji">🪪</span><h4>Find Your Ball</h4><p>Your name on it means no more arguments on the fairway. Simple.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="section" id="pricing" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head center reveal">
+        <span class="eyebrow">Smart-Value Pricing</span>
+        <h2 class="display">Buy More, Print Free</h2>
+        <p class="lede" style="margin-inline:auto">Prices below are indicative per dozen and include personalisation where shown. Final pricing depends on the ball you choose.</p>
+      </div>
+      <div class="pricing">
+        <div class="tier reveal">
+          <h4>Starter</h4><span class="qty-lbl">1 Dozen</span>
+          <div class="price">AED 99<small> /dozen</small></div>
+          <div class="print-tag">+ AED 49 printing</div>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> 1 line of text</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Choice of text colour</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Great for trying it out</li>
+          </ul>
+          <a href="checkout.html" class="btn btn-ghost">Order Now</a>
+        </div>
+        <div class="tier featured reveal">
+          <span class="pop-flag">⭐ Most Popular</span>
+          <h4>Free Print</h4><span class="qty-lbl">3 Dozen</span>
+          <div class="price">AED 89<small> /dozen</small></div>
+          <div class="print-tag free">✓ FREE printing</div>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Up to 2 lines of text</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Free personalisation</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Best value for gifting</li>
+          </ul>
+          <a href="checkout.html" class="btn btn-green">Order Now</a>
+        </div>
+        <div class="tier reveal">
+          <h4>Pro Pack</h4><span class="qty-lbl">6 Dozen</span>
+          <div class="price">AED 82<small> /dozen</small></div>
+          <div class="print-tag free">✓ FREE printing + logo</div>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Text + single-colour logo</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Priority production</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Ideal for golf days</li>
+          </ul>
+          <a href="checkout.html" class="btn btn-ghost">Order Now</a>
+        </div>
+        <div class="tier reveal">
+          <h4>Corporate</h4><span class="qty-lbl">10+ Dozen</span>
+          <div class="price">Custom<small> pricing</small></div>
+          <div class="print-tag free">✓ Full-colour logo</div>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Multi-colour logos</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Dedicated account manager</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Volume discounts</li>
+          </ul>
+          <a href="#bulk" class="btn btn-dark">Get a Quote</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALLERY -->
+  <section class="section" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">The Work</span>
+        <h2 class="display">Recently Printed</h2>
+      </div>
+      <div class="cb-gallery">
+        <div class="gball reveal" style="--c:#0e0e0e"><span style="color:#0e0e0e">AHMED</span></div>
+        <div class="gball reveal"><span style="color:#7ac72e">EAGLE</span></div>
+        <div class="gball reveal"><span style="color:#2f6fe0">DXB GC</span></div>
+        <div class="gball reveal"><span style="color:#e23b3b">PAR 4</span></div>
+        <div class="gball reveal"><span style="color:#e0a02f">2026</span></div>
+        <div class="gball reveal"><span style="color:#0e0e0e">DAD</span></div>
+        <div class="gball reveal"><span style="color:#7ac72e">BIRDIE</span></div>
+        <div class="gball reveal"><span style="color:#2f6fe0">FORE!</span></div>
+        <div class="gball reveal"><span style="color:#e23b3b">SARA</span></div>
+        <div class="gball reveal"><span style="color:#0e0e0e">G4L</span></div>
+        <div class="gball reveal"><span style="color:#e0a02f">ACE</span></div>
+        <div class="gball reveal"><span style="color:#7ac72e">PRO</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BULK / CORPORATE -->
+  <section class="section" id="bulk" style="padding-top:0">
+    <div class="wrap">
+      <div class="corp reveal">
+        <div class="corp-grid">
+          <div>
+            <span class="eyebrow">Bulk &amp; Corporate</span>
+            <h2 class="display">Big Orders, Better Prices</h2>
+            <p class="lede" style="color:rgba(255,255,255,.85)">Ordering for a tournament, company event or resort? Send us the brief and we'll come back with custom pricing, mock-ups and timelines within one business day.</p>
+            <ul>
+              <li>🏆 Tournaments</li><li>🏢 Corporates</li><li>🏨 Resorts</li><li>🏦 Banks</li><li>🎁 Gifting</li>
+            </ul>
+          </div>
+          <form class="corp-form" id="bulkForm">
+            <h4>Request a Quote</h4>
+            <p>The more detail, the faster we can price it.</p>
+            <div class="field"><input type="text" placeholder="Full name" required /></div>
+            <div class="field"><input type="text" placeholder="Company / event" /></div>
+            <div class="field"><input type="email" placeholder="Email" required /></div>
+            <div class="field">
+              <select required>
+                <option value="">Quantity needed</option>
+                <option>3–5 dozen</option>
+                <option>6–10 dozen</option>
+                <option>10–25 dozen</option>
+                <option>25+ dozen</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-green" style="width:100%;justify-content:center">Get My Quote</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head center reveal">
+        <span class="eyebrow">Good to Know</span>
+        <h2 class="display">Custom Ball FAQs</h2>
+      </div>
+      <div class="faq" id="faq">
+        <div class="faq-item"><button class="faq-q">When is printing free? <span class="pm">+</span></button><div class="faq-a"><p>Personalisation is completely free on any order of 3 dozen or more. For single dozen orders, printing is a small flat fee.</p></div></div>
+        <div class="faq-item"><button class="faq-q">Can I print a company logo? <span class="pm">+</span></button><div class="faq-a"><p>Yes. Single-colour logos are included from 6 dozen, and full-colour logos are available on corporate orders (10+ dozen). Upload your artwork and we'll send a mock-up for approval.</p></div></div>
+        <div class="faq-item"><button class="faq-q">How long does it take? <span class="pm">+</span></button><div class="faq-a"><p>Most personalised orders are printed and delivered within 5–7 working days across the UAE, with slightly longer timelines for wider GCC and Africa shipping. Rush options are available for events.</p></div></div>
+        <div class="faq-item"><button class="faq-q">Which ball brands can I customise? <span class="pm">+</span></button><div class="faq-a"><p>Titleist, Callaway, Srixon and TaylorMade, plus our value-led Golf4Less balls. Choose based on your budget and performance needs.</p></div></div>
+        <div class="faq-item"><button class="faq-q">Do you ship outside the UAE? <span class="pm">+</span></button><div class="faq-a"><p>Absolutely — we ship custom orders across the GCC and to key markets in Africa. Shipping is calculated at checkout, or included in corporate quotes.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="section" style="padding-top:0">
+    <div class="wrap">
+      <div class="cb-cta reveal">
+        <h2 class="display">Ready to Make It Yours?</h2>
+        <p>Design your balls in seconds, or talk to us about a bulk order. Free printing on 3+ dozen — always.</p>
+        <a href="#pricing" class="btn btn-dark">Start Customising</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-about">
+          <a class="brand" href="index.html"><img class="mark" src="assets/img/logo-mark.svg" alt="" /><span class="word">GOLF<b>4</b>LESS</span></a>
+          <p>The smartest way to shop golf across MENA &amp; Africa. Spend Less. Play More.</p>
+        </div>
+        <div class="footer-col"><h5>Shop</h5><a href="index.html#deals">Daily Deals</a><a href="collection.html">Clubs</a><a href="custom-balls.html">Custom Balls</a><a href="index.html#corporate">Gifting</a></div>
+        <div class="footer-col"><h5>Company</h5><a href="#">About</a><a href="index.html#social">Watch</a><a href="index.html#corporate">Corporate</a></div>
+        <div class="footer-col"><h5>Help</h5><a href="#">Shipping</a><a href="#">Returns</a><a href="#">WhatsApp Us</a></div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 Golf4Less. An eGolf Megastore venture.</span>
+        <div class="pays"><span>VISA</span><span>MASTERCARD</span><span>AMEX</span><span>APPLE PAY</span><span>TABBY</span><span>COD</span></div>
+      </div>
+    </div>
+  </footer>
+
+  <a class="wa-float" href="https://wa.me/" aria-label="Chat on WhatsApp">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.7 15l-1.3 5 5.1-1.3A10 10 0 1 0 12 2zm4.4 12.4c-.2-.1-1.4-.7-1.6-.8s-.4-.1-.5.1l-.8 1c-.1.2-.3.2-.5.1a6.5 6.5 0 0 1-3.2-2.8c-.1-.2 0-.4.1-.5l.4-.5c.1-.2.1-.3.2-.5s0-.3 0-.5l-.7-1.6c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.5.1-.7.3a3 3 0 0 0-1 2.3 5.3 5.3 0 0 0 1.1 2.8 12 12 0 0 0 4.7 4.1c2.3 1 2.3.7 2.7.6a2.6 2.6 0 0 0 1.7-1.2 2 2 0 0 0 .2-1.2c-.1-.1-.3-.2-.5-.3z"/></svg>
+    <b>Chat &amp; shop with us</b>
+  </a>
+
+  <div class="drawer" id="drawer">
+    <div class="scrim" data-close></div>
+    <nav class="panel" aria-label="Mobile">
+      <button class="close" data-close aria-label="Close">×</button>
+      <a href="index.html#deals" data-close>Deals</a>
+      <a href="collection.html" data-close>Shop</a>
+      <a href="custom-balls.html" data-close>Custom Balls</a>
+      <a href="index.html#corporate" data-close>Corporate</a>
+      <a href="index.html#social" data-close>Watch</a>
+    </nav>
+  </div>
+
+  <script src="assets/js/main.js"></script>
+  <script src="assets/js/custom-balls.js"></script>
+</body>
+</html>

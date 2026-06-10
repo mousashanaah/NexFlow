@@ -1,0 +1,240 @@
+{%- comment -%} Golf4Less — Custom Balls landing page {%- endcomment -%}
+
+<!-- HERO + STUDIO -->
+<section class="wrap cb-hero">
+  <div class="cb-hero-grid">
+    <div class="reveal">
+      <span class="eyebrow">{{ section.settings.eyebrow }}</span>
+      <h1 class="display">{{ section.settings.heading }}</h1>
+      <p class="lede">{{ section.settings.subtext }}</p>
+      <div class="cb-hero-cta">
+        <a href="#pricing" class="btn btn-dark">See Pricing
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a href="#bulk" class="btn btn-ghost">Get a Bulk Quote</a>
+      </div>
+      <div class="hero-trust" style="margin-top:30px">
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Free print on 3+ dozen</div>
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Names · text · logos</div>
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> 5–7 day turnaround</div>
+      </div>
+    </div>
+    <div class="studio reveal">
+      <div class="studio-stage">
+        <div class="studio-ball">
+          <img src="{{ 'golfball.svg' | asset_url }}" alt="Customisable golf ball">
+          <div class="lines" id="ballLines"><b data-line>YOUR</b><b data-line>NAME</b></div>
+        </div>
+      </div>
+      <div class="studio-ctrls">
+        <div><label>Line 1</label><input type="text" id="line1" maxlength="10" placeholder="e.g. AHMED" value="YOUR"></div>
+        <div class="studio-row">
+          <div><label>Line 2</label><input type="text" id="line2" maxlength="10" placeholder="e.g. 2026" value="NAME"></div>
+          <div>
+            <label>Text colour</label>
+            <div class="swatches" id="swatches">
+              <span class="swatch active" style="background:#0e0e0e" data-color="#0e0e0e"></span>
+              <span class="swatch" style="background:#7ac72e" data-color="#7ac72e"></span>
+              <span class="swatch" style="background:#e23b3b" data-color="#e23b3b"></span>
+              <span class="swatch" style="background:#2f6fe0" data-color="#2f6fe0"></span>
+              <span class="swatch" style="background:#e0a02f" data-color="#e0a02f"></span>
+            </div>
+          </div>
+        </div>
+        <div class="logo-drop" id="logoDrop">📷 &nbsp;Uploading a company logo? Tap here — we'll handle the rest.</div>
+        {% if section.settings.product != blank %}
+          {%- form 'product', section.settings.product -%}
+            <input type="hidden" name="id" value="{{ section.settings.product.selected_or_first_available_variant.id }}">
+            <button type="submit" class="btn btn-green" style="justify-content:center;width:100%">Personalise &amp; Order</button>
+          {%- endform -%}
+        {% else %}
+          <a href="#pricing" class="btn btn-green" style="justify-content:center">Personalise &amp; Order</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" style="padding-top:30px">
+  <div class="wrap">
+    <div class="section-head center reveal"><span class="eyebrow">How It Works</span><h2 class="display">Three Steps to Personalised Balls</h2></div>
+    <div class="cb-steps">
+      <div class="cb-step reveal"><span class="ic">⛳</span><div class="num">1</div><h3>Choose Your Ball</h3><p>Pick from tour-quality balls — Titleist, Callaway, Srixon or our great-value Golf4Less line.</p></div>
+      <div class="cb-step reveal"><span class="ic">✏️</span><div class="num">2</div><h3>Personalise It</h3><p>Add a name, message, date or upload a logo. Preview it live before you order.</p></div>
+      <div class="cb-step reveal"><span class="ic">🚚</span><div class="num">3</div><h3>We Print &amp; Ship</h3><p>We print in-house and deliver across the GCC &amp; Africa in 5–7 days. Free on 3+ dozen.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- USE CASES -->
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head reveal"><span class="eyebrow">Made For</span><h2 class="display">One Ball, Endless Occasions</h2></div>
+    <div class="usecases">
+      {% for block in section.blocks %}{% if block.type == 'usecase' %}
+        <div class="usecase reveal{% if block.settings.green %} green{% endif %}" {{ block.shopify_attributes }}>
+          <span class="emoji">{{ block.settings.emoji }}</span><h4>{{ block.settings.title }}</h4><p>{{ block.settings.text }}</p>
+        </div>
+      {% endif %}{% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" id="pricing" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head center reveal"><span class="eyebrow">Smart-Value Pricing</span><h2 class="display">Buy More, Print Free</h2>
+      <p class="lede" style="margin-inline:auto">{{ section.settings.pricing_note }}</p></div>
+    <div class="pricing">
+      {% for block in section.blocks %}{% if block.type == 'tier' %}
+        <div class="tier reveal{% if block.settings.featured %} featured{% endif %}" {{ block.shopify_attributes }}>
+          {% if block.settings.flag != blank %}<span class="pop-flag">{{ block.settings.flag }}</span>{% endif %}
+          <h4>{{ block.settings.name }}</h4><span class="qty-lbl">{{ block.settings.qty }}</span>
+          <div class="price">{{ block.settings.price }}<small> {{ block.settings.price_sub }}</small></div>
+          <div class="print-tag{% if block.settings.print_free %} free{% endif %}">{{ block.settings.print_tag }}</div>
+          <ul>
+            {% if block.settings.f1 != blank %}<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> {{ block.settings.f1 }}</li>{% endif %}
+            {% if block.settings.f2 != blank %}<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> {{ block.settings.f2 }}</li>{% endif %}
+            {% if block.settings.f3 != blank %}<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> {{ block.settings.f3 }}</li>{% endif %}
+          </ul>
+          <a href="{{ block.settings.link | default: '#bulk' }}" class="btn {% if block.settings.featured %}btn-green{% else %}btn-ghost{% endif %}">{{ block.settings.btn | default: 'Order Now' }}</a>
+        </div>
+      {% endif %}{% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- GALLERY -->
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head reveal"><span class="eyebrow">The Work</span><h2 class="display">Recently Printed</h2></div>
+    <div class="cb-gallery">
+      {% assign words = section.settings.gallery_words | split: ',' %}
+      {% assign colors = '#0e0e0e,#7ac72e,#2f6fe0,#e23b3b,#e0a02f' | split: ',' %}
+      {% for w in words %}
+        <div class="gball reveal"><span style="color:{{ colors[forloop.index0 | modulo: 5] }}">{{ w | strip }}</span></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- BULK / CORPORATE -->
+<section class="section" id="bulk" style="padding-top:0">
+  <div class="wrap">
+    <div class="corp reveal">
+      <div class="corp-grid">
+        <div>
+          <span class="eyebrow">Bulk &amp; Corporate</span>
+          <h2 class="display">{{ section.settings.bulk_heading }}</h2>
+          <p class="lede" style="color:rgba(255,255,255,.85)">{{ section.settings.bulk_text }}</p>
+          <ul><li>🏆 Tournaments</li><li>🏢 Corporates</li><li>🏨 Resorts</li><li>🏦 Banks</li><li>🎁 Gifting</li></ul>
+        </div>
+        <form class="corp-form" action="/contact#bulk" method="post" accept-charset="UTF-8">
+          <input type="hidden" name="form_type" value="contact"><input type="hidden" name="utf8" value="✓">
+          <h4>Request a Quote</h4><p>The more detail, the faster we can price it.</p>
+          <div class="field"><input type="text" name="contact[name]" placeholder="Full name" required></div>
+          <div class="field"><input type="text" name="contact[company]" placeholder="Company / event"></div>
+          <div class="field"><input type="email" name="contact[email]" placeholder="Email" required></div>
+          <div class="field"><select name="contact[quantity]" required><option value="">Quantity needed</option><option>3–5 dozen</option><option>6–10 dozen</option><option>10–25 dozen</option><option>25+ dozen</option></select></div>
+          <button type="submit" class="btn btn-green" style="width:100%;justify-content:center">Get My Quote</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head center reveal"><span class="eyebrow">Good to Know</span><h2 class="display">Custom Ball FAQs</h2></div>
+    <div class="faq" id="faq">
+      {% for block in section.blocks %}{% if block.type == 'faq' %}
+        <div class="faq-item" {{ block.shopify_attributes }}>
+          <button class="faq-q" type="button">{{ block.settings.q }} <span class="pm">+</span></button>
+          <div class="faq-a"><p>{{ block.settings.a }}</p></div>
+        </div>
+      {% endif %}{% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="cb-cta reveal">
+      <h2 class="display">{{ section.settings.cta_heading }}</h2>
+      <p>{{ section.settings.cta_text }}</p>
+      <a href="#pricing" class="btn btn-dark">Start Customising</a>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Custom balls page",
+  "settings": [
+    { "type": "header", "content": "Hero" },
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Free Custom Printing" },
+    { "type": "html", "id": "heading", "label": "Heading", "default": "Your Name.<br>On Every Ball.<br><span class='pop'>Free.</span>" },
+    { "type": "textarea", "id": "subtext", "label": "Subtext", "default": "Design tour-quality golf balls in seconds — add a name, message or your company logo. Free printing on every order of 3 dozen or more." },
+    { "type": "product", "id": "product", "label": "Custom ball product (Add-to-bag)" },
+    { "type": "header", "content": "Pricing" },
+    { "type": "textarea", "id": "pricing_note", "label": "Pricing note", "default": "Prices below are indicative per dozen and include personalisation where shown. Final pricing depends on the ball you choose." },
+    { "type": "header", "content": "Gallery" },
+    { "type": "text", "id": "gallery_words", "label": "Gallery words (comma separated)", "default": "AHMED, EAGLE, DXB GC, PAR 4, 2026, DAD, BIRDIE, FORE!, SARA, G4L, ACE, PRO" },
+    { "type": "header", "content": "Bulk" },
+    { "type": "text", "id": "bulk_heading", "label": "Bulk heading", "default": "Big Orders, Better Prices" },
+    { "type": "textarea", "id": "bulk_text", "label": "Bulk text", "default": "Ordering for a tournament, company event or resort? Send us the brief and we'll come back with custom pricing, mock-ups and timelines within one business day." },
+    { "type": "header", "content": "Final CTA" },
+    { "type": "text", "id": "cta_heading", "label": "CTA heading", "default": "Ready to Make It Yours?" },
+    { "type": "textarea", "id": "cta_text", "label": "CTA text", "default": "Design your balls in seconds, or talk to us about a bulk order. Free printing on 3+ dozen — always." }
+  ],
+  "blocks": [
+    { "type": "usecase", "name": "Use case", "settings": [
+      { "type": "text", "id": "emoji", "label": "Emoji", "default": "🏆" },
+      { "type": "text", "id": "title", "label": "Title", "default": "Tournaments" },
+      { "type": "textarea", "id": "text", "label": "Text", "default": "Branded balls for every player." },
+      { "type": "checkbox", "id": "green", "label": "Green background", "default": false }
+    ]},
+    { "type": "tier", "name": "Pricing tier", "settings": [
+      { "type": "text", "id": "name", "label": "Name", "default": "Free Print" },
+      { "type": "text", "id": "qty", "label": "Quantity label", "default": "3 Dozen" },
+      { "type": "text", "id": "price", "label": "Price", "default": "AED 89" },
+      { "type": "text", "id": "price_sub", "label": "Price sub", "default": "/dozen" },
+      { "type": "text", "id": "print_tag", "label": "Print tag", "default": "✓ FREE printing" },
+      { "type": "checkbox", "id": "print_free", "label": "Print tag green", "default": true },
+      { "type": "text", "id": "flag", "label": "Flag (optional)", "default": "" },
+      { "type": "checkbox", "id": "featured", "label": "Featured", "default": false },
+      { "type": "text", "id": "f1", "label": "Feature 1", "default": "Up to 2 lines of text" },
+      { "type": "text", "id": "f2", "label": "Feature 2", "default": "Free personalisation" },
+      { "type": "text", "id": "f3", "label": "Feature 3", "default": "Best value for gifting" },
+      { "type": "text", "id": "btn", "label": "Button text", "default": "Order Now" },
+      { "type": "url", "id": "link", "label": "Button link" }
+    ]},
+    { "type": "faq", "name": "FAQ", "settings": [
+      { "type": "text", "id": "q", "label": "Question", "default": "When is printing free?" },
+      { "type": "textarea", "id": "a", "label": "Answer", "default": "Personalisation is free on any order of 3 dozen or more." }
+    ]}
+  ],
+  "presets": [{
+    "name": "Custom balls page",
+    "blocks": [
+      { "type": "usecase", "settings": { "emoji": "🏆", "title": "Tournaments", "text": "Branded balls for every player — event name, sponsor logo and date.", "green": true } },
+      { "type": "usecase", "settings": { "emoji": "🏢", "title": "Corporate Gifting", "text": "Impress clients and reward teams with logoed balls." } },
+      { "type": "usecase", "settings": { "emoji": "🎁", "title": "Personal Gifts", "text": "Birthdays, Father's Day, retirements. A gift that lands." } },
+      { "type": "usecase", "settings": { "emoji": "💍", "title": "Weddings & Events", "text": "Custom favours for the golf-loving couple or guests." } },
+      { "type": "usecase", "settings": { "emoji": "⛳", "title": "Golf Days", "text": "Society days, charity scrambles and member events." } },
+      { "type": "usecase", "settings": { "emoji": "🪪", "title": "Find Your Ball", "text": "Your name on it means no more fairway arguments.", "green": true } },
+      { "type": "tier", "settings": { "name": "Starter", "qty": "1 Dozen", "price": "AED 99", "print_tag": "+ AED 49 printing", "print_free": false, "f1": "1 line of text", "f2": "Choice of text colour", "f3": "Great for trying it out" } },
+      { "type": "tier", "settings": { "name": "Free Print", "qty": "3 Dozen", "price": "AED 89", "flag": "⭐ Most Popular", "featured": true, "print_tag": "✓ FREE printing", "print_free": true } },
+      { "type": "tier", "settings": { "name": "Pro Pack", "qty": "6 Dozen", "price": "AED 82", "print_tag": "✓ FREE printing + logo", "print_free": true, "f1": "Text + single-colour logo", "f2": "Priority production", "f3": "Ideal for golf days" } },
+      { "type": "tier", "settings": { "name": "Corporate", "qty": "10+ Dozen", "price": "Custom", "price_sub": "pricing", "print_tag": "✓ Full-colour logo", "print_free": true, "f1": "Multi-colour logos", "f2": "Dedicated account manager", "f3": "Volume discounts", "btn": "Get a Quote" } },
+      { "type": "faq", "settings": { "q": "When is printing free?", "a": "Personalisation is completely free on any order of 3 dozen or more. For single dozen orders, printing is a small flat fee." } },
+      { "type": "faq", "settings": { "q": "Can I print a company logo?", "a": "Yes. Single-colour logos are included from 6 dozen, and full-colour logos are available on corporate orders (10+ dozen). Upload your artwork and we'll send a mock-up." } },
+      { "type": "faq", "settings": { "q": "How long does it take?", "a": "Most personalised orders are printed and delivered within 5–7 working days across the UAE, longer for wider GCC and Africa. Rush options available." } },
+      { "type": "faq", "settings": { "q": "Which ball brands can I customise?", "a": "Titleist, Callaway, Srixon and TaylorMade, plus our value-led Golf4Less balls." } },
+      { "type": "faq", "settings": { "q": "Do you ship outside the UAE?", "a": "Yes — we ship custom orders across the GCC and to key markets in Africa. Shipping is calculated at checkout or included in corporate quotes." } }
+    ]
+  }]
+}
+{% endschema %}
