@@ -3295,224 +3295,393 @@ function buildCharSvg(tierIdx, kit, skin, hairId, equipped, phys) {
   const auraGlow = tierIdx >= 2;
   const champion = tierIdx >= 4;
 
-  const kitOp    = Math.min(0.60 + tierIdx * 0.09, 1.0);
-  const struct   = `rgba(200,212,224,${Math.min(0.28 + tierIdx*0.07, 0.65)})`;
-  const dimCol   = `rgba(170,185,200,0.14)`;
-  const reactorOp = Math.min(0.50 + tierIdx * 0.12, 1.0);
+  const kitOp     = Math.min(0.55 + tierIdx * 0.10, 1.0);
+  const struct    = `rgba(200,212,224,${Math.min(0.30 + tierIdx*0.07, 0.70)})`;
+  const dimCol    = `rgba(170,185,200,0.13)`;
+  const reactorOp = Math.min(0.48 + tierIdx * 0.13, 1.0);
   const hairColor = (HAIR_OPTS.find(h=>h.id===hairId)||HAIR_OPTS[0]).color;
+  // Metal tones
+  const M1 = 'rgba(28,32,38,0.96)';   // dark plate fill
+  const M2 = 'rgba(44,52,62,0.90)';   // mid plate
+  const M3 = 'rgba(62,74,88,0.82)';   // lighter plate edge
+  const edge = `rgba(180,196,210,0.55)`; // bright structural edge
+  const edgeDim = `rgba(140,158,174,0.28)`;
 
   const sh = phys.shoulder, tw = phys.torso, aw = phys.arm;
-  const lSX = 54 - sh, rSX = 96 + sh;
-  const lWX = 62 - tw, rWX = 88 + tw;
-  const uaw = 5.5 + aw * 0.48;  // upper arm half-width
-  const law = 3.8 + aw * 0.33;  // lower arm half-width
+  // Body anchor points
+  const lSX = 53 - sh, rSX = 97 + sh;           // outer shoulder
+  const lSI = 63 - sh*0.4, rSI = 87 + sh*0.4;   // inner shoulder
+  const lWX = 61 - tw, rWX = 89 + tw;            // waist outer
+  const lWI = 67 - tw*0.3, rWI = 83 + tw*0.3;   // waist inner
+  const uaw = 5.8 + aw * 0.55;   // upper arm half-width
+  const law = 4.2 + aw * 0.38;   // lower arm half-width
+  const haw = 3.4 + aw * 0.28;   // hand half-width
 
-  // Panel: dark filled closed shape + kit-colour glow edge
-  const panel = (d, sw=1.2, fo=0.78, eo=null) => {
+  // ── HELPERS ──
+  // Plate: layered fills simulate beveled armour panel
+  const plate = (d, fo=0.93) =>
+    `<path d="${d}" fill="${M1}" opacity="${fo}" stroke="none"/>
+     <path d="${d}" fill="${kit}" opacity="${kitOp*0.045}" stroke="none"/>
+     <path d="${d}" fill="none" stroke="${edge}" stroke-width="0.55" opacity="0.38" stroke-linecap="round" stroke-linejoin="round"/>`;
+  // Plate with kit glow edge
+  const panel = (d, sw=1.1, fo=0.93, eo=null) => {
     const e = eo !== null ? eo : kitOp;
-    return `<path d="${d}" fill="rgba(6,7,9,${fo})" stroke="none"/>
-            <path d="${d}" fill="${kit}" opacity="${e*0.06}" stroke="none"/>
-            <path d="${d}" fill="none" stroke="${kit}" stroke-width="${sw*3.5}" opacity="${e*0.11}" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="${d}" fill="none" stroke="${kit}" stroke-width="${sw}" opacity="${e}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    return plate(d, fo) +
+      `<path d="${d}" fill="none" stroke="${kit}" stroke-width="${sw*4}" opacity="${e*0.09}" stroke-linecap="round" stroke-linejoin="round"/>
+       <path d="${d}" fill="none" stroke="${kit}" stroke-width="${sw}" opacity="${e*0.88}" stroke-linecap="round" stroke-linejoin="round"/>`;
   };
-  // Glow line only (no fill)
+  // Subtle structural line
+  const sl = (d, op=0.32) =>
+    `<path d="${d}" fill="none" stroke="${edge}" stroke-width="0.5" opacity="${op}" stroke-linecap="round"/>`;
+  // Kit glow line
   const gl = (d, sw=0.8, eo=null) => {
     const e = eo !== null ? eo : kitOp * 0.65;
-    return `<path d="${d}" fill="none" stroke="${kit}" stroke-width="${sw*3}" opacity="${e*0.12}" stroke-linecap="round"/>
+    return `<path d="${d}" fill="none" stroke="${kit}" stroke-width="${sw*3.5}" opacity="${e*0.10}" stroke-linecap="round"/>
             <path d="${d}" fill="none" stroke="${kit}" stroke-width="${sw}" opacity="${e}" stroke-linecap="round"/>`;
   };
-  // Glow circle
-  const cg = (cx,cy,r, sw=1.2, eo=null) => {
+  // Glow circle with plate fill
+  const cg = (cx,cy,r, sw=1.1, eo=null) => {
     const e = eo !== null ? eo : kitOp;
-    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="rgba(6,7,9,0.75)" stroke="none"/>
-            <circle cx="${cx}" cy="${cy}" r="${r}" fill="${kit}" opacity="${e*0.06}" stroke="none"/>
-            <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${kit}" stroke-width="${r*3}" opacity="${e*0.09}"/>
-            <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${kit}" stroke-width="${sw}" opacity="${e}"/>`;
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${M1}" stroke="none"/>
+            <circle cx="${cx}" cy="${cy}" r="${r}" fill="${kit}" opacity="${e*0.05}" stroke="none"/>
+            <circle cx="${cx}" cy="${cy}" r="${r*2.2}" fill="none" stroke="${kit}" stroke-width="${r*1.8}" opacity="${e*0.07}"/>
+            <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${kit}" stroke-width="${sw}" opacity="${e*0.88}"/>
+            <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${edge}" stroke-width="0.45" opacity="0.4"/>`;
   };
+  // Highlight sliver (bright bevel top edge)
+  const bevel = (d, op=0.55) =>
+    `<path d="${d}" fill="none" stroke="rgba(220,232,245,${op})" stroke-width="0.65" stroke-linecap="round"/>`;
 
   // ── DOT-GRID BACKGROUND ──
-  const bpGrid = `<defs><pattern id="bpg" width="9" height="9" patternUnits="userSpaceOnUse">
-    <circle cx="0" cy="0" r="0.5" fill="rgba(80,100,120,0.10)"/></pattern></defs>
-    <rect width="150" height="190" fill="url(#bpg)"/>`;
+  const bpGrid = `<defs>
+    <pattern id="bpg" width="8" height="8" patternUnits="userSpaceOnUse">
+      <circle cx="0" cy="0" r="0.45" fill="rgba(80,100,120,0.09)"/>
+    </pattern>
+    <radialGradient id="floorGlow" cx="50%" cy="100%" r="50%">
+      <stop offset="0%" stop-color="${kit}" stop-opacity="0.07"/>
+      <stop offset="100%" stop-color="${kit}" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="150" height="190" fill="url(#bpg)"/>
+  <rect width="150" height="190" fill="url(#floorGlow)"/>`;
 
   // ── AURA ──
   const aid = equipped.aura;
   let aura = '', particles = '';
-  const dashRing = (rx,ry,op,da) =>
-    `<ellipse cx="75" cy="96" rx="${rx}" ry="${ry}" fill="${kit}" opacity="${op*0.04}" stroke="none"/>
-     <ellipse cx="75" cy="96" rx="${rx}" ry="${ry}" fill="none" stroke="${kit}" stroke-width="0.85" opacity="${op}" stroke-dasharray="${da}"/>`;
+  const dashRing = (rx,ry,op,da,sw=0.8) =>
+    `<ellipse cx="75" cy="100" rx="${rx}" ry="${ry}" fill="${kit}" opacity="${op*0.035}" stroke="none"/>
+     <ellipse cx="75" cy="100" rx="${rx}" ry="${ry}" fill="none" stroke="${kit}" stroke-width="${sw}" opacity="${op}" stroke-dasharray="${da}"/>`;
   if (aid === 'storm') {
-    aura = dashRing(68,86,0.42,'4 4') + dashRing(76,94,0.22,'2 6') + dashRing(84,102,0.11,'1 9');
-    particles = `<path d="M68 58 l-6 15 l7 0 l-6 15" stroke="${kit}" stroke-width="1.6" fill="none" opacity="0.75"/>
-      <circle cx="41" cy="116" r="1.7" fill="${kit}" opacity="0.85"/><circle cx="111" cy="90" r="1.7" fill="${kit}" opacity="0.85"/>
-      <circle cx="43" cy="87" r="1.2" fill="${kit}" opacity="0.55"/><circle cx="109" cy="117" r="1.2" fill="${kit}" opacity="0.55"/>`;
+    aura = dashRing(70,88,0.55,'4 3') + dashRing(78,96,0.28,'2 5') + dashRing(86,104,0.13,'1 8');
+    particles = `<path d="M62 52 l-5 13 l6 0 l-5 13" stroke="${kit}" stroke-width="1.5" fill="none" opacity="0.8" stroke-linecap="round"/>
+      <circle cx="38" cy="118" r="1.6" fill="${kit}" opacity="0.85"/>
+      <circle cx="114" cy="92" r="1.6" fill="${kit}" opacity="0.85"/>
+      <circle cx="40" cy="85" r="1.1" fill="${kit}" opacity="0.5"/>
+      <circle cx="112" cy="120" r="1.1" fill="${kit}" opacity="0.5"/>`;
   } else if (aid === 'cold_fire') {
-    aura = dashRing(66,84,0.38,'4 5') + dashRing(74,92,0.18,'2 8');
-    particles = `<circle cx="41" cy="116" r="1.5" fill="${kit}" opacity="0.8"/>
-      <circle cx="111" cy="90" r="1.5" fill="${kit}" opacity="0.8"/><circle cx="52" cy="76" r="1.2" fill="${kit}" opacity="0.6"/>`;
+    aura = dashRing(68,86,0.45,'5 4') + dashRing(76,94,0.20,'2 7');
+    particles = `<circle cx="38" cy="118" r="1.4" fill="${kit}" opacity="0.80"/>
+      <circle cx="114" cy="92" r="1.4" fill="${kit}" opacity="0.80"/>
+      <circle cx="50" cy="74" r="1.1" fill="${kit}" opacity="0.55"/>`;
   } else if (auraGlow || aid === 'focus_glow') {
-    aura = dashRing(64,82,0.28,'3 6');
+    aura = dashRing(66,84,0.32,'3 5');
   } else if (aid === 'phantom_aura') {
-    aura = dashRing(62,80,0.22,'2 5') + dashRing(70,88,0.12,'1 8');
+    aura = dashRing(64,82,0.24,'2 4') + dashRing(72,90,0.13,'1 7');
   }
+
+  // ── GROUND SHADOW ──
+  const shadow = `<ellipse cx="75" cy="180" rx="32" ry="3" fill="rgba(0,0,0,0.35)" stroke="none"/>`;
 
   // ── ANNOTATION LINES ──
   const annotations = tierIdx >= 1 ? `
-    <line x1="${lSX-2}" y1="76" x2="${lSX-16}" y2="65" stroke="${dimCol}" stroke-width="0.5"/>
-    <line x1="${lSX-23}" y1="65" x2="${lSX-9}" y2="65" stroke="${dimCol}" stroke-width="0.5"/>
-    <line x1="${rSX+16}" y1="33" x2="${rSX+16}" y2="173" stroke="${dimCol}" stroke-width="0.44"/>
-    <line x1="${rSX+13}" y1="33" x2="${rSX+19}" y2="33" stroke="${dimCol}" stroke-width="0.44"/>
-    <line x1="${rSX+13}" y1="173" x2="${rSX+19}" y2="173" stroke="${dimCol}" stroke-width="0.44"/>
-    <text x="${rSX+25}" y="105" font-family="monospace" font-size="3.8" fill="${dimCol}" transform="rotate(90,${rSX+25},105)">HEIGHT 171cm</text>
-    <text x="${rSX+25}" y="68" font-family="monospace" font-size="3.8" fill="${dimCol}" transform="rotate(90,${rSX+25},68)">SHANAAH</text>
-  ` : `<text x="75" y="184" text-anchor="middle" font-family="monospace" font-size="4" fill="${dimCol}" letter-spacing="0.09em">SHANAAH SYSTEMS</text>`;
+    <line x1="11" y1="30" x2="11" y2="175" stroke="${dimCol}" stroke-width="0.4"/>
+    <line x1="8" y1="30" x2="14" y2="30" stroke="${dimCol}" stroke-width="0.4"/>
+    <line x1="8" y1="175" x2="14" y2="175" stroke="${dimCol}" stroke-width="0.4"/>
+    <text x="7" y="105" font-family="monospace" font-size="3.5" fill="${dimCol}" transform="rotate(-90,7,105)">171cm</text>
+    <line x1="${rSX+14}" y1="35" x2="${rSX+22}" y2="35" stroke="${dimCol}" stroke-width="0.4"/>
+    <line x1="${rSX+18}" y1="35" x2="${rSX+18}" y2="55" stroke="${dimCol}" stroke-width="0.4"/>
+    <text x="${rSX+28}" y="46" font-family="monospace" font-size="3.2" fill="${dimCol}">HEAD</text>
+    <text x="75" y="186" text-anchor="middle" font-family="monospace" font-size="3.8" fill="${dimCol}" letter-spacing="0.12em">SHANAAH·OS</text>
+  ` : `<text x="75" y="186" text-anchor="middle" font-family="monospace" font-size="3.8" fill="${dimCol}" letter-spacing="0.10em">SHANAAH·OS</text>`;
 
-  // ── BOOTS ──
+  // ── BOOTS / FEET ──
+  // Left boot: wider toe box, raised heel, ankle cuff
+  const lBX = lWX + 1, rBX = rWX - 1;
   const boots = `
-    ${panel(`M56 168 L74 168 L76 174 L54 174 Z`, 1.1)}
-    ${panel(`M76 168 L94 168 L96 174 L74 174 Z`, 1.1)}
-    ${gl(`M57 170 L73 170`, 0.55, kitOp*0.45)}
-    ${gl(`M77 170 L93 170`, 0.55, kitOp*0.45)}`;
+    ${plate(`M${lBX+1} 166 L${lBX-3} 176 L${lBX+12} 177 L${lBX+14} 172 L${lBX+13} 166 Z`)}
+    ${bevel(`M${lBX+1} 166 L${lBX-3} 176`)}
+    ${sl(`M${lBX+2} 170 L${lBX+12} 170`)}
+    ${sl(`M${lBX+2} 173 L${lBX+11} 174`)}
+    ${gl(`M${lBX-1} 174 L${lBX+10} 175.5`,0.5,kitOp*0.35)}
+    ${plate(`M${rBX-1} 166 L${rBX+3} 176 L${rBX-12} 177 L${rBX-14} 172 L${rBX-13} 166 Z`)}
+    ${bevel(`M${rBX-1} 166 L${rBX+3} 176`)}
+    ${sl(`M${rBX-2} 170 L${rBX-12} 170`)}
+    ${gl(`M${rBX+1} 174 L${rBX-10} 175.5`,0.5,kitOp*0.35)}`;
 
   // ── LEGS ──
-  const lTX = 59 - sh*0.18, rTX = 91 + sh*0.18;
+  // Thigh armour: front plate + side panels, knee cap, shin guard
+  const lTX = lWX + 1.5, rTX = rWX - 1.5;
+  const lKX = lTX + 5.5, rKX = rTX - 5.5;  // knee center X
   const legs = `
-    ${panel(`M${lTX} 122 Q${lTX-1} 128 ${lTX-1} 146 L${lTX+11} 146 Q${lTX+12} 128 ${lTX+11} 122 Z`, 1.1, 0.74)}
-    ${panel(`M${lTX-1} 146 L${lTX-2} 168 L${lTX+12} 168 L${lTX+11} 146 Z`, 1.1, 0.74)}
-    ${panel(`M${lTX-3} 142 Q${lTX+5} 138 ${lTX+13} 142 Q${lTX+13} 150 ${lTX+5} 151 Q${lTX-3} 150 ${lTX-3} 142 Z`, 1, 0.82)}
-    ${panel(`M${rTX} 122 Q${rTX+1} 128 ${rTX+1} 146 L${rTX-11} 146 Q${rTX-12} 128 ${rTX-11} 122 Z`, 1.1, 0.74)}
-    ${panel(`M${rTX+1} 146 L${rTX+2} 168 L${rTX-12} 168 L${rTX-11} 146 Z`, 1.1, 0.74)}
-    ${panel(`M${rTX+3} 142 Q${rTX-5} 138 ${rTX-13} 142 Q${rTX-13} 150 ${rTX-5} 151 Q${rTX+3} 150 ${rTX+3} 142 Z`, 1, 0.82)}
+    ${/* LEFT THIGH */ plate(`M${lTX-1} 124 L${lTX-3} 148 L${lTX+13} 148 L${lTX+12} 124 Z`)}
+    ${bevel(`M${lTX-1} 124 L${lTX+12} 124`)}
+    ${sl(`M${lTX+1} 130 L${lTX+10} 130`)}
+    ${sl(`M${lTX} 137 L${lTX+11} 137`)}
+    ${sl(`M${lTX+2} 143 L${lTX+9} 143`)}
+    ${gl(`M${lTX+1} 145 L${lTX+10} 145`,0.55,kitOp*0.4)}
+    ${/* LEFT KNEE CAP */ panel(`M${lTX-4} 146 Q${lKX} 141 ${lTX+15} 146 Q${lTX+15} 155 ${lKX} 157 Q${lTX-4} 155 ${lTX-4} 146 Z`,1.0,0.95)}
+    ${sl(`M${lTX-1} 150 Q${lKX} 148 ${lTX+12} 150`)}
+    ${/* LEFT SHIN */ plate(`M${lTX-2} 157 L${lTX-3} 166 L${lTX+14} 166 L${lTX+13} 157 Z`)}
+    ${bevel(`M${lTX-2} 157 L${lTX+13} 157`)}
+    ${sl(`M${lTX} 161 L${lTX+11} 161`)}
+    ${boots.split('rBX').length > 1 ? '' : ''}
+    ${/* RIGHT THIGH */ plate(`M${rTX+1} 124 L${rTX+3} 148 L${rTX-13} 148 L${rTX-12} 124 Z`)}
+    ${bevel(`M${rTX+1} 124 L${rTX-12} 124`)}
+    ${sl(`M${rTX-1} 130 L${rTX-10} 130`)}
+    ${sl(`M${rTX} 137 L${rTX-11} 137`)}
+    ${gl(`M${rTX-1} 145 L${rTX-10} 145`,0.55,kitOp*0.4)}
+    ${/* RIGHT KNEE CAP */ panel(`M${rTX+4} 146 Q${rKX} 141 ${rTX-15} 146 Q${rTX-15} 155 ${rKX} 157 Q${rTX+4} 155 ${rTX+4} 146 Z`,1.0,0.95)}
+    ${sl(`M${rTX+1} 150 Q${rKX} 148 ${rTX-12} 150`)}
+    ${/* RIGHT SHIN */ plate(`M${rTX+2} 157 L${rTX+3} 166 L${rTX-14} 166 L${rTX-13} 157 Z`)}
+    ${bevel(`M${rTX+2} 157 L${rTX-13} 157`)}
+    ${sl(`M${rTX} 161 L${rTX-11} 161`)}
     ${boots}`;
+
+  // ── HIP / PELVIS ──
+  const hips = `
+    ${plate(`M${lWX-1} 118 L${lWX} 126 L${rWX} 126 L${rWX+1} 118 Z`)}
+    ${sl(`M${lWX+2} 121 L${rWX-2} 121`)}
+    ${sl(`M${lWX+3} 124 L${rWX-3} 124`)}
+    ${panel(`M${lWX-2} 118 L${lWX-4} 126 L${lWX+5} 126 L${lWX+3} 118 Z`,0.9,0.95,kitOp*0.55)}
+    ${panel(`M${rWX+2} 118 L${rWX+4} 126 L${rWX-5} 126 L${rWX-3} 118 Z`,0.9,0.95,kitOp*0.55)}`;
 
   // ── TORSO ──
   const oid = equipped.outfit;
-  const torsoFill = oid === 'blackout_kit' ? 0.90 : 0.76;
+  // Main chest + back plate
   const torso = `
-    ${panel(`M${lSX} 76 L${lWX} 122 L${rWX} 122 L${rSX} 76 Z`, 1.5, torsoFill)}
-    ${gl(`M${lSX+7} 78 Q${lSX+5} 90 ${lWX+9} 102 L 73 102 L 73 80 L${lSX+9} 78`, 0.8, kitOp*0.5)}
-    ${gl(`M${rSX-7} 78 Q${rSX-5} 90 ${rWX-9} 102 L 77 102 L 77 80 L${rSX-9} 78`, 0.8, kitOp*0.5)}
-    ${gl(`M75 78 L75 102`, 0.65, kitOp*0.45)}
-    ${gl(`M${lWX+9} 102 L${rWX-9} 102`, 0.7, kitOp*0.5)}
-    ${gl(`M${lWX+8} 110 L${rWX-8} 110`, 0.65, kitOp*0.42)}
-    ${gl(`M${lWX+6} 118 L${rWX-6} 118`, 0.6, kitOp*0.35)}
-    ${panel(`M68 72 L75 80 L82 72 Z`, 1, 0.75)}
-    ${panel(`M70 63 L70 72 L80 72 L80 63 Z`, 0.85, 0.82)}
-    ${panel(`M${lSX-3} 72 L${lSX-9} 83 L${lSX+5} 85 L${lSX+6} 74 Z`, 1.05, 0.84)}
-    ${panel(`M${rSX+3} 72 L${rSX+9} 83 L${rSX-5} 85 L${rSX-6} 74 Z`, 1.05, 0.84)}
-    ${gl(`M${lWX} 122 L${rWX} 122`, 0.85, kitOp*0.7)}
-    ${oid === 'pro_kit'    ? gl(`M${lSX} 83 L${rSX} 83`,0.9,kitOp*0.7)+gl(`M${lWX+4} 118 L${rWX-4} 118`,0.9,kitOp*0.6) : ''}
-    ${oid === 'tour_kit'   ? gl(`M${lSX+8} 85 L75 97 L${rSX-8} 85`,1.0,kitOp*0.7)+gl(`M${lSX+10} 91 L${rSX-10} 91`,0.7,kitOp*0.5) : ''}
-    ${oid === 'blackout_kit' ? `<rect x="${lSX}" y="76" width="${rSX-lSX}" height="47" fill="rgba(0,0,0,0.32)" stroke="none"/>`+gl(`M${lSX} 98 L${rSX} 98`,0.85,kitOp*0.5) : ''}`;
+    ${/* MAIN TORSO PLATE */ panel(`M${lSI} 78 L${lWX} 118 L${rWX} 118 L${rSI} 78 Z`,1.4,0.95)}
+    ${bevel(`M${lSI} 78 L${rSI} 78`)}
+    ${/* CHEST CENTRE RIDGE */ sl(`M75 80 L75 118`)}
+    ${/* PECTORAL PANEL LEFT */ plate(`M${lSI+2} 79 L${lSI+1} 96 L72 97 L73 79 Z`)}
+    ${bevel(`M${lSI+2} 79 L73 79`)}
+    ${sl(`M${lSI+3} 85 L71 85`)}
+    ${sl(`M${lSI+2} 91 L71.5 91`)}
+    ${/* PECTORAL PANEL RIGHT */ plate(`M${rSI-2} 79 L${rSI-1} 96 L78 97 L77 79 Z`)}
+    ${bevel(`M${rSI-2} 79 L77 79`)}
+    ${sl(`M${rSI-3} 85 L79 85`)}
+    ${sl(`M${rSI-2} 91 L78.5 91`)}
+    ${/* STERNUM PLATE */ panel(`M72 79 L72 100 L78 100 L78 79 Z`,0.9,0.97,kitOp*0.6)}
+    ${/* ABDOMINAL SEGMENTS */ plate(`M${lWX+6} 100 L${lWX+5} 108 L${rWX-5} 108 L${rWX-6} 100 Z`)}
+    ${sl(`M${lWX+7} 104 L${rWX-7} 104`)}
+    ${plate(`M${lWX+5} 108 L${lWX+4} 116 L${rWX-4} 116 L${rWX-5} 108 Z`)}
+    ${sl(`M${lWX+6} 112 L${rWX-6} 112`)}
+    ${/* COLLAR / NECK GUARD */ panel(`M69 72 L70 79 L80 79 L81 72 Q80 68 75 67 Q70 68 69 72 Z`,1.0,0.97,kitOp*0.7)}
+    ${sl(`M70 75 L80 75`)}
+    ${/* SHOULDER GUARD PADS */ panel(`M${lSX-4} 74 L${lSX-10} 87 L${lSX+8} 90 L${lSI+1} 78 Z`,1.2,0.97,kitOp)}
+    ${bevel(`M${lSX-4} 74 L${lSI+1} 78`)}
+    ${sl(`M${lSX-7} 80 L${lSX+4} 83`)}
+    ${sl(`M${lSX-5} 86 L${lSX+6} 88`)}
+    ${panel(`M${rSX+4} 74 L${rSX+10} 87 L${rSX-8} 90 L${rSI-1} 78 Z`,1.2,0.97,kitOp)}
+    ${bevel(`M${rSX+4} 74 L${rSI-1} 78`)}
+    ${sl(`M${rSX+7} 80 L${rSX-4} 83`)}
+    ${sl(`M${rSX+5} 86 L${rSX-6} 88`)}
+    ${/* OUTFIT VARIANTS */
+      oid === 'pro_kit'
+        ? gl(`M${lSI} 84 L${rSI} 84`,1.0,kitOp*0.8)
+          + gl(`M${lWX+4} 116 L${rWX-4} 116`,0.9,kitOp*0.7)
+          + sl(`M${lSI+3} 88 L${rSI-3} 88`,0.5)
+        : oid === 'tour_kit'
+        ? gl(`M${lSI+4} 87 L75 100 L${rSI-4} 87`,1.1,kitOp*0.8)
+          + gl(`M${lSI+6} 94 L${rSI-6} 94`,0.75,kitOp*0.5)
+          + `<path d="M73 82 L75 78 L77 82 Z" fill="${kit}" opacity="${kitOp*0.7}" stroke="none"/>`
+        : oid === 'blackout_kit'
+        ? `<rect x="${lSI}" y="78" width="${rSI-lSI}" height="40" fill="rgba(0,0,0,0.28)" stroke="none"/>`
+          + gl(`M${lSI} 97 L${rSI} 97`,0.9,kitOp*0.55)
+          + gl(`M${lSI+2} 107 L${rSI-2} 107`,0.7,kitOp*0.4)
+        : ''
+    }`;
 
   // ── ARC REACTOR ──
-  const rr = 6.5 + tw * 0.5;
-  const spokes = Array.from({length:8},(_,i)=>{
-    const a=(i/8)*Math.PI*2, x1=75+rr*0.42*Math.cos(a), y1=96+rr*0.42*Math.sin(a), x2=75+rr*0.88*Math.cos(a), y2=96+rr*0.88*Math.sin(a);
-    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(215,225,235,${reactorOp*0.38})" stroke-width="0.55"/>`;
+  const rr = 7 + tw * 0.45;
+  const reactorSpokes = Array.from({length:8},(_,i)=>{
+    const a=(i/8)*Math.PI*2;
+    const x1=75+rr*0.38*Math.cos(a), y1=91+rr*0.38*Math.sin(a);
+    const x2=75+rr*0.85*Math.cos(a), y2=91+rr*0.85*Math.sin(a);
+    return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="rgba(215,228,242,${reactorOp*0.55})" stroke-width="0.6"/>`;
   }).join('');
   const reactor = `
-    <circle cx="75" cy="96" r="${rr*1.9}" fill="rgba(220,230,240,${reactorOp*0.035})" stroke="none"/>
-    <circle cx="75" cy="96" r="${rr}" fill="rgba(6,7,9,0.5)" stroke="rgba(215,225,235,${reactorOp})" stroke-width="1.8"/>
-    ${spokes}
-    <circle cx="75" cy="96" r="${rr*0.60}" fill="none" stroke="rgba(215,225,235,${reactorOp*0.70})" stroke-width="0.9"/>
-    <circle cx="75" cy="96" r="${rr*0.26}" fill="rgba(230,235,242,${reactorOp})"/>`;
+    <circle cx="75" cy="91" r="${(rr*2.2).toFixed(1)}" fill="rgba(255,255,255,${reactorOp*0.025})" stroke="none"/>
+    <circle cx="75" cy="91" r="${(rr*1.35).toFixed(1)}" fill="rgba(0,0,0,0.6)" stroke="rgba(200,216,232,${reactorOp*0.25})" stroke-width="0.7"/>
+    <circle cx="75" cy="91" r="${rr.toFixed(1)}" fill="${M1}" stroke="rgba(210,224,238,${reactorOp})" stroke-width="1.6"/>
+    ${reactorSpokes}
+    <circle cx="75" cy="91" r="${(rr*0.55).toFixed(1)}" fill="none" stroke="rgba(210,224,238,${reactorOp*0.65})" stroke-width="0.85"/>
+    <circle cx="75" cy="91" r="${(rr*0.22).toFixed(1)}" fill="rgba(235,242,252,${reactorOp})" stroke="none"/>
+    <circle cx="75" cy="91" r="${(rr*0.22).toFixed(1)}" fill="none" stroke="rgba(255,255,255,${reactorOp*0.6})" stroke-width="1.5"/>`;
 
   // ── ARMS ──
+  // Upper arm: curved plate shape, elbow ball joint, forearm guard, wrist plate, hand
   const arms = `
-    ${panel(`M${lSX+uaw*0.15} 82 Q${lSX-uaw*0.85} 91 ${lSX-uaw*0.65} 103 L${lSX+uaw*0.65} 103 Q${lSX+uaw*0.85} 91 ${lSX+uaw*0.55} 82 Z`, 1.15, 0.80)}
-    ${cg(lSX, 103, 4+aw*0.22, 0.95)}
-    ${panel(`M${lSX-law*0.65} 105 Q${lSX-law} 111 ${lSX-law*0.85} 117 L${lSX+law*0.85} 117 Q${lSX+law} 111 ${lSX+law*0.65} 105 Z`, 1.05, 0.80)}
-    <line x1="${lSX-law}" y1="117" x2="${lSX+law}" y2="117" stroke="${struct}" stroke-width="1.3"/>
-    ${panel(`M${lSX-law*0.72} 117 Q${lSX-law*0.82} 123 ${lSX} 124 Q${lSX+law*0.82} 123 ${lSX+law*0.72} 117 Z`, 0.95, 0.72)}
-    ${gl(`M${lSX-1.5} 118 L${lSX-1.5} 123`,0.5,kitOp*0.4)}${gl(`M${lSX+1.5} 118 L${lSX+1.5} 123`,0.5,kitOp*0.4)}
-    ${panel(`M${rSX-uaw*0.15} 82 Q${rSX+uaw*0.85} 91 ${rSX+uaw*0.65} 103 L${rSX-uaw*0.65} 103 Q${rSX-uaw*0.85} 91 ${rSX-uaw*0.55} 82 Z`, 1.15, 0.80)}
-    ${cg(rSX, 103, 4+aw*0.22, 0.95)}
-    ${panel(`M${rSX+law*0.65} 105 Q${rSX+law} 111 ${rSX+law*0.85} 117 L${rSX-law*0.85} 117 Q${rSX-law} 111 ${rSX-law*0.65} 105 Z`, 1.05, 0.80)}
-    <line x1="${rSX-law}" y1="117" x2="${rSX+law}" y2="117" stroke="${struct}" stroke-width="1.3"/>
-    ${panel(`M${rSX+law*0.72} 117 Q${rSX+law*0.82} 123 ${rSX} 124 Q${rSX-law*0.82} 123 ${rSX-law*0.72} 117 Z`, 0.95, 0.72)}
-    ${gl(`M${rSX-1.5} 118 L${rSX-1.5} 123`,0.5,kitOp*0.4)}${gl(`M${rSX+1.5} 118 L${rSX+1.5} 123`,0.5,kitOp*0.4)}`;
+    ${/* LEFT UPPER ARM */ panel(`M${lSX-1} 86 Q${lSX-uaw*1.1} 94 ${lSX-uaw*0.9} 106 L${lSX+uaw*0.9} 106 Q${lSX+uaw*1.1} 94 ${lSX+1} 86 Z`,1.1,0.95)}
+    ${bevel(`M${lSX-1} 86 L${lSX+1} 86`)}
+    ${sl(`M${lSX-uaw*0.7} 92 L${lSX+uaw*0.7} 92`)}
+    ${sl(`M${lSX-uaw*0.8} 99 L${lSX+uaw*0.8} 99`)}
+    ${/* LEFT ELBOW */ cg(lSX, 106, 4.5+aw*0.2, 1.0)}
+    ${sl(`M${lSX-2.5} 106 L${lSX+2.5} 106`)}
+    ${/* LEFT FOREARM */ panel(`M${lSX-law*0.9} 108 Q${lSX-law*1.05} 118 ${lSX-law*0.8} 126 L${lSX+law*0.8} 126 Q${lSX+law*1.05} 118 ${lSX+law*0.9} 108 Z`,1.0,0.95)}
+    ${bevel(`M${lSX-law*0.9} 108 L${lSX+law*0.9} 108`)}
+    ${sl(`M${lSX-law*0.7} 114 L${lSX+law*0.7} 114`)}
+    ${sl(`M${lSX-law*0.65} 121 L${lSX+law*0.65} 121`)}
+    ${/* LEFT WRIST CUFF */ panel(`M${lSX-law*0.85} 126 L${lSX-law*0.75} 130 L${lSX+law*0.75} 130 L${lSX+law*0.85} 126 Z`,0.9,0.97,kitOp*0.7)}
+    ${/* LEFT HAND */ panel(`M${lSX-haw*0.9} 130 Q${lSX-haw} 136 ${lSX-haw*0.6} 140 L${lSX+haw*0.6} 140 Q${lSX+haw} 136 ${lSX+haw*0.9} 130 Z`,0.85,0.92)}
+    ${sl(`M${lSX-haw*0.5} 133 L${lSX+haw*0.5} 133`)}
+    ${sl(`M${lSX-1} 130 L${lSX-1} 140`)}${sl(`M${lSX+1} 130 L${lSX+1} 140`)}
+    ${/* RIGHT UPPER ARM */ panel(`M${rSX+1} 86 Q${rSX+uaw*1.1} 94 ${rSX+uaw*0.9} 106 L${rSX-uaw*0.9} 106 Q${rSX-uaw*1.1} 94 ${rSX-1} 86 Z`,1.1,0.95)}
+    ${bevel(`M${rSX+1} 86 L${rSX-1} 86`)}
+    ${sl(`M${rSX+uaw*0.7} 92 L${rSX-uaw*0.7} 92`)}
+    ${sl(`M${rSX+uaw*0.8} 99 L${rSX-uaw*0.8} 99`)}
+    ${/* RIGHT ELBOW */ cg(rSX, 106, 4.5+aw*0.2, 1.0)}
+    ${sl(`M${rSX-2.5} 106 L${rSX+2.5} 106`)}
+    ${/* RIGHT FOREARM */ panel(`M${rSX+law*0.9} 108 Q${rSX+law*1.05} 118 ${rSX+law*0.8} 126 L${rSX-law*0.8} 126 Q${rSX-law*1.05} 118 ${rSX-law*0.9} 108 Z`,1.0,0.95)}
+    ${bevel(`M${rSX+law*0.9} 108 L${rSX-law*0.9} 108`)}
+    ${sl(`M${rSX+law*0.7} 114 L${rSX-law*0.7} 114`)}
+    ${sl(`M${rSX+law*0.65} 121 L${rSX-law*0.65} 121`)}
+    ${/* RIGHT WRIST CUFF */ panel(`M${rSX+law*0.85} 126 L${rSX+law*0.75} 130 L${rSX-law*0.75} 130 L${rSX-law*0.85} 126 Z`,0.9,0.97,kitOp*0.7)}
+    ${/* RIGHT HAND */ panel(`M${rSX+haw*0.9} 130 Q${rSX+haw} 136 ${rSX+haw*0.6} 140 L${rSX-haw*0.6} 140 Q${rSX-haw} 136 ${rSX-haw*0.9} 130 Z`,0.85,0.92)}
+    ${sl(`M${rSX+haw*0.5} 133 L${rSX-haw*0.5} 133`)}
+    ${sl(`M${rSX-1} 130 L${rSX-1} 140`)}${sl(`M${rSX+1} 130 L${rSX+1} 140`)}`;
 
-  // ── CLUB ──
+  // ── CLUB (right hand) ──
   const cid = equipped.club;
-  const hx = rSX + law*0.5, hy = 121;
-  let club;
+  const hx = rSX + haw*0.7, hy = 138;
+  let club = '';
   if (cid === 'forged_iron' || cid === 'the_scalpel') {
-    club = panel(`M${hx} ${hy} L${hx+13} ${hy+39}`,1.5,0.6)
-      + panel(`M${hx+11} ${hy+37} l9 3 l-3 8 l-9-3 Z`,1.05,0.82);
+    // Shaft + hosel + blade
+    club = panel(`M${hx-0.8} ${hy} L${hx+0.8} ${hy} L${hx+1.5} ${hy+34} L${hx-0.5} ${hy+34} Z`,1.2,0.6)
+      + panel(`M${hx-0.5} ${hy+32} L${hx+8} ${hy+35} L${hx+6} ${hy+41} L${hx-3} ${hy+40} Z`,1.0,0.88)
+      + bevel(`M${hx-0.5} ${hy+32} L${hx+8} ${hy+35}`)
+      + sl(`M${hx+1} ${hy+36} L${hx+6} ${hy+37.5}`);
   } else if (cid === 'zero_blade') {
-    club = panel(`M${hx} ${hy} L${hx+13} ${hy+41}`,1.9,0.55,kitOp)
-      + panel(`M${hx+10} ${hy+38} l11 4 l-4 9 l-11-4 Z`,1.1,0.80)
-      + gl(`M${hx} ${hy} L${hx+13} ${hy+41}`,0.7,kitOp*0.5);
+    club = panel(`M${hx-1} ${hy} L${hx+1} ${hy} L${hx+2} ${hy+33} L${hx-1} ${hy+33} Z`,1.8,0.55,kitOp)
+      + panel(`M${hx-1} ${hy+31} L${hx+11} ${hy+34} L${hx+9} ${hy+43} L${hx-3} ${hy+42} Z`,1.1,0.85)
+      + gl(`M${hx-0.5} ${hy} L${hx+1.5} ${hy+33}`,0.7,kitOp*0.45)
+      + bevel(`M${hx-1} ${hy+31} L${hx+11} ${hy+34}`);
   } else if (cid === 'precision_driver') {
-    club = panel(`M${hx} ${hy} L${hx+13} ${hy+40}`,1.6,0.6)
-      + panel(`M${hx+9} ${hy+37} Q${hx+17} ${hy+38} ${hx+19} ${hy+45} Q${hx+17} ${hy+52} ${hx+8} ${hy+52} Q${hx} ${hy+50} ${hx+2} ${hy+43} Z`,1.15,0.83);
+    club = panel(`M${hx-0.8} ${hy} L${hx+0.8} ${hy} L${hx+2} ${hy+33} L${hx-0.8} ${hy+33} Z`,1.5,0.6)
+      + panel(`M${hx} ${hy+30} Q${hx+12} ${hy+31} ${hx+14} ${hy+40} Q${hx+12} ${hy+49} ${hx+2} ${hy+50} Q${hx-6} ${hy+48} ${hx-4} ${hy+39} Z`,1.1,0.87)
+      + bevel(`M${hx} ${hy+30} Q${hx+12} ${hy+31} ${hx+14} ${hy+40}`)
+      + sl(`M${hx+2} ${hy+38} Q${hx+10} ${hy+38} ${hx+10} ${hy+42}`);
   } else if (cid === 'platinum_shaft') {
-    club = panel(`M${hx-0.5} ${hy} L${hx+14} ${hy+43}`,2.1,0.6)
-      + panel(`M${hx+11} ${hy+40} l10 3 l-3 9 l-10-3 Z`,1.2,0.85)
-      + gl(`M${hx-0.5} ${hy} L${hx+14} ${hy+43}`,0.6,0.3);
+    club = panel(`M${hx-1.2} ${hy} L${hx+1.2} ${hy} L${hx+2} ${hy+35} L${hx-1} ${hy+35} Z`,2.0,0.62)
+      + sl(`M${hx-1} ${hy+10} L${hx+1} ${hy+10}`)
+      + sl(`M${hx-1} ${hy+20} L${hx+1} ${hy+20}`)
+      + sl(`M${hx-1} ${hy+28} L${hx+1} ${hy+28}`)
+      + panel(`M${hx-0.8} ${hy+33} L${hx+10} ${hy+36} L${hx+8} ${hy+44} L${hx-3} ${hy+43} Z`,1.2,0.9)
+      + bevel(`M${hx-0.8} ${hy+33} L${hx+10} ${hy+36}`)
+      + gl(`M${hx-1.2} ${hy} L${hx+2} ${hy+35}`,0.5,0.22);
   } else {
-    club = panel(`M${hx} ${hy} L${hx+12} ${hy+37}`,1.4,0.55)
-      + panel(`M${hx+10} ${hy+35} l7 3 l-2 6 l-7-3 Z`,1,0.8);
+    club = panel(`M${hx-0.7} ${hy} L${hx+0.7} ${hy} L${hx+1.5} ${hy+32} L${hx-0.5} ${hy+32} Z`,1.3,0.55)
+      + panel(`M${hx-0.4} ${hy+30} L${hx+7} ${hy+33} L${hx+5} ${hy+39} L${hx-2} ${hy+38} Z`,0.95,0.82);
   }
 
   // ── HEAD ──
+  // Full helmet-style head: cranium plates, cheek guards, visor slit, jaw panel, neck collar
   const head = `
-    <path d="M62 51 Q62 33 75 31 Q88 33 88 51 Q88 63 75 65 Q62 63 62 51 Z" fill="${skin}" opacity="0.44" stroke="none"/>
-    ${panel(`M62 51 Q62 33 75 31 Q88 33 88 51 Q88 63 75 65 Q62 63 62 51 Z`,1.25,0.0)}
-    <line x1="75" y1="36" x2="75" y2="65" stroke="${dimCol}" stroke-width="0.5"/>
-    <line x1="63" y1="51" x2="87" y2="51" stroke="${dimCol}" stroke-width="0.5"/>
-    ${panel(`M63 45 Q65 41 75 41 Q85 41 87 45 L87 50 Q85 47 75 47 Q65 47 63 50 Z`,1.05,0.87,kitOp)}
-    <line x1="65" y1="47" x2="72" y2="47" stroke="${kit}" stroke-width="2.8" opacity="${kitOp}" stroke-linecap="round"/>
-    <line x1="65" y1="47" x2="72" y2="47" stroke="${kit}" stroke-width="7" opacity="${kitOp*0.13}" stroke-linecap="round"/>
-    <line x1="78" y1="47" x2="85" y2="47" stroke="${kit}" stroke-width="2.8" opacity="${kitOp}" stroke-linecap="round"/>
-    <line x1="78" y1="47" x2="85" y2="47" stroke="${kit}" stroke-width="7" opacity="${kitOp*0.13}" stroke-linecap="round"/>
-    <path d="M62 50 Q62 31 75 30 Q88 31 88 50 Q84 43 75 43 Q66 43 62 50 Z" fill="${hairColor}" opacity="0.90"/>
-    <path d="M62 50 Q62 31 75 30 Q88 31 88 50 Q84 43 75 43 Q66 43 62 50 Z" fill="none" stroke="${struct}" stroke-width="0.7"/>
-    ${gl(`M68 62 Q75 66 82 62`,0.75,kitOp*0.42)}`;
+    ${/* NECK */ plate(`M70 68 L70 74 L80 74 L80 68 Z`)}
+    ${sl(`M71 71 L79 71`)}
+    ${/* SKULL BACK PLATE */ plate(`M62 54 Q62 34 75 32 Q88 34 88 54 Q88 66 75 68 Q62 66 62 54 Z`)}
+    ${/* HAIR FILL */ `<path d="M63 53 Q63 33 75 31 Q87 33 87 53 Q86 45 75 45 Q64 45 63 53 Z" fill="${hairColor}" opacity="0.88" stroke="none"/>`}
+    ${/* HELMET CRANIUM (over hair) */ panel(`M63 53 Q63 33 75 31 Q87 33 87 53 Q86 45 75 45 Q64 45 63 53 Z`,1.1,0.0,kitOp*0.55)}
+    ${/* SKULL PANEL LINES */ sl(`M75 33 L75 68`)}
+    ${sl(`M65 38 Q75 41 85 38`)}
+    ${/* CHEEK GUARD LEFT */ panel(`M62 54 Q62 62 65 67 L68 67 L69 58 L65 53 Z`,0.9,0.95,kitOp*0.6)}
+    ${/* CHEEK GUARD RIGHT */ panel(`M88 54 Q88 62 85 67 L82 67 L81 58 L85 53 Z`,0.9,0.95,kitOp*0.6)}
+    ${/* FACE PLATE */ `<path d="M65 53 L65 67 L85 67 L85 53 Q84 48 75 47 Q66 48 65 53 Z" fill="${skin}" opacity="0.38" stroke="none"/>`}
+    ${panel(`M65 53 L65 67 L85 67 L85 53 Q84 48 75 47 Q66 48 65 53 Z`,0.9,0.0,kitOp*0.5)}
+    ${/* VISOR PANEL */ panel(`M65 52 Q67 47 75 46 Q83 47 85 52 L85 58 Q83 55 75 54 Q67 55 65 58 Z`,1.1,0.93,kitOp)}
+    ${/* EYE SLITS */ `
+      <line x1="67" y1="53" x2="73" y2="53" stroke="${kit}" stroke-width="3.2" opacity="${kitOp*0.95}" stroke-linecap="round"/>
+      <line x1="67" y1="53" x2="73" y2="53" stroke="${kit}" stroke-width="8" opacity="${kitOp*0.15}" stroke-linecap="round"/>
+      <line x1="77" y1="53" x2="83" y2="53" stroke="${kit}" stroke-width="3.2" opacity="${kitOp*0.95}" stroke-linecap="round"/>
+      <line x1="77" y1="53" x2="83" y2="53" stroke="${kit}" stroke-width="8" opacity="${kitOp*0.15}" stroke-linecap="round"/>
+    `}
+    ${/* JAW PLATE */ panel(`M65 62 L65 68 L85 68 L85 62 Q84 59 75 59 Q66 59 65 62 Z`,0.85,0.95,kitOp*0.55)}
+    ${sl(`M67 65 L83 65`)}
+    ${gl(`M68 67 Q75 70 82 67`,0.7,kitOp*0.38)}`;
 
   // ── HEADWEAR ──
   const hid = equipped.headwear;
   let headwear = '';
   if (hid === 'tour_visor') {
-    headwear = panel(`M58 43 Q62 37 75 36 Q88 37 92 43 L96 44 L96 46 L54 46 L54 44 Z`,1.25,0.9,kitOp);
+    // Brim visor only over forehead
+    headwear = panel(`M60 46 Q62 38 75 37 Q88 38 90 46 L94 47 L93 50 L57 50 L56 47 Z`,1.2,0.95,kitOp)
+      + bevel(`M60 46 Q62 38 75 37 Q88 38 90 46`)
+      + sl(`M62 48 L88 48`)
+      + gl(`M59 49 L91 49`,0.6,kitOp*0.5);
   } else if (hid === 'operator_cap') {
-    headwear = panel(`M61 50 Q61 32 75 30 Q89 32 89 50 Q85 43 75 43 Q65 43 61 50 Z`,1.1,0.92,kitOp)
-      + panel(`M56 44 L94 44 L97 46 L53 46 Z`,1.0,0.88,kitOp);
+    // Full cap dome + peak
+    headwear = panel(`M62 53 Q62 31 75 29 Q88 31 88 53 Q86 44 75 44 Q64 44 62 53 Z`,1.1,0.96,kitOp)
+      + bevel(`M62 53 Q62 31 75 29 Q88 31 88 53`)
+      + sl(`M68 35 Q75 33 82 35`)
+      + sl(`M65 42 Q75 40 85 42`)
+      + panel(`M55 47 L95 47 L97 49 L53 49 Z`,1.0,0.93,kitOp)
+      + bevel(`M55 47 L95 47`);
   } else if (hid === 'crown_discipline') {
-    headwear = panel(`M64 43 L70 50 L75 37 L80 50 L86 43 L84 51 L66 51 Z`,1.25,0.87,kitOp*1.1)
-      + cg(75, 37, 3, 1.1, kitOp);
+    // Spiked crown with centre gem
+    headwear = panel(`M66 47 L69 54 L75 39 L81 54 L84 47 L82 55 L68 55 Z`,1.3,0.92,kitOp*1.1)
+      + bevel(`M66 47 L69 54 L75 39 L81 54 L84 47`)
+      + cg(75, 39, 3.5, 1.2, kitOp)
+      + sl(`M75 42 L75 54`);
   } else if (hid === 'champions_halo') {
-    headwear = cg(75, 26, 17, 1.7, kitOp*0.95)
-      + cg(75, 26, 13.5, 0.85, kitOp*0.5)
-      + `<circle cx="75" cy="26" r="2.5" fill="${kit}" opacity="${kitOp*0.75}"/>`;
+    // Floating ring halo with glow
+    headwear = `<ellipse cx="75" cy="24" rx="19" ry="4.5" fill="none" stroke="${kit}" stroke-width="2.8" opacity="${kitOp*0.9}"/>`
+      + `<ellipse cx="75" cy="24" rx="19" ry="4.5" fill="none" stroke="${kit}" stroke-width="7" opacity="${kitOp*0.18}"/>`
+      + `<ellipse cx="75" cy="24" rx="19" ry="4.5" fill="none" stroke="rgba(220,232,245,0.45)" stroke-width="0.7"/>`
+      + cg(75, 24, 2.5, 1.0, kitOp)
+      + `<line x1="75" y1="26.5" x2="75" y2="32" stroke="${kit}" stroke-width="0.8" opacity="${kitOp*0.6}"/>`;
   } else if (champion) {
-    headwear = panel(`M65 30 L70 40 L75 28 L80 40 L85 30 L83 47 L67 47 Z`,1.25,0.82,kitOp);
+    headwear = panel(`M67 33 L70 43 L75 29 L80 43 L83 33 L81 50 L69 50 Z`,1.25,0.87,kitOp);
   } else if (tierIdx >= 2) {
-    headwear = panel(`M60 46 Q62 37 75 35 Q88 37 90 46 L93 47 L57 47 Z`,1.05,0.87,kitOp);
+    headwear = panel(`M61 49 Q63 39 75 37 Q87 39 89 49 L92 50 L58 50 Z`,1.05,0.90,kitOp);
   }
 
   // ── ACCESSORY ──
   const acc = equipped.accessory;
   let accessory = '';
   if (acc === 'range_glove') {
-    accessory = panel(`M${lSX-law-1.5} 116 Q${lSX-law*0.8} 113 ${lSX} 113 Q${lSX+law*0.8} 113 ${lSX+law+1.5} 116 L${lSX+law*0.72} 117 Q${lSX+law*0.82} 123 ${lSX} 124 Q${lSX-law*0.82} 123 ${lSX-law*0.72} 117 Z`,0.95,0.88,kitOp)
-      + gl(`M${lSX-law*0.5} 118 L${lSX-law*0.5} 123`,0.5,kitOp*0.45)+gl(`M${lSX+law*0.5} 118 L${lSX+law*0.5} 123`,0.5,kitOp*0.45);
+    // Tactical glove over left hand with knuckle plating
+    accessory = panel(`M${lSX-haw*1.1} 128 Q${lSX-haw*0.9} 124 ${lSX} 124 Q${lSX+haw*0.9} 124 ${lSX+haw*1.1} 128 L${lSX+haw*0.85} 140 L${lSX-haw*0.85} 140 Z`,1.0,0.93,kitOp)
+      + sl(`M${lSX-haw*0.7} 131 L${lSX+haw*0.7} 131`)
+      + sl(`M${lSX-haw*0.6} 135 L${lSX+haw*0.6} 135`)
+      + sl(`M${lSX-1.5} 128 L${lSX-1.5} 140`)
+      + sl(`M${lSX+1.5} 128 L${lSX+1.5} 140`)
+      + gl(`M${lSX-haw*0.5} 126 L${lSX+haw*0.5} 126`,0.55,kitOp*0.6);
   } else if (acc === 'iron_chain') {
-    accessory = gl(`M67 62 Q68 68 70 73 Q75 76 80 73 Q82 68 83 62`,1.3,kitOp*0.85)
-      + cg(75, 76, 4, 1.1, kitOp);
+    // Chain loop at neck + circular pendant
+    accessory = `<path d="M68 68 Q66 73 68 78 Q72 82 75 82 Q78 82 82 78 Q84 73 82 68" fill="none" stroke="${edge}" stroke-width="1.1" opacity="0.55" stroke-dasharray="2 1.5"/>`
+      + gl(`M68 68 Q66 73 68 78 Q72 82 75 82 Q78 82 82 78 Q84 73 82 68`,0.8,kitOp*0.7)
+      + cg(75, 84, 5, 1.1, kitOp)
+      + sl(`M73 82 L77 82`);
   } else if (acc === 'scholars_mark') {
-    accessory = panel(`M${lSX-6} 93 L${lSX-6} 109 L${lSX+6} 109 L${lSX+6} 93 Z`,1.05,0.87,kitOp)
-      + gl(`M${lSX-5} 97 L${lSX+5} 97`,0.55,kitOp*0.5)+gl(`M${lSX-5} 101 L${lSX+5} 101`,0.55,kitOp*0.5)
-      + gl(`M${lSX-5} 105 L${lSX+5} 105`,0.55,kitOp*0.5)+gl(`M${lSX} 93 L${lSX} 109`,0.5,kitOp*0.35);
+    // Book panel on left arm
+    accessory = panel(`M${lSX-6} 95 L${lSX-6} 113 L${lSX+6} 113 L${lSX+6} 95 Z`,1.1,0.95,kitOp)
+      + bevel(`M${lSX-6} 95 L${lSX+6} 95`)
+      + sl(`M${lSX-5} 99 L${lSX+5} 99`)
+      + sl(`M${lSX-5} 103 L${lSX+5} 103`)
+      + sl(`M${lSX-5} 107 L${lSX+5} 107`)
+      + sl(`M${lSX} 95 L${lSX} 113`,0.22)
+      + gl(`M${lSX-4} 97 L${lSX+4} 97`,0.5,kitOp*0.5);
   } else if (acc === 'builders_sigil') {
-    accessory = panel(`M${rSX-1} 87 L${rSX+7} 95 L${rSX-1} 103 L${rSX-9} 95 Z`,1.3,0.72,kitOp)
-      + cg(rSX-1, 95, 3, 0.9, kitOp*0.65);
+    // Diamond sigil on right shoulder
+    accessory = panel(`M${rSX} 88 L${rSX+9} 97 L${rSX} 106 L${rSX-9} 97 Z`,1.3,0.80,kitOp)
+      + bevel(`M${rSX} 88 L${rSX+9} 97 L${rSX} 106`)
+      + cg(rSX, 97, 3.5, 1.0, kitOp*0.7)
+      + sl(`M${rSX} 88 L${rSX} 106`,0.25)
+      + sl(`M${rSX-9} 97 L${rSX+9} 97`,0.25);
   }
 
   return `<svg viewBox="0 0 150 190" xmlns="http://www.w3.org/2000/svg">
-    ${bpGrid}${aura}${particles}${annotations}
-    ${legs}${torso}${reactor}${arms}${accessory}${club}${head}${headwear}
+    ${bpGrid}${shadow}${aura}${particles}${annotations}
+    ${hips}${legs}${torso}${reactor}${arms}${accessory}${club}${head}${headwear}
   </svg>`;
 }
 
