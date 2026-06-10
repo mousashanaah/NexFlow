@@ -3249,14 +3249,13 @@ const NUTRI_HABITS = [
   { key: 'postMeal', label: 'Post-Training Meal Done', sub: null },
   { key: 'hydration', label: 'Hydration 2L+', sub: null },
   { key: 'noSnacking', label: 'No Unplanned Snacking', sub: null },
-  { key: 'triggerFoods', label: 'Trigger Foods Out of House/Bag', sub: null },
 ];
 
 let nutriHabitState = {};
 let snackRating = 'clean';
 
 function buildNutriList() {
-  const NUTRI_CODES = ['FUEL·01','FUEL·02','FUEL·03','FUEL·04','FUEL·05','FUEL·06'];
+  const NUTRI_CODES = ['FUEL·01','FUEL·02','FUEL·03','FUEL·04','FUEL·05'];
   const NR = 40, NCIRC = 2 * Math.PI * NR;
   const container = $('nutri-habit-list');
   const nticks = Array.from({length:20},(_,i)=>{
