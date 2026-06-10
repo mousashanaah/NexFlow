@@ -2309,99 +2309,109 @@
     <!-- TAB 2: ROUND -->
     <div id="tab-round" class="tab-panel">
       <div class="mission-line">AFTER-ACTION REPORT</div>
-      <div class="page-title">Sortie Debrief</div>
+      <div class="page-title">Round Log</div>
 
-      <div class="sys-label first">Round Details</div>
+      <div class="sys-label first">Identity</div>
       <div class="input-row">
-        <div>
-          <label>Date</label>
-          <input type="date" id="r-date">
-        </div>
-        <div>
-          <label>Holes Played</label>
-          <input type="number" id="r-holes" value="18" min="1" max="18">
-        </div>
+        <div><label>Date</label><input type="date" id="r-date"></div>
+        <div><label>Holes Played</label><input type="number" id="r-holes" value="18" min="1" max="18"></div>
       </div>
       <div class="input-row">
-        <div>
-          <label>Par <span style="color:var(--muted);font-weight:400">(for holes played)</span></label>
-          <input type="number" id="r-par" value="72" min="27" max="80">
-        </div>
-        <div>
-          <label>Course Name</label>
-          <input type="text" id="r-course" placeholder="Emirates — Majlis">
-        </div>
-      </div>
-      <div class="input-row">
-        <div>
-          <label>Score</label>
-          <input type="number" id="r-score" placeholder="74">
-        </div>
-        <div>
-          <label>Total Putts</label>
-          <input type="number" id="r-putts" placeholder="30">
-        </div>
+        <div><label>Par</label><input type="number" id="r-par" value="72" min="27" max="80"></div>
+        <div><label>Course</label><input type="text" id="r-course" placeholder="Emirates — Majlis"></div>
       </div>
 
-      <div class="sys-label">Tee to Green</div>
+      <div class="sys-label">Scoring</div>
       <div class="input-row">
-        <div>
-          <label>Fairways Hit</label>
-          <input type="number" id="r-fir" placeholder="8">
-        </div>
-        <div>
-          <label>Fairways Total</label>
-          <input type="number" id="r-firTotal" placeholder="14">
-        </div>
+        <div><label>Gross Score</label><input type="number" id="r-score" placeholder="74"></div>
+        <div><label>Eagles</label><input type="number" id="r-eagles" placeholder="0" min="0"></div>
       </div>
       <div class="input-row">
-        <div>
-          <label>GIR Hit</label>
-          <input type="number" id="r-gir" placeholder="9">
-        </div>
-        <div>
-          <label>GIR Possible</label>
-          <input type="number" id="r-girTotal" placeholder="18">
-        </div>
+        <div><label>Birdies</label><input type="number" id="r-birdies" placeholder="2" min="0"></div>
+        <div><label>Pars</label><input type="number" id="r-pars" placeholder="10" min="0"></div>
+      </div>
+      <div class="input-row">
+        <div><label>Bogeys</label><input type="number" id="r-bogeys" placeholder="5" min="0"></div>
+        <div><label>Doubles</label><input type="number" id="r-doubles" placeholder="1" min="0"></div>
+      </div>
+      <div class="input-row">
+        <div><label>Triple+</label><input type="number" id="r-triples" placeholder="0" min="0"></div>
+        <div><label>Front 9 Score</label><input type="number" id="r-front9" placeholder="37"></div>
+      </div>
+      <div class="input-row">
+        <div><label>Back 9 Score</label><input type="number" id="r-back9" placeholder="37"></div>
+        <div></div>
+      </div>
+
+      <div class="sys-label">Driving</div>
+      <div class="input-row">
+        <div><label>Fairways Hit</label><input type="number" id="r-fir" placeholder="8"></div>
+        <div><label>Fairways Total</label><input type="number" id="r-firTotal" placeholder="14"></div>
+      </div>
+      <div class="input-row">
+        <div><label>Avg Drive Distance (m)</label><input type="number" id="r-driveDist" placeholder="270"></div>
+        <div><label>Penalties</label><input type="number" id="r-penalties" placeholder="1" min="0"></div>
+      </div>
+
+      <div class="sys-label">Approach</div>
+      <div class="input-row">
+        <div><label>GIR Hit</label><input type="number" id="r-gir" placeholder="9"></div>
+        <div><label>GIR Possible</label><input type="number" id="r-girTotal" placeholder="18"></div>
+      </div>
+      <div class="input-row">
+        <div><label>Avg Proximity (m)</label><input type="number" id="r-proximity" placeholder="8" step="0.1"></div>
+        <div><label>Par-3 GIR</label><input type="number" id="r-par3gir" placeholder="3" min="0"></div>
+      </div>
+      <div class="input-row">
+        <div><label>Par-4 GIR</label><input type="number" id="r-par4gir" placeholder="4" min="0"></div>
+        <div><label>Par-5 GIR</label><input type="number" id="r-par5gir" placeholder="2" min="0"></div>
+      </div>
+
+      <div class="sys-label">Putting</div>
+      <div class="input-row">
+        <div><label>Total Putts</label><input type="number" id="r-putts" placeholder="30"></div>
+        <div><label>1-Putt Greens</label><input type="number" id="r-onePutts" placeholder="4" min="0"></div>
+      </div>
+      <div class="input-row">
+        <div><label>3-Putt Greens</label><input type="number" id="r-threePutts" placeholder="2" min="0"></div>
+        <div><label>Putts from Inside 1.5m</label><input type="number" id="r-shortMakes" placeholder="8" min="0"></div>
       </div>
 
       <div class="sys-label">Short Game</div>
       <div class="input-row">
-        <div>
-          <label>Up-and-Down Att.</label>
-          <input type="number" id="r-udAttempts" placeholder="6">
-        </div>
-        <div>
-          <label>Up-and-Down Makes</label>
-          <input type="number" id="r-udMakes" placeholder="4">
-        </div>
+        <div><label>U&amp;D Attempts</label><input type="number" id="r-udAttempts" placeholder="6"></div>
+        <div><label>U&amp;D Makes</label><input type="number" id="r-udMakes" placeholder="4"></div>
       </div>
       <div class="input-row">
-        <div>
-          <label>Sand Saves Att.</label>
-          <input type="number" id="r-sandAttempts" placeholder="2">
-        </div>
-        <div>
-          <label>Sand Saves Makes</label>
-          <input type="number" id="r-sandMakes" placeholder="1">
-        </div>
+        <div><label>Sand Saves Att.</label><input type="number" id="r-sandAttempts" placeholder="2"></div>
+        <div><label>Sand Saves Makes</label><input type="number" id="r-sandMakes" placeholder="1"></div>
+      </div>
+      <div class="input-row">
+        <div><label>Chips (non-sand) Att.</label><input type="number" id="r-chipAttempts" placeholder="4"></div>
+        <div><label>Chips Up-and-Down</label><input type="number" id="r-chipMakes" placeholder="3"></div>
       </div>
 
-      <div class="sys-label danger">Threat Readout — North Star</div>
+      <div class="sys-label danger">Threat Readout</div>
       <div class="card accent-card threat-frame hud-frame" style="margin-bottom:16px"><span class="hud-corners"></span>
         <div class="ns-header">
           <div class="ns-dot"></div>
           <div class="ns-title">Catastrophic Misses</div>
           <span class="threat-tag">CRITICAL</span>
         </div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Snap hooks · shanks · hosel rockets that caused double bogey or worse. TARGET: 0 per round.</p>
+        <p style="font-size:10px;color:var(--muted);margin-bottom:12px;font-family:var(--mono);letter-spacing:0.06em">Snap hooks · shanks · hosel rockets causing double bogey or worse. Target: 0.</p>
         <input type="number" id="r-catmisses" min="0" max="20" placeholder="0" style="margin-bottom:0">
       </div>
 
-      <div class="sys-label">Notes</div>
-      <textarea id="r-notes" placeholder="Round summary, key moments, what to work on..."></textarea>
+      <div class="sys-label">Mental / Feel</div>
+      <div class="input-row">
+        <div><label>Focus Rating /10</label><input type="number" id="r-focus" placeholder="7" min="1" max="10"></div>
+        <div><label>Confidence /10</label><input type="number" id="r-confidence" placeholder="7" min="1" max="10"></div>
+      </div>
 
-      <button class="btn btn-primary" onclick="saveRound()">Save Round</button>
+      <div class="sys-label">Notes</div>
+      <textarea id="r-notes" placeholder="Round summary — key moments, misses, feels..."></textarea>
+
+      <button class="btn btn-primary" onclick="saveRound()">Commit Round</button>
 
       <div class="divider"></div>
       <div class="sys-label">Round History</div>
@@ -2948,39 +2958,57 @@ function saveDay() {
 // ─── ROUND TAB ─────────────────────────────────────────────────────
 function saveRound() {
   const r = {
+    id: Date.now(),
     date: $('r-date').value || today(),
     course: $('r-course').value.trim(),
     holes: parseInt($('r-holes').value) || 18,
     par: parseInt($('r-par').value) || 72,
     score: parseInt($('r-score').value) || null,
+    eagles: parseInt($('r-eagles').value) || 0,
+    birdies: parseInt($('r-birdies').value) || 0,
+    pars: parseInt($('r-pars').value) || 0,
+    bogeys: parseInt($('r-bogeys').value) || 0,
+    doubles: parseInt($('r-doubles').value) || 0,
+    triples: parseInt($('r-triples').value) || 0,
+    front9: parseInt($('r-front9').value) || null,
+    back9: parseInt($('r-back9').value) || null,
     fir: parseInt($('r-fir').value) || 0,
     firTotal: parseInt($('r-firTotal').value) || 14,
+    driveDist: parseInt($('r-driveDist').value) || null,
+    penalties: parseInt($('r-penalties').value) || 0,
     gir: parseInt($('r-gir').value) || 0,
     girTotal: parseInt($('r-girTotal').value) || 18,
+    proximity: parseFloat($('r-proximity').value) || null,
+    par3gir: parseInt($('r-par3gir').value) || 0,
+    par4gir: parseInt($('r-par4gir').value) || 0,
+    par5gir: parseInt($('r-par5gir').value) || 0,
     putts: parseInt($('r-putts').value) || null,
+    onePutts: parseInt($('r-onePutts').value) || 0,
+    threePutts: parseInt($('r-threePutts').value) || 0,
+    shortMakes: parseInt($('r-shortMakes').value) || 0,
     udAttempts: parseInt($('r-udAttempts').value) || 0,
     udMakes: parseInt($('r-udMakes').value) || 0,
     sandAttempts: parseInt($('r-sandAttempts').value) || 0,
     sandMakes: parseInt($('r-sandMakes').value) || 0,
+    chipAttempts: parseInt($('r-chipAttempts').value) || 0,
+    chipMakes: parseInt($('r-chipMakes').value) || 0,
     catMisses: parseInt($('r-catmisses').value) || 0,
+    focus: parseInt($('r-focus').value) || null,
+    confidence: parseInt($('r-confidence').value) || null,
     notes: $('r-notes').value.trim(),
-    id: Date.now(),
   };
-
-  if (!r.score) { showToast('Enter a score to save'); return; }
-  if (!r.course) { showToast('Enter the course name'); return; }
-
   const rounds = load('nexflow_rounds') || [];
   rounds.unshift(r);
   save('nexflow_rounds', rounds);
-
-  // Reset form
-  ['r-course','r-score','r-fir','r-firTotal','r-gir','r-girTotal',
-   'r-putts','r-udAttempts','r-udMakes','r-sandAttempts','r-sandMakes','r-catmisses','r-notes'].forEach(id => $(id).value = '');
+  ['r-course','r-score','r-eagles','r-birdies','r-pars','r-bogeys','r-doubles','r-triples',
+   'r-front9','r-back9','r-fir','r-firTotal','r-driveDist','r-penalties',
+   'r-gir','r-girTotal','r-proximity','r-par3gir','r-par4gir','r-par5gir',
+   'r-putts','r-onePutts','r-threePutts','r-shortMakes',
+   'r-udAttempts','r-udMakes','r-sandAttempts','r-sandMakes',
+   'r-chipAttempts','r-chipMakes','r-catmisses','r-focus','r-confidence','r-notes'].forEach(id => { if($(id)) $(id).value = ''; });
   $('r-par').value = 72;
   $('r-holes').value = 18;
   $('r-date').value = '';
-
   showToast('Round saved!');
   renderRoundList();
   checkRpgProgress(false);
@@ -3025,120 +3053,168 @@ function renderRoundList() {
 function renderStats() {
   const rounds = load('nexflow_rounds') || [];
   const el = $('stats-content');
-
   if (!rounds.length) {
-    el.innerHTML = `<div class="empty-state"><div class="e-icon">📊</div><p>Log your first round to unlock analysis.</p></div>`;
+    el.innerHTML = `<div class="empty-state"><p>No rounds logged yet.</p></div>`;
     return;
   }
 
-  // per-18 normalizer so 9 / 12 / 18-hole rounds compare fairly
   const per18 = (val, holes) => val / (holes || 18) * 18;
-  // 18-hole-equivalent scores
-  const scores = rounds.filter(r => r.score).map(r => per18(r.score, r.holes));
-  const pars = rounds.map(r => r.par);
-  // score to par is hole-count-agnostic (par entered for holes played)
-  const toPars = rounds.filter(r => r.score).map(r => r.score - r.par);
+  const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+  const pct = (a,b) => b ? Math.round(a/b*100)+'%' : '—';
+  const fmtNum = (n, dec=1) => n == null || isNaN(n) ? '—' : parseFloat(n.toFixed(dec));
   const last5 = rounds.slice(0, 5);
-  const last5scores = last5.filter(r => r.score).map(r => r.score - r.par);
+  const last10 = rounds.slice(0, 10);
 
-  const scoringAvg = avg(scores).toFixed(1);
-  const last5avg = last5scores.length ? (avg(last5scores) >= 0 ? '+' : '') + avg(last5scores).toFixed(1) : '—';
-  const best = Math.min(...toPars);
-  const worst = Math.max(...toPars);
-  const bestStr = best === 0 ? 'E' : (best > 0 ? '+' + best : '' + best);
-  const worstStr = worst === 0 ? 'E' : (worst > 0 ? '+' + worst : '' + worst);
+  // ── SCORING ──
+  const toPars = rounds.filter(r=>r.score).map(r=>r.score-r.par);
+  const last5tp = last5.filter(r=>r.score).map(r=>r.score-r.par);
+  const last10tp = last10.filter(r=>r.score).map(r=>r.score-r.par);
+  const scoringAvg = fmtNum(avg(toPars), 1);
+  const last5avg = last5tp.length ? fmtNum(avg(last5tp),1) : '—';
+  const last10avg = last10tp.length ? fmtNum(avg(last10tp),1) : '—';
+  const best = toPars.length ? Math.min(...toPars) : null;
+  const worst = toPars.length ? Math.max(...toPars) : null;
+  const toParStr = v => v==null ? '—' : v===0?'E':(v>0?'+'+v:''+v);
+  const trendArrow = (last5tp.length>=2 && last10tp.length>5) ?
+    (avg(last5tp) < avg(last10tp.slice(5)) ? '▲' : '▼') : '';
+  const trendCol = trendArrow==='▲'?'var(--green)':trendArrow==='▼'?'var(--red)':'';
 
-  // Score to par buckets
-  const underPar = toPars.filter(t => t < 0).length;
-  const even = toPars.filter(t => t === 0).length;
-  const over1_5 = toPars.filter(t => t > 0 && t <= 5).length;
-  const over6 = toPars.filter(t => t > 5).length;
+  const underPar = toPars.filter(t=>t<0).length;
+  const even = toPars.filter(t=>t===0).length;
+  const over1_5 = toPars.filter(t=>t>0&&t<=5).length;
+  const over6 = toPars.filter(t=>t>5).length;
   const total = toPars.length;
 
-  // Cat misses (normalized per 18 for a fair average)
-  const cats = rounds.map(r => per18(r.catMisses || 0, r.holes));
-  const avgCat = avg(cats).toFixed(1);
+  // Score breakdown (eagles/birdies/pars/bogeys/doubles/triples)
+  const totEagles   = rounds.reduce((a,r)=>a+(r.eagles||0),0);
+  const totBirdies  = rounds.reduce((a,r)=>a+(r.birdies||0),0);
+  const totPars     = rounds.reduce((a,r)=>a+(r.pars||0),0);
+  const totBogeys   = rounds.reduce((a,r)=>a+(r.bogeys||0),0);
+  const totDoubles  = rounds.reduce((a,r)=>a+(r.doubles||0),0);
+  const totTriples  = rounds.reduce((a,r)=>a+(r.triples||0),0);
+  const totHoles    = rounds.reduce((a,r)=>a+(r.holes||18),0);
+  const birdieRate  = totHoles ? fmtNum(totBirdies/totHoles*18,1) : '—';
+  const bogeyRate   = totHoles ? fmtNum(totBogeys/totHoles*18,1) : '—';
 
-  // T2G — all-time averages for display
-  const allFir = rounds.reduce((a, r) => a + r.fir, 0);
-  const allFirT = rounds.reduce((a, r) => a + r.firTotal, 0);
-  const allGir = rounds.reduce((a, r) => a + r.gir, 0);
-  const allGirT = rounds.reduce((a, r) => a + r.girTotal, 0);
-  const allPutts = rounds.filter(r => r.putts).map(r => per18(r.putts, r.holes));
-  const avgPutts = allPutts.length ? avg(allPutts).toFixed(1) : '—';
-  const allUdA = rounds.reduce((a, r) => a + r.udAttempts, 0);
-  const allUdM = rounds.reduce((a, r) => a + r.udMakes, 0);
+  // Front/Back split
+  const front9rounds = rounds.filter(r=>r.front9&&r.holes===18);
+  const back9rounds  = rounds.filter(r=>r.back9&&r.holes===18);
+  const avgFront = front9rounds.length ? fmtNum(avg(front9rounds.map(r=>r.front9)),1) : '—';
+  const avgBack  = back9rounds.length  ? fmtNum(avg(back9rounds.map(r=>r.back9)),1) : '—';
 
-  // SG estimates — last 5 only so numbers reflect current form
-  const sg5 = last5;
-  const sg5Fir = sg5.reduce((a, r) => a + r.fir, 0);
-  const sg5FirT = sg5.reduce((a, r) => a + r.firTotal, 0);
-  const sg5Gir = sg5.reduce((a, r) => a + r.gir, 0);
-  const sg5GirT = sg5.reduce((a, r) => a + r.girTotal, 0);
-  const sg5Putts = sg5.filter(r => r.putts).map(r => per18(r.putts, r.holes));
-  const sg5UdA = sg5.reduce((a, r) => a + r.udAttempts, 0);
-  const sg5UdM = sg5.reduce((a, r) => a + r.udMakes, 0);
-  const firPct = sg5FirT ? sg5Fir / sg5FirT : 0.5;
-  const girPct = sg5GirT ? sg5Gir / sg5GirT : 0.5;
-  const udPct = sg5UdA ? sg5UdM / sg5UdA : 0.5;
-  const avgPuttsNum = sg5Putts.length ? avg(sg5Putts) : 30;
+  // ── DRIVING ──
+  const allFir = rounds.reduce((a,r)=>a+r.fir,0);
+  const allFirT = rounds.reduce((a,r)=>a+r.firTotal,0);
+  const firPctAll = pct(allFir,allFirT);
+  const l5Fir = last5.reduce((a,r)=>a+r.fir,0);
+  const l5FirT = last5.reduce((a,r)=>a+r.firTotal,0);
+  const firPct5 = pct(l5Fir,l5FirT);
+  const driveDists = rounds.filter(r=>r.driveDist).map(r=>r.driveDist);
+  const avgDrive = driveDists.length ? Math.round(avg(driveDists)) : '—';
+  const maxDrive = driveDists.length ? Math.max(...driveDists) : '—';
+  const totalPenalties = rounds.reduce((a,r)=>a+(r.penalties||0),0);
+  const penPer18 = totHoles ? fmtNum(totalPenalties/totHoles*18,1) : '—';
 
-  // scratch benchmarks: FIR ~60%, GIR ~67%, U&D ~50%, putts ~30
-  const sgOTT = ((firPct - 0.60) * 5).toFixed(2);
-  const sgApp = ((girPct - 0.67) * 8).toFixed(2);
-  const sgShort = ((udPct - 0.50) * 4).toFixed(2);
-  const sgPutt = ((30 - avgPuttsNum) * 0.1).toFixed(2);
+  // ── APPROACH / GIR ──
+  const allGir = rounds.reduce((a,r)=>a+r.gir,0);
+  const allGirT = rounds.reduce((a,r)=>a+r.girTotal,0);
+  const girPctAll = pct(allGir,allGirT);
+  const l5Gir = last5.reduce((a,r)=>a+r.gir,0);
+  const l5GirT = last5.reduce((a,r)=>a+r.girTotal,0);
+  const girPct5 = pct(l5Gir,l5GirT);
+  const proximities = rounds.filter(r=>r.proximity).map(r=>r.proximity);
+  const avgProximity = proximities.length ? fmtNum(avg(proximities),1)+'m' : '—';
+  const par3girs  = rounds.filter(r=>r.par3gir!=null).reduce((a,r)=>a+r.par3gir,0);
+  const par4girs  = rounds.filter(r=>r.par4gir!=null).reduce((a,r)=>a+r.par4gir,0);
+  const par5girs  = rounds.filter(r=>r.par5gir!=null).reduce((a,r)=>a+r.par5gir,0);
+  const par3holes = rounds.filter(r=>r.holes===18).length * 4;
+  const par4holes = rounds.filter(r=>r.holes===18).length * 10;
+  const par5holes = rounds.filter(r=>r.holes===18).length * 4;
 
-  function sgColor(v) { return parseFloat(v) >= 0 ? 'var(--green)' : 'var(--red)'; }
+  // ── PUTTING ──
+  const allPutts = rounds.filter(r=>r.putts).map(r=>per18(r.putts,r.holes));
+  const avgPutts18 = allPutts.length ? fmtNum(avg(allPutts),1) : '—';
+  const l5Putts = last5.filter(r=>r.putts).map(r=>per18(r.putts,r.holes));
+  const avgPutts5 = l5Putts.length ? fmtNum(avg(l5Putts),1) : '—';
+  const totOnePutts   = rounds.reduce((a,r)=>a+(r.onePutts||0),0);
+  const totThreePutts = rounds.reduce((a,r)=>a+(r.threePutts||0),0);
+  const onePuttRate   = allGirT ? fmtNum(totOnePutts/allGirT*100,1)+'%' : '—';
+  const threePuttRate = allGirT ? fmtNum(totThreePutts/allGirT*100,1)+'%' : '—';
+
+  // ── SHORT GAME ──
+  const allUdA = rounds.reduce((a,r)=>a+r.udAttempts,0);
+  const allUdM = rounds.reduce((a,r)=>a+r.udMakes,0);
+  const allSandA = rounds.reduce((a,r)=>a+r.sandAttempts,0);
+  const allSandM = rounds.reduce((a,r)=>a+r.sandMakes,0);
+  const allChipA = rounds.reduce((a,r)=>a+(r.chipAttempts||0),0);
+  const allChipM = rounds.reduce((a,r)=>a+(r.chipMakes||0),0);
+  const udPctAll = pct(allUdM,allUdA);
+  const sandPct  = pct(allSandM,allSandA);
+  const chipPct  = pct(allChipM,allChipA);
+  const l5UdA = last5.reduce((a,r)=>a+r.udAttempts,0);
+  const l5UdM = last5.reduce((a,r)=>a+r.udMakes,0);
+  const udPct5 = pct(l5UdM,l5UdA);
+
+  // ── CAT MISSES ──
+  const cats = rounds.map(r=>per18(r.catMisses||0,r.holes));
+  const avgCat = fmtNum(avg(cats),1);
+  const cleanRounds = rounds.filter(r=>r.catMisses===0).length;
+
+  // ── MENTAL ──
+  const focuses = rounds.filter(r=>r.focus).map(r=>r.focus);
+  const confs   = rounds.filter(r=>r.confidence).map(r=>r.confidence);
+  const avgFocus = focuses.length ? fmtNum(avg(focuses),1) : '—';
+  const avgConf  = confs.length   ? fmtNum(avg(confs),1)  : '—';
+
+  // ── SG ESTIMATES (last 5) ──
+  const sgFirPct = l5FirT ? l5Fir/l5FirT : 0.5;
+  const sgGirPct = l5GirT ? l5Gir/l5GirT : 0.5;
+  const sgUdPct  = l5UdA  ? l5UdM/l5UdA  : 0.5;
+  const sgPuttsN = l5Putts.length ? avg(l5Putts) : 30;
+  const sgOTT    = ((sgFirPct - 0.60)*5).toFixed(2);
+  const sgApp    = ((sgGirPct - 0.67)*8).toFixed(2);
+  const sgShort  = ((sgUdPct  - 0.50)*4).toFixed(2);
+  const sgPutt   = ((30 - sgPuttsN)*0.1).toFixed(2);
+  const sgTotal  = (parseFloat(sgOTT)+parseFloat(sgApp)+parseFloat(sgShort)+parseFloat(sgPutt)).toFixed(2);
+
+  function sgColor(v) { return parseFloat(v)>=0?'var(--green)':'var(--red)'; }
+  function sgSign(v)  { return parseFloat(v)>=0?'+'+v:v; }
   function sgBar(v, max=2) {
-    const n = parseFloat(v);
-    const w = Math.min(Math.abs(n) / max * 100, 100);
+    const n=parseFloat(v), w=Math.min(Math.abs(n)/max*100,100);
     return `<div class="sg-bar" style="width:${w}%;background:${sgColor(v)}"></div>`;
   }
-  function sgSign(v) { return parseFloat(v) >= 0 ? '+' + v : v; }
-
-  // Miss dots for last 5
-  const missRows = last5.map(r => {
-    const dots = '●'.repeat(r.catMisses) + '○'.repeat(Math.max(0, 5 - r.catMisses));
-    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-      <span style="font-size:11px;color:var(--muted);width:70px">${fmtShort(r.date)}</span>
-      <span class="miss-dots" style="color:${r.catMisses === 0 ? 'var(--green)' : r.catMisses > 2 ? 'var(--red)' : 'var(--accent)'}">${dots}</span>
-      <span style="font-size:13px;font-weight:700;color:${r.catMisses === 0 ? 'var(--green)' : r.catMisses > 2 ? 'var(--red)' : 'var(--accent)'}">${r.catMisses}</span>
+  function statRow(lbl, allVal, l5Val) {
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase">${lbl}</span>
+      <span style="display:flex;gap:16px">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${allVal}</span>
+        <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text)">${l5Val}</span>
+      </span>
     </div>`;
-  }).join('');
-
+  }
   function barRow(label, val, total) {
     const w = total ? Math.round(val/total*100) : 0;
-    return `<div class="stp-row">
-      <span class="stp-lbl">${label}</span>
+    return `<div class="stp-row"><span class="stp-lbl">${label}</span>
       <div class="stp-bar-wrap"><div class="stp-bar" style="width:${w}%;background:var(--accent)"></div></div>
-      <span class="stp-val">${w}%</span>
-    </div>`;
+      <span class="stp-val">${w}%</span></div>`;
   }
 
   el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-family:var(--mono);font-size:8px;letter-spacing:0.18em;color:var(--muted)">${rounds.length} ROUNDS LOGGED</span>
+      <span style="font-family:var(--mono);font-size:8px;letter-spacing:0.12em;color:var(--muted)">ALL · LAST 5</span>
+    </div>
+
     <!-- SCORING -->
     <div class="sys-label first">Scoring</div>
-    <div class="card hud-frame"><span class="hud-corners"></span>
+    <div class="card">
       <div class="stat-grid">
-        <div class="stat-box">
-          <div class="stat-val">${scoringAvg}</div>
-          <div class="stat-lbl">Scoring Avg / 18</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val">${last5avg}</div>
-          <div class="stat-lbl">Last 5 Avg (to par)</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val green">${bestStr}</div>
-          <div class="stat-lbl">Best Round</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val red">${worstStr}</div>
-          <div class="stat-lbl">Worst Round</div>
-        </div>
+        <div class="stat-box"><div class="stat-val">${scoringAvg>=0&&scoringAvg!=='—'?'+'+scoringAvg:scoringAvg}</div><div class="stat-lbl">Career Avg</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:${trendCol}">${last5avg>=0&&last5avg!=='—'?'+'+last5avg:last5avg} ${trendArrow}</div><div class="stat-lbl">Last 5 Avg</div></div>
+        <div class="stat-box"><div class="stat-val green">${toParStr(best)}</div><div class="stat-lbl">Best Round</div></div>
+        <div class="stat-box"><div class="stat-val red">${toParStr(worst)}</div><div class="stat-lbl">Worst Round</div></div>
       </div>
-      <div class="card-title readout" style="margin-top:4px">// Score-to-Par Distribution</div>
+      <div class="card-title readout" style="margin-top:4px">// Score Distribution</div>
       <div class="score-to-par">
         ${barRow('Under Par', underPar, total)}
         ${barRow('Even', even, total)}
@@ -3147,99 +3223,108 @@ function renderStats() {
       </div>
     </div>
 
-    <!-- NORTH STAR -->
-    <div class="sys-label danger">Threat Analysis — Catastrophic Misses</div>
-    <div class="card accent-card threat-frame hud-frame"><span class="hud-corners"></span>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Snap hooks · shanks · hosel rockets causing double bogey or worse. Target: 0.</div>
-      <div class="stat-grid" style="margin-bottom:16px">
-        <div class="stat-box" style="border-color:rgba(192,69,63,0.4)">
-          <div class="stat-val red">${avgCat}</div>
-          <div class="stat-lbl">Avg per 18</div>
-        </div>
-        <div class="stat-box" style="border-color:rgba(192,69,63,0.4)">
-          <div class="stat-val green">${rounds.filter(r => r.catMisses === 0).length}</div>
-          <div class="stat-lbl">Clean Rounds</div>
-        </div>
+    <!-- SCORE BREAKDOWN -->
+    <div class="sys-label">Hole Results</div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-family:var(--mono);font-size:8px;letter-spacing:0.14em;color:var(--muted)">FRONT 9 AVG</span>
+        <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text)">${avgFront}</span>
       </div>
-      <div class="card-title readout">// Threat Log — Last 5</div>
-      ${missRows}
-      <div style="font-size:11px;color:var(--muted);margin-top:8px">Progress toward 0: ${rounds.length} rounds logged · ${rounds.filter(r=>r.catMisses===0).length} clean</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:14px">
+        <span style="font-family:var(--mono);font-size:8px;letter-spacing:0.14em;color:var(--muted)">BACK 9 AVG</span>
+        <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text)">${avgBack}</span>
+      </div>
+      <div class="card-title readout">// Per-Round Averages (18H equiv)</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px">
+        <div class="stat-box" style="text-align:center"><div class="stat-val" style="font-size:16px;color:var(--green)">${fmtNum(totEagles/rounds.length,2)}</div><div class="stat-lbl">Eagles</div></div>
+        <div class="stat-box" style="text-align:center"><div class="stat-val" style="font-size:16px;color:var(--green)">${birdieRate}</div><div class="stat-lbl">Birdies</div></div>
+        <div class="stat-box" style="text-align:center"><div class="stat-val" style="font-size:16px">${fmtNum(totPars/rounds.length,1)}</div><div class="stat-lbl">Pars</div></div>
+        <div class="stat-box" style="text-align:center"><div class="stat-val" style="font-size:16px;color:#c89640">${bogeyRate}</div><div class="stat-lbl">Bogeys</div></div>
+        <div class="stat-box" style="text-align:center"><div class="stat-val" style="font-size:16px;color:var(--red)">${fmtNum(totDoubles/rounds.length,2)}</div><div class="stat-lbl">Doubles</div></div>
+        <div class="stat-box" style="text-align:center"><div class="stat-val" style="font-size:16px;color:var(--red)">${fmtNum(totTriples/rounds.length,2)}</div><div class="stat-lbl">Triple+</div></div>
+      </div>
     </div>
 
-    <!-- T2G -->
-    <div class="sys-label">Tee-to-Green</div>
-    <div class="card hud-frame"><span class="hud-corners"></span>
+    <!-- DRIVING -->
+    <div class="sys-label">Driving</div>
+    <div class="card">
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;text-align:right">ALL &nbsp;·&nbsp; LAST 5</div>
+      ${statRow('Fairways Hit %', firPctAll, firPct5)}
+      ${statRow('Avg Drive (m)', avgDrive, last5.filter(r=>r.driveDist).length ? Math.round(avg(last5.filter(r=>r.driveDist).map(r=>r.driveDist))) : '—')}
+      ${statRow('Best Drive (m)', maxDrive, '—')}
+      ${statRow('Penalties / 18', penPer18, fmtNum(last5.reduce((a,r)=>a+(r.penalties||0),0)/Math.max(last5.length,1)/1*18,1))}
+    </div>
+
+    <!-- APPROACH -->
+    <div class="sys-label">Approach & GIR</div>
+    <div class="card">
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;text-align:right">ALL &nbsp;·&nbsp; LAST 5</div>
+      ${statRow('GIR %', girPctAll, girPct5)}
+      ${statRow('Avg Proximity', avgProximity, last5.filter(r=>r.proximity).length ? fmtNum(avg(last5.filter(r=>r.proximity).map(r=>r.proximity)),1)+'m' : '—')}
+      ${par3holes>0 ? statRow('Par-3 GIR %', pct(par3girs,par3holes), '—') : ''}
+      ${par4holes>0 ? statRow('Par-4 GIR %', pct(par4girs,par4holes), '—') : ''}
+      ${par5holes>0 ? statRow('Par-5 GIR %', pct(par5girs,par5holes), '—') : ''}
+    </div>
+
+    <!-- PUTTING -->
+    <div class="sys-label">Putting</div>
+    <div class="card">
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;text-align:right">ALL &nbsp;·&nbsp; LAST 5</div>
+      ${statRow('Putts / 18', avgPutts18, avgPutts5)}
+      ${statRow('1-Putt %', onePuttRate, '—')}
+      ${statRow('3-Putt %', threePuttRate, '—')}
+    </div>
+
+    <!-- SHORT GAME -->
+    <div class="sys-label">Short Game</div>
+    <div class="card">
+      <div style="font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;text-align:right">ALL &nbsp;·&nbsp; LAST 5</div>
+      ${statRow('Up-and-Down %', udPctAll, udPct5)}
+      ${statRow('Sand Save %', sandPct, '—')}
+      ${statRow('Chipping U&D %', chipPct, '—')}
+    </div>
+
+    <!-- CAT MISSES -->
+    <div class="sys-label danger">Catastrophic Misses</div>
+    <div class="card accent-card threat-frame">
+      <div class="stat-grid" style="margin-bottom:12px">
+        <div class="stat-box" style="border-color:rgba(155,53,53,0.3)"><div class="stat-val red">${avgCat}</div><div class="stat-lbl">Avg / 18</div></div>
+        <div class="stat-box" style="border-color:rgba(155,53,53,0.3)"><div class="stat-val green">${cleanRounds}</div><div class="stat-lbl">Clean Rounds</div></div>
+      </div>
+      <div class="card-title readout">// Last 5 Rounds</div>
+      ${last5.map(r=>{
+        const dots='●'.repeat(r.catMisses||0)+'○'.repeat(Math.max(0,5-(r.catMisses||0)));
+        return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+          <span style="font-family:var(--mono);font-size:9px;color:var(--muted);width:70px">${fmtShort(r.date)}</span>
+          <span style="font-family:var(--mono);font-size:13px;letter-spacing:3px;color:${(r.catMisses||0)===0?'var(--green)':(r.catMisses||0)>2?'var(--red)':'#c89640'}">${dots}</span>
+          <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${(r.catMisses||0)===0?'var(--green)':(r.catMisses||0)>2?'var(--red)':'#c89640'}">${r.catMisses||0}</span>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- MENTAL -->
+    <div class="sys-label">Mental Performance</div>
+    <div class="card">
       <div class="stat-grid">
-        <div class="stat-box">
-          <div class="stat-val">${pct(allFir, allFirT)}</div>
-          <div class="stat-lbl">Fairways Hit %</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val">${pct(allGir, allGirT)}</div>
-          <div class="stat-lbl">GIR %</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val">${avgPutts}</div>
-          <div class="stat-lbl">Avg Putts / 18</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val">${pct(allUdM, allUdA)}</div>
-          <div class="stat-lbl">Up-and-Down %</div>
-        </div>
+        <div class="stat-box"><div class="stat-val">${avgFocus}</div><div class="stat-lbl">Avg Focus /10</div></div>
+        <div class="stat-box"><div class="stat-val">${avgConf}</div><div class="stat-lbl">Avg Confidence /10</div></div>
       </div>
     </div>
 
-    <!-- SG SIMPLIFIED -->
+    <!-- SG ESTIMATES -->
     <div class="sys-label">Strokes Gained <span style="font-size:10px;color:var(--muted);font-weight:400">— Last 5 Rounds</span></div>
-    <div class="card hud-frame"><span class="hud-corners"></span>
-      <div class="card-title readout">// Estimated vs Scratch · Current Form</div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <span class="card-title readout" style="margin-bottom:0">// vs Scratch</span>
+        <span style="font-family:var(--mono);font-size:16px;font-weight:700;color:${sgColor(sgTotal)}">${sgSign(sgTotal)}</span>
+      </div>
       <div style="margin-bottom:4px">
-        <div class="sg-row">
-          <span class="sg-label">Off the Tee</span>
-          <div class="sg-bar-wrap">${sgBar(sgOTT)}</div>
-          <span class="sg-val" style="color:${sgColor(sgOTT)}">${sgSign(sgOTT)}</span>
-        </div>
-        <div class="sg-row">
-          <span class="sg-label">Approach</span>
-          <div class="sg-bar-wrap">${sgBar(sgApp)}</div>
-          <span class="sg-val" style="color:${sgColor(sgApp)}">${sgSign(sgApp)}</span>
-        </div>
-        <div class="sg-row">
-          <span class="sg-label">Short Game</span>
-          <div class="sg-bar-wrap">${sgBar(sgShort)}</div>
-          <span class="sg-val" style="color:${sgColor(sgShort)}">${sgSign(sgShort)}</span>
-        </div>
-        <div class="sg-row">
-          <span class="sg-label">Putting</span>
-          <div class="sg-bar-wrap">${sgBar(sgPutt)}</div>
-          <span class="sg-val" style="color:${sgColor(sgPutt)}">${sgSign(sgPutt)}</span>
-        </div>
+        <div class="sg-row"><span class="sg-label">Off the Tee</span><div class="sg-bar-wrap">${sgBar(sgOTT)}</div><span class="sg-val" style="color:${sgColor(sgOTT)}">${sgSign(sgOTT)}</span></div>
+        <div class="sg-row"><span class="sg-label">Approach</span><div class="sg-bar-wrap">${sgBar(sgApp)}</div><span class="sg-val" style="color:${sgColor(sgApp)}">${sgSign(sgApp)}</span></div>
+        <div class="sg-row"><span class="sg-label">Short Game</span><div class="sg-bar-wrap">${sgBar(sgShort)}</div><span class="sg-val" style="color:${sgColor(sgShort)}">${sgSign(sgShort)}</span></div>
+        <div class="sg-row"><span class="sg-label">Putting</span><div class="sg-bar-wrap">${sgBar(sgPutt)}</div><span class="sg-val" style="color:${sgColor(sgPutt)}">${sgSign(sgPutt)}</span></div>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:8px">Benchmarks: FIR 60% · GIR 67% · U&D 50% · 30 putts. Simplified estimate.</div>
-    </div>
-
-    <!-- SCORING PATTERN -->
-    <div class="sys-label">Scoring Pattern</div>
-    <div class="card hud-frame"><span class="hud-corners"></span>
-      <div class="stat-grid">
-        <div class="stat-box">
-          <div class="stat-val green">${avg(rounds.map(r => Math.max(0, r.gir - (r.putts ? Math.max(0,(r.putts - r.gir)):0)))).toFixed(1)}</div>
-          <div class="stat-lbl">Est. Birdies/Rnd</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val">${avg(rounds.map(r => r.gir || 0)).toFixed(1)}</div>
-          <div class="stat-lbl">Avg GIR/Rnd</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val red">${avg(rounds.map(r => r.catMisses || 0)).toFixed(1)}</div>
-          <div class="stat-lbl">Avg Cat. Misses</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val">${rounds.length}</div>
-          <div class="stat-lbl">Rounds Logged</div>
-        </div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px">Log individual hole scores for full birdie/bogey breakdown.</div>
+      <div style="font-family:var(--mono);font-size:8.5px;color:var(--muted);letter-spacing:0.08em;margin-top:8px;line-height:1.6">Estimated vs scratch benchmarks: FIR 60% · GIR 67% · U&D 50% · 30 putts/18</div>
     </div>
   `;
 }
