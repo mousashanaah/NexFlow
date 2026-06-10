@@ -1,0 +1,6 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-label="Polo shirt">
+  <path d="M76 44l24 16 24-16 34 18-14 30-16-8v68c0 4-3 6-6 6H78c-3 0-6-2-6-6V82l-16 8-14-30z" fill="#0e0e0e"/>
+  <path d="M76 44l24 16-12 14-22-12z" fill="#7ac72e"/>
+  <path d="M124 44l-24 16 12 14 22-12z" fill="#7ac72e"/>
+  <line x1="100" y1="74" x2="100" y2="104" stroke="#7ac72e" stroke-width="4"/>
+</svg>

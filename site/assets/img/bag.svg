@@ -1,0 +1,10 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-label="Golf bag">
+  <rect x="66" y="40" width="60" height="120" rx="26" fill="#0e0e0e"/>
+  <rect x="74" y="34" width="44" height="20" rx="10" fill="#7ac72e"/>
+  <g stroke="#9aa0a6" stroke-width="5" stroke-linecap="round">
+    <line x1="84" y1="34" x2="80" y2="14"/><line x1="96" y1="32" x2="96" y2="10"/><line x1="108" y1="34" x2="114" y2="14"/>
+  </g>
+  <rect x="78" y="78" width="36" height="30" rx="6" fill="#7ac72e"/>
+  <path d="M126 70c20 4 20 70 0 80" fill="none" stroke="#0e0e0e" stroke-width="6"/>
+  <rect x="84" y="150" width="24" height="20" rx="4" fill="#1a1a1a"/>
+</svg>
