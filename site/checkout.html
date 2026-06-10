@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Secure Checkout — Golf4Less</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/svg+xml" href="assets/img/logo-mark.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+
+  <!-- Minimal secure checkout header -->
+  <header class="co-header">
+    <div class="wrap">
+      <a class="brand" href="index.html" aria-label="Golf4Less home">
+        <img class="mark" src="assets/img/logo-mark.svg" alt="" />
+        <span class="word">GOLF<b>4</b>LESS</span>
+      </a>
+      <div class="co-secure">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        Secure Checkout
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="steps">
+      <div class="step"><span class="num">1</span> Bag</div>
+      <span class="arrow">›</span>
+      <div class="step"><span class="num">2</span> Information</div>
+      <span class="arrow">›</span>
+      <div class="step"><span class="num">3</span> Shipping</div>
+      <span class="arrow">›</span>
+      <div class="step active"><span class="num">4</span> Payment</div>
+    </div>
+
+    <div class="co-layout">
+      <!-- LEFT: forms -->
+      <div>
+        <div class="co-section">
+          <h3>Express Checkout</h3>
+          <div class="express">
+            <button aria-label="Apple Pay">🍎&nbsp; Apple&nbsp;Pay</button>
+            <button aria-label="Google Pay">G&nbsp; Google&nbsp;Pay</button>
+          </div>
+          <div class="divider">or pay another way</div>
+        </div>
+
+        <div class="co-section">
+          <h3>Contact &amp; Shipping</h3>
+          <div class="field"><input type="email" placeholder="Email address" required /></div>
+          <div class="form-row">
+            <div class="field"><input type="text" placeholder="First name" /></div>
+            <div class="field"><input type="text" placeholder="Last name" /></div>
+          </div>
+          <div class="field"><input type="text" placeholder="Address" /></div>
+          <div class="form-row">
+            <div class="field"><input type="text" placeholder="City" /></div>
+            <div class="field">
+              <select>
+                <option>United Arab Emirates</option>
+                <option>Saudi Arabia</option>
+                <option>Qatar</option>
+                <option>Bahrain</option>
+                <option>Kuwait</option>
+                <option>Oman</option>
+              </select>
+            </div>
+          </div>
+          <div class="field"><input type="tel" placeholder="Phone (for delivery updates)" /></div>
+        </div>
+
+        <div class="co-section">
+          <h3>Payment</h3>
+          <div class="pay-method active" data-pm>
+            <div class="pm-head">
+              <input type="radio" name="pm" checked /> Credit / Debit Card
+              <span class="cards"><span>VISA</span><span>MC</span><span>AMEX</span></span>
+            </div>
+            <div class="pm-body">
+              <div class="field"><input type="text" placeholder="Card number" inputmode="numeric" /></div>
+              <div class="field"><input type="text" placeholder="Name on card" /></div>
+              <div class="form-row">
+                <div class="field"><input type="text" placeholder="MM / YY" /></div>
+                <div class="field"><input type="text" placeholder="CVV" inputmode="numeric" /></div>
+              </div>
+            </div>
+          </div>
+          <div class="pay-method" data-pm>
+            <div class="pm-head"><input type="radio" name="pm" /> <b style="background:#b9f6ca;color:#045d3a;padding:1px 7px;border-radius:5px">tabby</b> Pay in 4 — interest-free</div>
+          </div>
+          <div class="pay-method" data-pm>
+            <div class="pm-head"><input type="radio" name="pm" /> Cash on Delivery</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: summary -->
+      <aside>
+        <div class="summary">
+          <h3>Order Summary <a href="collection.html">Edit bag</a></h3>
+
+          <div class="s-item">
+            <div class="s-img"><span class="qbadge">1</span><img src="assets/img/driver.svg" alt="Qi10 Driver" /></div>
+            <div class="s-meta"><b>TaylorMade Qi10 Driver</b><small>Loft 10.5° · Diamana TM50 (S) · Flex R</small></div>
+            <div class="s-price">AED 1,699</div>
+          </div>
+          <div class="s-item">
+            <div class="s-img"><span class="qbadge">3</span><img src="assets/img/golfball.svg" alt="Custom balls" /></div>
+            <div class="s-meta"><b>Custom Tour Balls</b><small>3 dozen · Free printing ✓</small></div>
+            <div class="s-price">AED 657</div>
+          </div>
+
+          <div class="promo">
+            <input type="text" placeholder="Discount code" />
+            <button class="btn btn-ghost" style="padding:11px 18px">Apply</button>
+          </div>
+
+          <div class="s-line"><span>Subtotal</span><span>AED 2,356</span></div>
+          <div class="s-line discount"><span>Deal saving</span><span>− AED 720</span></div>
+          <div class="s-line"><span>Delivery (Next-day UAE)</span><span>FREE</span></div>
+          <div class="s-line"><span>VAT (5%)</span><span>Incl.</span></div>
+          <div class="s-total"><span>Total <small>incl. VAT</small></span><span>AED 1,636</span></div>
+
+          <button class="btn btn-green place-order" id="placeOrder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            Place Order · AED 1,636
+          </button>
+
+          <div class="co-trust">
+            <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg> 100% Genuine</div>
+            <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> Secure SSL</div>
+            <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg> Free Returns</div>
+          </div>
+          <p style="text-align:center;font-size:0.72rem;color:var(--muted);margin-top:14px">By placing your order you agree to our <a href="#" style="color:var(--green-deep)">Terms &amp; Conditions</a>.</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="footer" style="padding:30px 0">
+    <div class="wrap footer-bottom" style="border-top:none;padding-top:0">
+      <span>© 2026 Golf4Less. An eGolf Megastore venture.</span>
+      <div class="pays"><span>VISA</span><span>MASTERCARD</span><span>AMEX</span><span>APPLE PAY</span><span>TABBY</span><span>COD</span></div>
+    </div>
+  </footer>
+
+  <script src="assets/js/main.js"></script>
+  <script>
+    document.querySelectorAll("[data-pm]").forEach((m) => {
+      m.addEventListener("click", () => {
+        document.querySelectorAll("[data-pm]").forEach((x) => x.classList.remove("active"));
+        m.classList.add("active");
+        m.querySelector('input[type=radio]').checked = true;
+      });
+    });
+    document.getElementById("placeOrder").addEventListener("click", (e) => {
+      const b = e.currentTarget; const o = b.innerHTML;
+      b.innerHTML = "✓ Order Confirmed!"; b.style.background = "var(--green-deep)"; b.style.color = "#fff";
+      setTimeout(() => { b.innerHTML = o; b.style.background = ""; b.style.color = ""; }, 2500);
+    });
+  </script>
+</body>
+</html>
