@@ -2444,9 +2444,6 @@
         <button class="btn btn-primary" onclick="saveNutrition()">Save Nutrition Log</button>
       </div>
 
-      <div class="divider"></div>
-      <div class="sys-label">Status Timeline — 7 Days</div>
-      <div id="nutri-streak" class="grid-frame hud-frame"><span class="hud-corners"></span></div>
     </div>
 
     <!-- TAB: CHARACTER -->
@@ -2745,7 +2742,7 @@ function switchTab(name, btn) {
   if (name === 'stats') renderStats();
   if (name === 'streak') renderStreak();
   if (name === 'round') renderRoundList();
-  if (name === 'nutrition') renderNutriStreak();
+  if (name === 'nutrition') { /* nutrition tab loaded */ }
   if (name === 'character') renderCharacter();
   if (name === 'today') checkSavedDay();
 }
@@ -2905,14 +2902,19 @@ function saveDay() {
   const td = today();
   const catVal = $('t-catmisses').value;
   let green;
+  const nut = load('nexflow_nutrition') || [];
+  const todayNut = nut.find(n => n.date === td);
+  const nutGreen = todayNut
+    ? (Object.values(todayNut.habits).filter(Boolean).length >= 4 && todayNut.snackRating !== 'blowup')
+    : false;
   if (restDay) {
     // Rest day: score only over non-golf/non-gym habits; waive cat-miss requirement.
     const restHabits = HABITS.filter(h => !REST_EXCLUDE.includes(h.key));
     const restChecked = restHabits.filter(h => habitState[h.key]).length;
-    green = restHabits.length ? (restChecked / restHabits.length >= 0.8) : true;
+    green = nutGreen && (restHabits.length ? (restChecked / restHabits.length >= 0.8) : true);
   } else {
     const checkedCount = HABITS.filter(h => habitState[h.key]).length;
-    green = (checkedCount / HABITS.length >= 0.8) && catVal !== '';
+    green = nutGreen && (checkedCount / HABITS.length >= 0.8);
   }
 
   const days = load('nexflow_days') || [];
@@ -3333,14 +3335,14 @@ function saveNutrition() {
   else nut.push(obj);
   save('nexflow_nutrition', nut);
   showToast('Nutrition log saved!');
-  renderNutriStreak();
   checkRpgProgress(false);
   updateHeaderHud();
 }
 
 function renderNutriStreak() {
-  const nut = load('nexflow_nutrition') || [];
   const el = $('nutri-streak');
+  if (!el) return;
+  const nut = load('nexflow_nutrition') || [];
   const days = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
@@ -3415,6 +3417,8 @@ function renderStreak() {
     const box = document.createElement('div');
     box.className = 'week-box ' + cls;
     box.innerHTML = `<div class="wday">${dayNames[i]}</div><div class="wnum">${dd.getDate()}</div>`;
+    box.style.cursor = 'pointer';
+    box.onclick = () => showDayDetail(ds);
     weekGrid.appendChild(box);
   }
 
@@ -3433,6 +3437,8 @@ function renderStreak() {
     const cell = document.createElement('div');
     cell.className = 'cal-cell ' + cls;
     cell.textContent = dd.getDate();
+    cell.style.cursor = 'pointer';
+    cell.onclick = () => showDayDetail(ds);
     calGrid.appendChild(cell);
   }
 
@@ -3459,6 +3465,57 @@ function renderStreak() {
 
   // Canvas chart
   drawMissChart();
+}
+
+function showDayDetail(ds) {
+  const days = load('nexflow_days') || [];
+  const nut = load('nexflow_nutrition') || [];
+  const d = days.find(x => x.date === ds);
+  const n = nut.find(x => x.date === ds);
+
+  const dt = new Date(ds + 'T00:00:00');
+  const label = dt.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short', year:'numeric' }).toUpperCase();
+
+  let html = `<div style="font-family:var(--mono);font-size:9px;letter-spacing:0.18em;color:var(--muted);margin-bottom:14px">${label}</div>`;
+
+  if (!d && !n) {
+    html += `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.12em">// NO DATA LOGGED</div>`;
+  } else {
+    if (d) {
+      html += `<div style="font-family:var(--mono);font-size:8.5px;letter-spacing:0.18em;color:var(--muted);margin-bottom:8px;text-transform:uppercase">// MISSIONS</div>`;
+      HABITS.forEach(h => {
+        const done = d.habits && d.habits[h.key];
+        html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="width:8px;height:8px;background:${done?'var(--green)':'var(--border)'};display:inline-block;flex-shrink:0"></span>
+          <span style="font-family:var(--mono);font-size:10px;color:${done?'var(--text)':'var(--muted)'};letter-spacing:0.04em;text-transform:uppercase">${h.label}</span>
+        </div>`;
+      });
+      if (d.oneLine) {
+        html += `<div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.08em;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">${d.oneLine}</div>`;
+      }
+    }
+    if (n) {
+      html += `<div style="font-family:var(--mono);font-size:8.5px;letter-spacing:0.18em;color:var(--muted);margin-bottom:8px;margin-top:${d?'14px':'0'};text-transform:uppercase">// NUTRITION</div>`;
+      const NUTRI_LABELS = {'preMeal':'Pre-Training Meal','postMeal':'Post-Training Meal','hydration':'Hydration 2L+','noSnacking':'No Unplanned Snacking','supplements':'Supplements','sleep':'Sleep 8h+','protein':'Protein Goal Hit'};
+      Object.keys(n.habits).forEach(k => {
+        const done = n.habits[k];
+        const lbl = NUTRI_LABELS[k] || k;
+        html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="width:8px;height:8px;background:${done?'var(--green)':'var(--border)'};display:inline-block;flex-shrink:0"></span>
+          <span style="font-family:var(--mono);font-size:10px;color:${done?'var(--text)':'var(--muted)'};letter-spacing:0.04em;text-transform:uppercase">${lbl}</span>
+        </div>`;
+      });
+      const ratingMap = {clean:'CLEAN',slip:'SLIP',blowup:'CRITICAL'};
+      const ratingCol = {clean:'var(--green)',slip:'#c89640',blowup:'var(--red)'};
+      if (n.snackRating) html += `<div style="font-family:var(--mono);font-size:9px;letter-spacing:0.14em;margin-top:8px;color:${ratingCol[n.snackRating]||'var(--muted)'}">INTEGRITY: ${ratingMap[n.snackRating]||n.snackRating}</div>`;
+    }
+  }
+
+  html += `<button class="btn btn-ghost" style="margin-top:16px;font-size:9px;letter-spacing:0.18em" onclick="document.getElementById('day-detail-modal').style.display='none'">CLOSE</button>`;
+
+  const modal = $('day-detail-modal');
+  $('day-detail-body').innerHTML = html;
+  modal.style.display = 'flex';
 }
 
 function drawMissChart() {
@@ -4707,7 +4764,6 @@ function init() {
     });
   }
 
-  renderNutriStreak();
   renderRoundList();
 
   // RPG: first-ever load seeds meta silently (avoids mass toasts for existing data);
@@ -4758,5 +4814,10 @@ function importData(e) {
   reader.readAsText(file);
 }
 </script>
+<div id="day-detail-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:24px">
+  <div style="background:#030405;border:1px solid rgba(180,195,210,0.18);max-width:340px;width:100%;padding:20px;max-height:80vh;overflow-y:auto;position:relative">
+    <div id="day-detail-body"></div>
+  </div>
+</div>
 </body>
 </html>
