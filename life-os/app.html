@@ -1588,6 +1588,86 @@
   .snack-opt[data-val="blowup"].selected .so-bar { background: var(--red); }
   .snack-opt[data-val="blowup"].selected::before,.snack-opt[data-val="blowup"].selected::after { border-color: var(--red); }
 
+  /* ═══ ROUND WIZARD ═══════════════════════════════════════════════ */
+  .hole-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .hole-nav-btn { font-family:var(--mono); font-size:9px; letter-spacing:0.16em; background:transparent; border:1px solid var(--border); color:var(--muted); padding:8px 12px; cursor:pointer; }
+  .hole-nav-btn:disabled { opacity:0.2; cursor:not-allowed; }
+  .hole-nav-info { font-family:var(--mono); font-size:16px; font-weight:700; letter-spacing:0.08em; color:var(--text); text-align:center; }
+  .hole-nav-sub  { font-family:var(--mono); font-size:8px; letter-spacing:0.16em; color:var(--muted); text-align:center; margin-top:2px; }
+
+  .par-sel { display:flex; gap:5px; margin-bottom:12px; }
+  .par-btn { flex:1; font-family:var(--mono); font-size:10px; letter-spacing:0.14em; font-weight:700; padding:9px 4px; background:transparent; border:1px solid var(--border); color:var(--muted); cursor:pointer; text-align:center; }
+  .par-btn.active { border-color:rgba(180,195,210,0.50); color:var(--text); background:rgba(180,195,210,0.07); }
+
+  .shot-row { padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+  .shot-row-head { display:flex; align-items:flex-start; gap:7px; margin-bottom:7px; }
+  .shot-num { font-family:var(--mono); font-size:9px; letter-spacing:0.10em; color:var(--muted); width:16px; flex-shrink:0; padding-top:6px; }
+  .shot-del { font-family:var(--mono); font-size:10px; color:var(--muted); background:transparent; border:none; cursor:pointer; padding:4px 6px; margin-left:auto; flex-shrink:0; }
+
+  .chip-row { display:flex; gap:4px; flex-wrap:wrap; flex:1; }
+  .lie-chip, .shape-chip { font-family:var(--mono); font-size:7.5px; letter-spacing:0.09em; padding:5px 7px; border:1px solid var(--border); color:var(--muted); cursor:pointer; background:transparent; white-space:nowrap; }
+  .lie-chip.on  { border-color:rgba(180,195,210,0.55); color:var(--text); background:rgba(180,195,210,0.08); }
+  .shape-chip.on { border-color:rgba(180,195,210,0.40); color:var(--text); background:rgba(180,195,210,0.05); }
+  .shape-chip.shank-on { border-color:rgba(155,53,53,0.70); color:#9b3535; background:rgba(155,53,53,0.10); }
+
+  .shot-row-detail { display:flex; gap:5px; align-items:center; flex-wrap:wrap; margin-left:23px; }
+  .shot-dist-input { width:68px; font-family:var(--mono); font-size:13px; background:rgba(0,0,0,0.5); border:1px solid var(--border); color:var(--text); padding:6px 8px; -webkit-appearance:none; appearance:none; }
+  .shot-unit-lbl { font-family:var(--mono); font-size:8px; color:var(--muted); letter-spacing:0.10em; flex-shrink:0; }
+
+  .dir-btns { display:flex; gap:3px; }
+  .dir-btn { font-family:var(--mono); font-size:8px; letter-spacing:0.08em; padding:6px 8px; border:1px solid var(--border); color:var(--muted); cursor:pointer; background:transparent; }
+  .dir-btn.on-L  { border-color:rgba(155,53,53,0.55);  color:#9b3535; background:rgba(155,53,53,0.07); }
+  .dir-btn.on-R  { border-color:rgba(155,53,53,0.55);  color:#9b3535; background:rgba(155,53,53,0.07); }
+  .dir-btn.on-SQ { border-color:rgba(46,139,87,0.55);  color:var(--green); background:rgba(46,139,87,0.07); }
+  .dir-btn.on-SH { border-color:rgba(200,150,64,0.55); color:#c89640; background:rgba(200,150,64,0.07); }
+  .dir-btn.on-LG { border-color:rgba(200,150,64,0.55); color:#c89640; background:rgba(200,150,64,0.07); }
+
+  .cat-btn { font-family:var(--mono); font-size:7.5px; letter-spacing:0.10em; padding:6px 8px; border:1px solid rgba(155,53,53,0.28); color:#6a2525; cursor:pointer; background:transparent; }
+  .cat-btn.on { border-color:rgba(155,53,53,0.75); color:#9b3535; background:rgba(155,53,53,0.12); font-weight:700; }
+
+  .add-shot-btn { font-family:var(--mono); font-size:9px; letter-spacing:0.18em; background:transparent; border:1px dashed rgba(180,195,210,0.15); color:var(--muted); padding:11px; cursor:pointer; width:100%; text-align:center; margin-top:8px; }
+  .add-shot-btn:hover { border-color:rgba(180,195,210,0.35); color:var(--text); }
+
+  .hole-score-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0 4px; }
+  .hole-score-num { font-family:var(--mono); font-size:22px; font-weight:700; }
+  .hole-score-tag { font-family:var(--mono); font-size:8px; letter-spacing:0.18em; }
+
+  /* Scorecard mini grid */
+  .sc-grid { display:grid; gap:2px; margin-bottom:14px; }
+  .sc-row  { display:grid; gap:2px; }
+  .sc-cell { font-family:var(--mono); font-size:9px; text-align:center; padding:5px 2px; border:1px solid var(--border); background:rgba(0,0,0,0.35); color:var(--muted); cursor:pointer; }
+  .sc-head { font-size:7.5px; letter-spacing:0.06em; }
+  .sc-par    { color:var(--text); }
+  .sc-birdie { border-color:rgba(46,139,87,0.6);  color:var(--green); }
+  .sc-eagle  { border-color:rgba(46,139,87,0.9);  color:var(--green); font-weight:700; }
+  .sc-bogey  { border-color:rgba(200,150,64,0.4); color:#c89640; }
+  .sc-double { border-color:rgba(155,53,53,0.4);  color:var(--red); }
+  .sc-triple { border-color:rgba(155,53,53,0.7);  color:var(--red); font-weight:700; }
+  .sc-active { border-color:rgba(180,195,210,0.60) !important; background:rgba(180,195,210,0.08) !important; }
+
+  /* Stats dispersion chart */
+  .disp-wrap { position:relative; width:100%; background:rgba(0,0,0,0.35); border:1px solid var(--border); overflow:hidden; margin-bottom:4px; }
+  .disp-canvas { display:block; width:100%; }
+  .disp-legend { display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; }
+  .disp-leg-item { display:flex; align-items:center; gap:5px; font-family:var(--mono); font-size:8px; letter-spacing:0.10em; color:var(--muted); }
+  .disp-leg-dot  { width:8px; height:8px; flex-shrink:0; }
+
+  /* Miss pattern table */
+  .miss-table { width:100%; border-collapse:collapse; }
+  .miss-table th, .miss-table td { font-family:var(--mono); font-size:9px; letter-spacing:0.06em; text-align:center; padding:7px 4px; border-bottom:1px solid var(--border); }
+  .miss-table th { color:var(--muted); font-weight:400; letter-spacing:0.12em; text-transform:uppercase; }
+  .miss-table td:first-child { text-align:left; color:var(--muted); }
+  .miss-table tr:last-child td { border-bottom:none; }
+  .miss-val { color:var(--text); font-weight:700; }
+
+  /* Approach distance bands */
+  .dist-band-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .dist-band-lbl { font-family:var(--mono); font-size:8.5px; letter-spacing:0.06em; color:var(--muted); width:72px; flex-shrink:0; }
+  .dist-band-bar-wrap { flex:1; height:14px; background:rgba(0,0,0,0.4); border:1px solid var(--border); position:relative; overflow:hidden; }
+  .dist-band-fill { height:100%; }
+  .dist-band-pct { font-family:var(--mono); font-size:9px; font-weight:700; color:var(--text); width:36px; text-align:right; flex-shrink:0; }
+  .dist-band-n   { font-family:var(--mono); font-size:8px; color:var(--muted); width:24px; text-align:right; flex-shrink:0; }
+
   /* ═══════════════════════════════════════════════════════════════════
      CLASSIFIED TERMINAL — GLOBAL OVERRIDE
      Every element inherits the cold-system aesthetic below.
@@ -1967,6 +2047,22 @@
     letter-spacing: -0.02em;
   }
 
+  /* ── ROUND LIST SCORECARD ── */
+  .rl-scorecard {
+    display: flex; flex-wrap: wrap; gap: 2px; margin-top: 6px;
+  }
+  .rl-sc-cell {
+    font-family: var(--mono); font-size: 9px; font-weight: 700;
+    width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .rl-sc-cell.sc-eagle  { background: rgba(90,200,120,0.35); color: var(--green); border-color: var(--green); }
+  .rl-sc-cell.sc-birdie { background: rgba(74,173,110,0.2); color: var(--green); }
+  .rl-sc-cell.sc-par    { background: transparent; color: var(--muted); }
+  .rl-sc-cell.sc-bogey  { background: rgba(200,166,64,0.15); color: #c8a640; }
+  .rl-sc-cell.sc-double { background: rgba(180,60,60,0.2); color: var(--red); }
+  .rl-sc-cell.sc-triple { background: rgba(180,60,60,0.35); color: var(--red); border-color: var(--red); }
+
   /* ── SG BARS ── */
   .sg-label { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; color: var(--muted); }
   .sg-bar-wrap { height: 2px; background: var(--border); }
@@ -2311,107 +2407,58 @@
       <div class="mission-line">AFTER-ACTION REPORT</div>
       <div class="page-title">Round Log</div>
 
-      <div class="sys-label first">Identity</div>
-      <div class="input-row">
-        <div><label>Date</label><input type="date" id="r-date"></div>
-        <div><label>Holes Played</label><input type="number" id="r-holes" value="18" min="1" max="18"></div>
-      </div>
-      <div class="input-row">
-        <div><label>Par</label><input type="number" id="r-par" value="72" min="27" max="80"></div>
-        <div><label>Course</label><input type="text" id="r-course" placeholder="Emirates — Majlis"></div>
-      </div>
-
-      <div class="sys-label">Scoring</div>
-      <div class="input-row">
-        <div><label>Gross Score</label><input type="number" id="r-score" placeholder="74"></div>
-        <div><label>Eagles</label><input type="number" id="r-eagles" placeholder="0" min="0"></div>
-      </div>
-      <div class="input-row">
-        <div><label>Birdies</label><input type="number" id="r-birdies" placeholder="2" min="0"></div>
-        <div><label>Pars</label><input type="number" id="r-pars" placeholder="10" min="0"></div>
-      </div>
-      <div class="input-row">
-        <div><label>Bogeys</label><input type="number" id="r-bogeys" placeholder="5" min="0"></div>
-        <div><label>Doubles</label><input type="number" id="r-doubles" placeholder="1" min="0"></div>
-      </div>
-      <div class="input-row">
-        <div><label>Triple+</label><input type="number" id="r-triples" placeholder="0" min="0"></div>
-        <div><label>Front 9 Score</label><input type="number" id="r-front9" placeholder="37"></div>
-      </div>
-      <div class="input-row">
-        <div><label>Back 9 Score</label><input type="number" id="r-back9" placeholder="37"></div>
-        <div></div>
-      </div>
-
-      <div class="sys-label">Driving</div>
-      <div class="input-row">
-        <div><label>Fairways Hit</label><input type="number" id="r-fir" placeholder="8"></div>
-        <div><label>Fairways Total</label><input type="number" id="r-firTotal" placeholder="14"></div>
-      </div>
-      <div class="input-row">
-        <div><label>Avg Drive Distance (m)</label><input type="number" id="r-driveDist" placeholder="270"></div>
-        <div><label>Penalties</label><input type="number" id="r-penalties" placeholder="1" min="0"></div>
-      </div>
-
-      <div class="sys-label">Approach</div>
-      <div class="input-row">
-        <div><label>GIR Hit</label><input type="number" id="r-gir" placeholder="9"></div>
-        <div><label>GIR Possible</label><input type="number" id="r-girTotal" placeholder="18"></div>
-      </div>
-      <div class="input-row">
-        <div><label>Avg Proximity (m)</label><input type="number" id="r-proximity" placeholder="8" step="0.1"></div>
-        <div><label>Par-3 GIR</label><input type="number" id="r-par3gir" placeholder="3" min="0"></div>
-      </div>
-      <div class="input-row">
-        <div><label>Par-4 GIR</label><input type="number" id="r-par4gir" placeholder="4" min="0"></div>
-        <div><label>Par-5 GIR</label><input type="number" id="r-par5gir" placeholder="2" min="0"></div>
-      </div>
-
-      <div class="sys-label">Putting</div>
-      <div class="input-row">
-        <div><label>Total Putts</label><input type="number" id="r-putts" placeholder="30"></div>
-        <div><label>1-Putt Greens</label><input type="number" id="r-onePutts" placeholder="4" min="0"></div>
-      </div>
-      <div class="input-row">
-        <div><label>3-Putt Greens</label><input type="number" id="r-threePutts" placeholder="2" min="0"></div>
-        <div><label>Putts from Inside 1.5m</label><input type="number" id="r-shortMakes" placeholder="8" min="0"></div>
-      </div>
-
-      <div class="sys-label">Short Game</div>
-      <div class="input-row">
-        <div><label>U&amp;D Attempts</label><input type="number" id="r-udAttempts" placeholder="6"></div>
-        <div><label>U&amp;D Makes</label><input type="number" id="r-udMakes" placeholder="4"></div>
-      </div>
-      <div class="input-row">
-        <div><label>Sand Saves Att.</label><input type="number" id="r-sandAttempts" placeholder="2"></div>
-        <div><label>Sand Saves Makes</label><input type="number" id="r-sandMakes" placeholder="1"></div>
-      </div>
-      <div class="input-row">
-        <div><label>Chips (non-sand) Att.</label><input type="number" id="r-chipAttempts" placeholder="4"></div>
-        <div><label>Chips Up-and-Down</label><input type="number" id="r-chipMakes" placeholder="3"></div>
-      </div>
-
-      <div class="sys-label danger">Threat Readout</div>
-      <div class="card accent-card threat-frame hud-frame" style="margin-bottom:16px"><span class="hud-corners"></span>
-        <div class="ns-header">
-          <div class="ns-dot"></div>
-          <div class="ns-title">Catastrophic Misses</div>
-          <span class="threat-tag">CRITICAL</span>
+      <!-- SETUP PANEL -->
+      <div id="rw-setup">
+        <div class="sys-label first">Round Identity</div>
+        <div class="input-row">
+          <div><label>Date</label><input type="date" id="r-date"></div>
+          <div><label>Holes</label><input type="number" id="r-holes" value="18" min="9" max="18"></div>
         </div>
-        <p style="font-size:10px;color:var(--muted);margin-bottom:12px;font-family:var(--mono);letter-spacing:0.06em">Snap hooks · shanks · hosel rockets causing double bogey or worse. Target: 0.</p>
-        <input type="number" id="r-catmisses" min="0" max="20" placeholder="0" style="margin-bottom:0">
+        <div class="input-row">
+          <div><label>Course</label><input type="text" id="r-course" placeholder="Emirates — Majlis"></div>
+          <div><label>Par</label><input type="number" id="r-par" value="72" min="27" max="80"></div>
+        </div>
+        <div class="input-row">
+          <div><label>Focus /10</label><input type="number" id="r-focus" placeholder="7" min="1" max="10"></div>
+          <div><label>Confidence /10</label><input type="number" id="r-confidence" placeholder="7" min="1" max="10"></div>
+        </div>
+        <button class="btn btn-primary" onclick="startRoundWizard()" style="margin-bottom:4px">BEGIN HOLE ENTRY →</button>
       </div>
 
-      <div class="sys-label">Mental / Feel</div>
-      <div class="input-row">
-        <div><label>Focus Rating /10</label><input type="number" id="r-focus" placeholder="7" min="1" max="10"></div>
-        <div><label>Confidence /10</label><input type="number" id="r-confidence" placeholder="7" min="1" max="10"></div>
+      <!-- HOLE ENTRY PANEL -->
+      <div id="rw-holes" style="display:none">
+        <div id="rw-scorecard" class="sc-grid" style="margin-bottom:14px"></div>
+
+        <div class="hole-nav">
+          <button class="hole-nav-btn" id="rw-prev" onclick="rwNav(-1)">◀ PREV</button>
+          <div>
+            <div class="hole-nav-info" id="rw-hole-label">HOLE 1</div>
+            <div class="hole-nav-sub" id="rw-hole-sub">1 / 18</div>
+          </div>
+          <button class="hole-nav-btn" id="rw-next" onclick="rwNav(1)">NEXT ▶</button>
+        </div>
+
+        <div class="par-sel" id="rw-par-sel">
+          <button class="par-btn" onclick="rwSetPar(3)">PAR 3</button>
+          <button class="par-btn" onclick="rwSetPar(4)">PAR 4</button>
+          <button class="par-btn" onclick="rwSetPar(5)">PAR 5</button>
+        </div>
+
+        <div id="rw-shots"></div>
+        <button class="add-shot-btn" onclick="rwAddShot()">+ ADD SHOT</button>
+        <div class="hole-score-row">
+          <span class="hole-score-tag" style="color:var(--muted);letter-spacing:0.18em">HOLE SCORE</span>
+          <span class="hole-score-num" id="rw-hole-score">—</span>
+        </div>
+
+        <div class="sys-label" style="margin-top:14px">Notes</div>
+        <textarea id="r-notes" placeholder="Round summary — key moments, patterns, mindset..."></textarea>
+
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn btn-ghost" onclick="rwCancel()" style="flex:1;font-size:9px;letter-spacing:0.16em">CANCEL</button>
+          <button class="btn btn-primary" onclick="saveRound()" style="flex:2;font-size:10px;letter-spacing:0.18em">COMMIT ROUND</button>
+        </div>
       </div>
-
-      <div class="sys-label">Notes</div>
-      <textarea id="r-notes" placeholder="Round summary — key moments, misses, feels..."></textarea>
-
-      <button class="btn btn-primary" onclick="saveRound()">Commit Round</button>
 
       <div class="divider"></div>
       <div class="sys-label">Round History</div>
@@ -2955,64 +3002,253 @@ function saveDay() {
   updateHeaderHud();
 }
 
+// ─── ROUND WIZARD ──────────────────────────────────────────────────
+const RW_LIES   = ['tee','fairway','rough','deep','sand','recovery','penalty','green'];
+const RW_LLBLS  = ['TEE','FWY','ROUGH','DEEP','SAND','RECOV','PENALT','GREEN'];
+const RW_SHAPES = ['draw','fade','hook','slice','push','pull','fat','thin','shank'];
+const RW_SLBLS  = ['DRAW','FADE','HOOK','SLICE','PUSH','PULL','FAT','THIN','SHANK'];
+
+let rw = { active:false, holeIdx:0, holes:18, holePars:[], holeShots:[] };
+
+function startRoundWizard() {
+  const holes = parseInt($('r-holes').value) || 18;
+  rw.holes = holes;
+  rw.holeIdx = 0;
+  rw.holePars = Array.from({length:holes},(_,i)=>{
+    const h=i+1;
+    const p3=[3,6,12,16],p5=[5,10,14,18];
+    return p3.includes(h)?3:p5.includes(h)?5:4;
+  });
+  rw.holeShots = Array.from({length:holes},()=>[]);
+  rw.holeShots[0].push({lie:'tee',dist:'',unit:'yd',dir:'SQ',shape:null,cat:false});
+  rw.active = true;
+  $('rw-setup').style.display='none';
+  $('rw-holes').style.display='block';
+  rwRender();
+}
+
+function rwNav(d) {
+  const ni = rw.holeIdx+d;
+  if(ni<0||ni>=rw.holes) return;
+  rw.holeIdx=ni;
+  if(!rw.holeShots[ni].length)
+    rw.holeShots[ni].push({lie:'tee',dist:'',unit:'yd',dir:'SQ',shape:null,cat:false});
+  rwRender();
+}
+
+function rwSetPar(p){ rw.holePars[rw.holeIdx]=p; rwRender(); }
+
+function rwAddShot(){
+  const shots=rw.holeShots[rw.holeIdx];
+  const prev=shots[shots.length-1];
+  let lie='fairway';
+  if(prev){if(prev.lie==='green')lie='green';else if(['rough','deep'].includes(prev.lie))lie='rough';else if(prev.lie==='sand')lie='sand';}
+  shots.push({lie,dist:'',unit:lie==='green'?'ft':'yd',dir:'SQ',shape:null,cat:false});
+  rwRender();
+}
+
+function rwRemoveShot(si){ rw.holeShots[rw.holeIdx].splice(si,1); rwRender(); }
+
+function rwSetLie(si,lie){
+  const s=rw.holeShots[rw.holeIdx][si]; if(!s) return;
+  s.lie=lie; s.unit=lie==='green'?'ft':'yd';
+  if(lie==='green') s.shape=null;
+  rwRender();
+}
+function rwSetDir(si,dir){ const s=rw.holeShots[rw.holeIdx][si]; if(s) s.dir=dir; rwRender(); }
+function rwSetDist(si,v){ const s=rw.holeShots[rw.holeIdx][si]; if(s) s.dist=v; rwRenderScore(); }
+function rwToggleShape(si,shape){ const s=rw.holeShots[rw.holeIdx][si]; if(!s) return; s.shape=s.shape===shape?null:shape; rwRender(); }
+function rwToggleCat(si){ const s=rw.holeShots[rw.holeIdx][si]; if(!s) return; s.cat=!s.cat; rwRender(); }
+
+function rwCancel(){
+  rw.active=false;
+  $('rw-setup').style.display='block';
+  $('rw-holes').style.display='none';
+}
+
+function rwHoleScore(hi){
+  const shots=rw.holeShots[hi]; if(!shots.length) return null;
+  return shots.length + shots.filter(s=>s.lie==='penalty').length;
+}
+
+function rwScoreClass(tp){
+  if(tp==null) return '';
+  if(tp<=-2) return 'sc-eagle';
+  if(tp===-1) return 'sc-birdie';
+  if(tp===0)  return 'sc-par';
+  if(tp===1)  return 'sc-bogey';
+  if(tp===2)  return 'sc-double';
+  return 'sc-triple';
+}
+
+function rwRenderScorecard(){
+  const sc=$('rw-scorecard'); if(!sc) return;
+  const n=rw.holes, cols=Math.min(9,n);
+  const rows=Math.ceil(n/9);
+  let html='';
+  for(let row=0;row<rows;row++){
+    const start=row*9, end=Math.min(start+cols,n);
+    const span=end-start;
+    html+=`<div class="sc-row" style="grid-template-columns:repeat(${span},1fr)">`;
+    for(let i=start;i<end;i++) html+=`<div class="sc-cell sc-head" onclick="rw.holeIdx=${i};rwRender()">${i+1}</div>`;
+    html+='</div>';
+    html+=`<div class="sc-row" style="grid-template-columns:repeat(${span},1fr)">`;
+    for(let i=start;i<end;i++){
+      const score=rwHoleScore(i);
+      const tp=score!=null?score-rw.holePars[i]:null;
+      const cls='sc-cell'+(i===rw.holeIdx?' sc-active':'')+' '+rwScoreClass(tp);
+      html+=`<div class="${cls}" onclick="rw.holeIdx=${i};rwRender()">${score!=null?score:'·'}</div>`;
+    }
+    html+='</div>';
+  }
+  sc.innerHTML=html;
+}
+
+function rwRenderScore(){
+  const shots=rw.holeShots[rw.holeIdx];
+  const par=rw.holePars[rw.holeIdx];
+  const el=$('rw-hole-score'); if(!el) return;
+  if(!shots.length){el.textContent='—';return;}
+  const n=shots.length+shots.filter(s=>s.lie==='penalty').length;
+  const tp=n-par;
+  const LABELS={'-3':'ALBATROSS','-2':'EAGLE','-1':'BIRDIE','0':'PAR','1':'BOGEY','2':'DOUBLE','3':'TRIPLE'};
+  const lbl=LABELS[String(tp)]||(tp>0?`+${tp}`:`${tp}`);
+  const col=tp<0?'var(--green)':tp===0?'var(--text)':tp===1?'#c89640':'var(--red)';
+  el.innerHTML=`<span style="color:${col}">${n} <span style="font-size:10px;font-weight:400;letter-spacing:0.14em">${lbl}</span></span>`;
+  rwRenderScorecard();
+}
+
+function rwRender(){
+  const hi=rw.holeIdx, par=rw.holePars[hi], shots=rw.holeShots[hi];
+  $('rw-hole-label').textContent=`HOLE ${hi+1}`;
+  $('rw-hole-sub').textContent=`${hi+1} / ${rw.holes}`;
+  $('rw-prev').disabled=hi===0;
+  $('rw-next').disabled=hi===rw.holes-1;
+  document.querySelectorAll('#rw-par-sel .par-btn').forEach((b,i)=>b.classList.toggle('active',[3,4,5][i]===par));
+  rwRenderScorecard();
+
+  const sl=$('rw-shots');
+  sl.innerHTML=shots.map((s,si)=>{
+    const isGreen=s.lie==='green';
+    const dirOpts=isGreen?['SH','SQ','LG']:['L','SQ','R'];
+    const dirLbls=isGreen?['SHORT','STRAIGHT','LONG']:['LEFT','STRAIGHT','RIGHT'];
+    return `<div class="shot-row">
+      <div class="shot-row-head">
+        <span class="shot-num">${si+1}</span>
+        <div class="chip-row">
+          ${RW_LIES.map((k,li)=>`<button class="lie-chip${s.lie===k?' on':''}" onclick="rwSetLie(${si},'${k}')">${RW_LLBLS[li]}</button>`).join('')}
+        </div>
+        ${shots.length>1?`<button class="shot-del" onclick="rwRemoveShot(${si})">✕</button>`:''}
+      </div>
+      <div class="shot-row-detail">
+        <input class="shot-dist-input" type="number" value="${s.dist}" placeholder="${isGreen?'15':'160'}"
+          oninput="rwSetDist(${si},this.value)" inputmode="decimal">
+        <span class="shot-unit-lbl">${s.unit}</span>
+        <div class="dir-btns">
+          ${dirOpts.map((d,di)=>`<button class="dir-btn${s.dir===d?' on-'+d:''}" onclick="rwSetDir(${si},'${d}')">${dirLbls[di]}</button>`).join('')}
+        </div>
+        <button class="cat-btn${s.cat?' on':''}" onclick="rwToggleCat(${si})">⚠ CAT</button>
+      </div>
+      ${!isGreen?`<div class="shot-row-head" style="margin-top:5px;margin-bottom:0">
+        <span class="shot-num" style="font-size:7px;padding-top:4px">SHAPE</span>
+        <div class="chip-row">
+          ${RW_SHAPES.map((k,si2)=>`<button class="shape-chip${s.shape===k?' '+(k==='shank'?'shank-on':'on'):''}" onclick="rwToggleShape(${si},'${k}')">${RW_SLBLS[si2]}</button>`).join('')}
+        </div>
+      </div>`:''}
+    </div>`;
+  }).join('');
+  rwRenderScore();
+}
+
+function computeRoundFromHoles(holeData, totalHoles){
+  let score=0, par=0, fir=0, firT=0, gir=0, girT=0, putts=0;
+  let onePutts=0, threePutts=0, udA=0, udM=0, sandA=0, sandM=0;
+  let catMisses=0, eagles=0, birdies=0, parsC=0, bogeys=0, doubles=0, triples=0;
+  let front9=0, back9=0, drives=[], penalties=0;
+  let allShots=[];
+
+  holeData.forEach((hole,hi)=>{
+    const hp=hole.par, shots=hole.shots||[];
+    const strokes=shots.length+shots.filter(s=>s.lie==='penalty').length;
+    par+=hp; score+=strokes;
+    if(hi<9) front9+=strokes; else back9+=strokes;
+    const tp=strokes-hp;
+    if(tp<=-2) eagles++; else if(tp===-1) birdies++; else if(tp===0) parsC++;
+    else if(tp===1) bogeys++; else if(tp===2) doubles++; else triples++;
+    catMisses+=shots.filter(s=>s.cat).length;
+    penalties+=shots.filter(s=>s.lie==='penalty').length;
+    shots.forEach(s=>allShots.push({...s,dist:parseFloat(s.dist)||0,hole:hi+1,holePar:hp,shotIdx:shots.indexOf(s)}));
+
+    // Putts
+    const greenShots=shots.filter(s=>s.lie==='green');
+    putts+=greenShots.length;
+    if(greenShots.length===1) onePutts++; if(greenShots.length>=3) threePutts++;
+
+    // GIR: first green shot at index ≤ par-2 (0-based ≤ par-3)
+    girT++;
+    const fgi=shots.findIndex(s=>s.lie==='green');
+    if(fgi!==-1 && fgi<=hp-3) gir++;
+
+    // FIR: par4/5, shot after tee lands on fairway
+    if(hp>=4){ firT++; if(shots.length>=2&&shots[1].lie==='fairway') fir++; }
+
+    // Drive distance
+    if(shots[0]&&shots[0].lie==='tee'&&shots[0].dist) drives.push(parseFloat(shots[0].dist));
+
+    // U&D / sand
+    const missedGIR=fgi===-1||(fgi>hp-3);
+    if(missedGIR&&greenShots.length>0){
+      const prevShots=shots.slice(0,fgi!==-1?fgi:shots.length);
+      const hasSand=prevShots.some(s=>s.lie==='sand');
+      if(hasSand){sandA++;if(greenShots.length===1)sandM++;}
+      else{udA++;if(greenShots.length===1)udM++;}
+    }
+  });
+
+  return {
+    score, par,
+    front9:totalHoles>=18?front9:null,
+    back9:totalHoles>=18?back9:null,
+    fir, firTotal:firT, gir, girTotal:girT,
+    putts, onePutts, threePutts,
+    udAttempts:udA, udMakes:udM,
+    sandAttempts:sandA, sandMakes:sandM,
+    catMisses, eagles, birdies, pars:parsC, bogeys, doubles, triples,
+    penalties,
+    driveDist:drives.length?Math.round(drives.reduce((a,b)=>a+b,0)/drives.length):null,
+    shots:allShots
+  };
+}
+
 // ─── ROUND TAB ─────────────────────────────────────────────────────
 function saveRound() {
-  const r = {
-    id: Date.now(),
-    date: $('r-date').value || today(),
-    course: $('r-course').value.trim(),
-    holes: parseInt($('r-holes').value) || 18,
-    par: parseInt($('r-par').value) || 72,
-    score: parseInt($('r-score').value) || null,
-    eagles: parseInt($('r-eagles').value) || 0,
-    birdies: parseInt($('r-birdies').value) || 0,
-    pars: parseInt($('r-pars').value) || 0,
-    bogeys: parseInt($('r-bogeys').value) || 0,
-    doubles: parseInt($('r-doubles').value) || 0,
-    triples: parseInt($('r-triples').value) || 0,
-    front9: parseInt($('r-front9').value) || null,
-    back9: parseInt($('r-back9').value) || null,
-    fir: parseInt($('r-fir').value) || 0,
-    firTotal: parseInt($('r-firTotal').value) || 14,
-    driveDist: parseInt($('r-driveDist').value) || null,
-    penalties: parseInt($('r-penalties').value) || 0,
-    gir: parseInt($('r-gir').value) || 0,
-    girTotal: parseInt($('r-girTotal').value) || 18,
-    proximity: parseFloat($('r-proximity').value) || null,
-    par3gir: parseInt($('r-par3gir').value) || 0,
-    par4gir: parseInt($('r-par4gir').value) || 0,
-    par5gir: parseInt($('r-par5gir').value) || 0,
-    putts: parseInt($('r-putts').value) || null,
-    onePutts: parseInt($('r-onePutts').value) || 0,
-    threePutts: parseInt($('r-threePutts').value) || 0,
-    shortMakes: parseInt($('r-shortMakes').value) || 0,
-    udAttempts: parseInt($('r-udAttempts').value) || 0,
-    udMakes: parseInt($('r-udMakes').value) || 0,
-    sandAttempts: parseInt($('r-sandAttempts').value) || 0,
-    sandMakes: parseInt($('r-sandMakes').value) || 0,
-    chipAttempts: parseInt($('r-chipAttempts').value) || 0,
-    chipMakes: parseInt($('r-chipMakes').value) || 0,
-    catMisses: parseInt($('r-catmisses').value) || 0,
-    focus: parseInt($('r-focus').value) || null,
-    confidence: parseInt($('r-confidence').value) || null,
-    notes: $('r-notes').value.trim(),
-  };
-  const rounds = load('nexflow_rounds') || [];
-  rounds.unshift(r);
-  save('nexflow_rounds', rounds);
-  ['r-course','r-score','r-eagles','r-birdies','r-pars','r-bogeys','r-doubles','r-triples',
-   'r-front9','r-back9','r-fir','r-firTotal','r-driveDist','r-penalties',
-   'r-gir','r-girTotal','r-proximity','r-par3gir','r-par4gir','r-par5gir',
-   'r-putts','r-onePutts','r-threePutts','r-shortMakes',
-   'r-udAttempts','r-udMakes','r-sandAttempts','r-sandMakes',
-   'r-chipAttempts','r-chipMakes','r-catmisses','r-focus','r-confidence','r-notes'].forEach(id => { if($(id)) $(id).value = ''; });
-  $('r-par').value = 72;
-  $('r-holes').value = 18;
-  $('r-date').value = '';
-  showToast('Round saved!');
-  renderRoundList();
-  checkRpgProgress(false);
-  updateHeaderHud();
+  const date=$('r-date').value||today();
+  const course=($('r-course').value||'').trim();
+  const holes=parseInt($('r-holes').value)||18;
+  const focus=parseInt($('r-focus').value)||null;
+  const confidence=parseInt($('r-confidence').value)||null;
+  const notes=($('r-notes').value||'').trim();
+
+  let r;
+  if(rw.active){
+    const holeData=rw.holePars.map((par,i)=>({
+      hole:i+1, par,
+      shots:rw.holeShots[i].map(s=>({...s,dist:s.dist?parseFloat(s.dist):null}))
+    })).filter(h=>h.shots.length>0);
+    const computed=computeRoundFromHoles(holeData,holes);
+    r={id:Date.now(),date,course,holes,focus,confidence,notes,holeData,...computed};
+  } else {
+    r={id:Date.now(),date,course,holes,par:parseInt($('r-par').value)||72,focus,confidence,notes,
+       score:null,fir:0,firTotal:14,gir:0,girTotal:holes,putts:null,udAttempts:0,udMakes:0,
+       sandAttempts:0,sandMakes:0,catMisses:0,eagles:0,birdies:0,pars:0,bogeys:0,doubles:0,triples:0};
+  }
+  const rounds=load('nexflow_rounds')||[];
+  rounds.unshift(r); save('nexflow_rounds',rounds);
+  rwCancel();
+  ['r-date','r-course','r-notes','r-focus','r-confidence'].forEach(id=>{if($(id))$(id).value='';});
+  $('r-holes').value=18; $('r-par').value=72;
+  showToast('Round committed!');
+  renderRoundList(); checkRpgProgress(false); updateHeaderHud();
 }
 
 function deleteRound(id) {
@@ -3032,17 +3268,27 @@ function renderRoundList() {
     const toPar = r.score - r.par;
     const toParStr = toPar === 0 ? 'E' : (toPar > 0 ? '+' + toPar : toPar);
     const scoreColor = toPar < 0 ? 'var(--green)' : toPar > 3 ? 'var(--red)' : 'var(--text)';
+    let scorecardHtml = '';
+    if (r.holeData && r.holeData.length) {
+      const scCells = r.holeData.map(h => {
+        const d = h.shots.length - h.par;
+        let cls = d < -1 ? 'sc-eagle' : d === -1 ? 'sc-birdie' : d === 0 ? 'sc-par' : d === 1 ? 'sc-bogey' : d === 2 ? 'sc-double' : 'sc-triple';
+        const label = d < -1 ? '◆' : d === -1 ? '●' : d === 0 ? '○' : d === 1 ? h.shots.length : d === 2 ? h.shots.length : h.shots.length;
+        return `<span class="rl-sc-cell ${cls}" title="Hole ${h.hole} · Par ${h.par} · ${h.shots.length} shots">${label}</span>`;
+      }).join('');
+      scorecardHtml = `<div class="rl-scorecard">${scCells}</div>`;
+    }
     return `
       <div class="round-item hud-frame"><span class="hud-corners"></span>
-        <div class="round-info">
+        <div class="round-info" style="flex:1">
           <div class="round-course">${r.course}</div>
-          <div class="round-date readout">▸ ${fmtShort(r.date)} · ${r.holes || 18}H</div>
-          <div class="round-meta readout">MISS <strong style="color:${r.catMisses === 0 ? 'var(--green)' : r.catMisses > 2 ? 'var(--red)' : 'var(--accent)'}">${r.catMisses}</strong> · GIR ${pct(r.gir, r.girTotal)} · ${r.putts ?? '—'} PUTT</div>
+          <div class="round-date readout">▸ ${fmtShort(r.date)} · ${r.holes || 18}H · ${r.score} (${toParStr})</div>
+          <div class="round-meta readout">MISS <strong style="color:${(r.catMisses||0) === 0 ? 'var(--green)' : (r.catMisses||0) > 2 ? 'var(--red)' : 'var(--accent)'}">${r.catMisses||0}</strong> · GIR ${pct(r.gir, r.girTotal)} · ${r.putts ?? '—'} PUTT</div>
+          ${scorecardHtml}
         </div>
-        <div style="text-align:right">
+        <div style="text-align:right;flex-shrink:0;margin-left:10px">
           <div class="round-score" style="color:${scoreColor}">${toParStr}</div>
-          <div style="font-size:12px;color:var(--muted)" class="readout">${r.score}</div>
-          <button class="btn btn-danger" style="margin-top:8px" onclick="deleteRound(${r.id})">Delete</button>
+          <button class="btn btn-danger" style="margin-top:8px;font-size:9px;padding:4px 8px" onclick="deleteRound(${r.id})">DEL</button>
         </div>
       </div>
     `;
@@ -3064,6 +3310,21 @@ function renderStats() {
   const fmtNum = (n, dec=1) => n == null || isNaN(n) ? '—' : parseFloat(n.toFixed(dec));
   const last5 = rounds.slice(0, 5);
   const last10 = rounds.slice(0, 10);
+
+  // ── COLLECT ALL SHOTS from holeData rounds ──
+  const allShots = [];
+  rounds.forEach(r => {
+    if (r.holeData) r.holeData.forEach(h => {
+      h.shots.forEach((s,si) => allShots.push({...s, hole:h.hole, holePar:h.par, shotIdx:si, totalShots:h.shots.length, roundDate:r.date}));
+    });
+  });
+  const last5Shots = [];
+  last5.forEach(r => {
+    if (r.holeData) r.holeData.forEach(h => {
+      h.shots.forEach((s,si) => last5Shots.push({...s, hole:h.hole, holePar:h.par, shotIdx:si, totalShots:h.shots.length, roundDate:r.date}));
+    });
+  });
+  const hasShots = allShots.length > 0;
 
   // ── SCORING ──
   const toPars = rounds.filter(r=>r.score).map(r=>r.score-r.par);
@@ -3199,6 +3460,175 @@ function renderStats() {
       <span class="stp-val">${w}%</span></div>`;
   }
 
+  // ── SHOT ANALYTICS (from holeData) ──
+  // miss direction: 'L','SQ','R' for full shots; 'SH','SQ','LG' for putts
+  const LIE_ORDER = ['tee','fairway','rough','deep','sand','recovery'];
+  const LIE_LBL   = {tee:'TEE',fairway:'FWY',rough:'ROUGH',deep:'DEEP',sand:'SAND',recovery:'RECOV'};
+  const LIE_COL   = {tee:'#5a9fd4',fairway:'#4aad6e',rough:'#7ab648',deep:'#3d6e32',sand:'#c8a84b',recovery:'#c87a4b'};
+
+  // approach shots = non-green, non-tee shots that target green (last shot before green on each hole)
+  // or all non-green shots for miss analysis
+  const approachShots = allShots.filter(s => s.lie !== 'green' && s.lie !== 'penalty' && s.dist != null);
+  const puttShots = allShots.filter(s => s.lie === 'green' && s.dist != null);
+  const fullSwingShots = allShots.filter(s => s.lie !== 'green' && s.lie !== 'penalty');
+
+  // distance bands for approach GIR (yd)
+  const appBands = [
+    {lbl:'0–75 YD', min:0, max:75},
+    {lbl:'75–125 YD', min:75, max:125},
+    {lbl:'125–175 YD', min:125, max:175},
+    {lbl:'175–225 YD', min:175, max:225},
+    {lbl:'225+ YD', min:225, max:Infinity},
+  ];
+  // approach GIR: shot is "on green" if next shot has lie=green OR it's the last shot for par3 reaching in 1
+  function approachGirByBand() {
+    const bands = appBands.map(b=>({...b,hit:0,total:0}));
+    rounds.forEach(r => {
+      if (!r.holeData) return;
+      r.holeData.forEach(h => {
+        // find first shot that reaches the green
+        const firstGreenIdx = h.shots.findIndex(s => s.lie === 'green');
+        if (firstGreenIdx < 1) return; // no approach (hole-in-one or no data)
+        const approachShot = h.shots[firstGreenIdx - 1]; // last shot before green
+        if (!approachShot.dist) return;
+        const dist = parseFloat(approachShot.dist);
+        if (isNaN(dist)) return;
+        // GIR = reached in par-2 or fewer shots (0-indexed firstGreenIdx <= holePar - 3)
+        const gir = firstGreenIdx <= h.par - 3;
+        for (const b of bands) {
+          if (dist >= b.min && dist < b.max) { b.total++; if (gir) b.hit++; break; }
+        }
+      });
+    });
+    return bands;
+  }
+
+  // putting by first putt distance (ft)
+  const puttBands = [
+    {lbl:'0–5 FT', min:0, max:5},
+    {lbl:'5–10 FT', min:5, max:10},
+    {lbl:'10–20 FT', min:10, max:20},
+    {lbl:'20+ FT', min:20, max:Infinity},
+  ];
+  function puttStatsByBand() {
+    const bands = puttBands.map(b=>({...b,makes:0,total:0,totalPutts:0}));
+    rounds.forEach(r => {
+      if (!r.holeData) return;
+      r.holeData.forEach(h => {
+        const greenShots = h.shots.filter(s => s.lie === 'green');
+        if (!greenShots.length) return;
+        const firstPutt = greenShots[0];
+        if (!firstPutt.dist) return;
+        const dist = parseFloat(firstPutt.dist);
+        if (isNaN(dist)) return;
+        const puttsThisHole = greenShots.length;
+        const made = puttsThisHole === 1; // 1-putt = make
+        for (const b of bands) {
+          if (dist >= b.min && dist < b.max) {
+            b.total++;
+            b.totalPutts += puttsThisHole;
+            if (made) b.makes++;
+            break;
+          }
+        }
+      });
+    });
+    return bands;
+  }
+
+  // miss pattern by lie type
+  function missPatternByLie() {
+    const map = {};
+    fullSwingShots.forEach(s => {
+      if (!s.lie || !s.dir) return;
+      if (!map[s.lie]) map[s.lie] = {L:0,SQ:0,R:0,cat:0,n:0};
+      map[s.lie].n++;
+      if (s.dir === 'L') map[s.lie].L++;
+      else if (s.dir === 'R') map[s.lie].R++;
+      else map[s.lie].SQ++;
+      if (s.cat) map[s.lie].cat++;
+    });
+    return map;
+  }
+
+  // catastrophic miss profile
+  function catProfile() {
+    const cats = allShots.filter(s => s.cat);
+    if (!cats.length) return null;
+    const byLie = {}, byShape = {}, dists = [];
+    cats.forEach(s => {
+      byLie[s.lie] = (byLie[s.lie]||0)+1;
+      if (s.shape) s.shape.forEach(sh => { byShape[sh]=(byShape[sh]||0)+1; });
+      if (s.dist) dists.push(parseFloat(s.dist));
+    });
+    const topLie = Object.entries(byLie).sort((a,b)=>b[1]-a[1])[0];
+    const topShape = Object.entries(byShape).sort((a,b)=>b[1]-a[1])[0];
+    const avgDist = dists.length ? Math.round(avg(dists)) : null;
+    return {total:cats.length, topLie:topLie?.[0], topShape:topShape?.[0], avgDist};
+  }
+
+  const appGirBands = approachGirByBand();
+  const puttBandStats = puttStatsByBand();
+  const missMap = missPatternByLie();
+  const catProf = catProfile();
+
+  function distBandBar(label, hit, total) {
+    const w = total ? Math.round(hit/total*100) : 0;
+    const col = w >= 67 ? 'var(--green)' : w >= 45 ? '#c89640' : 'var(--red)';
+    return `<div class="dist-band-row">
+      <span class="dist-band-lbl">${label}</span>
+      <div class="dist-band-bar-wrap"><div class="dist-band-fill" style="width:${w}%;background:${col}"></div></div>
+      <span class="dist-band-pct" style="color:${col}">${total?w+'%':'—'}</span>
+      <span class="dist-band-n">${total?hit+'/'+total:'—'}</span>
+    </div>`;
+  }
+
+  function missPatternTable(map) {
+    const rows = LIE_ORDER.filter(l => map[l] && map[l].n > 0).map(lie => {
+      const d = map[lie];
+      const lPct = Math.round(d.L/d.n*100);
+      const sqPct = Math.round(d.SQ/d.n*100);
+      const rPct = Math.round(d.R/d.n*100);
+      const catPct = Math.round(d.cat/d.n*100);
+      return `<tr>
+        <td style="color:${LIE_COL[lie]||'var(--text)'};font-weight:700">${LIE_LBL[lie]||lie.toUpperCase()}</td>
+        <td style="color:var(--red)">${lPct}%</td>
+        <td style="color:var(--green)">${sqPct}%</td>
+        <td style="color:var(--red)">${rPct}%</td>
+        <td style="color:${catPct>20?'var(--red)':'var(--muted)'}">${catPct}%</td>
+        <td style="color:var(--muted)">${d.n}</td>
+      </tr>`;
+    }).join('');
+    if (!rows) return '<div style="color:var(--muted);font-family:var(--mono);font-size:10px;padding:8px 0">No shot data yet</div>';
+    return `<table class="miss-table">
+      <thead><tr><th>LIE</th><th>◀L</th><th>─SQ</th><th>R▶</th><th>⚠CAT</th><th>N</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  // ── SHARED STAT HELPERS ──
+  function sgColor(v) { return parseFloat(v)>=0?'var(--green)':'var(--red)'; }
+  function sgSign(v)  { return parseFloat(v)>=0?'+'+v:v; }
+  function sgBar(v, max=2) {
+    const n=parseFloat(v), w=Math.min(Math.abs(n)/max*100,100);
+    return `<div class="sg-bar" style="width:${w}%;background:${sgColor(v)}"></div>`;
+  }
+  function statRow(lbl, allVal, l5Val) {
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase">${lbl}</span>
+      <span style="display:flex;gap:16px">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${allVal}</span>
+        <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text)">${l5Val}</span>
+      </span>
+    </div>`;
+  }
+  function barRow(label, val, total) {
+    const w = total ? Math.round(val/total*100) : 0;
+    return `<div class="stp-row"><span class="stp-lbl">${label}</span>
+      <div class="stp-bar-wrap"><div class="stp-bar" style="width:${w}%;background:var(--accent)"></div></div>
+      <span class="stp-val">${w}%</span></div>`;
+  }
+
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <span style="font-family:var(--mono);font-size:8px;letter-spacing:0.18em;color:var(--muted)">${rounds.length} ROUNDS LOGGED</span>
@@ -3223,7 +3653,7 @@ function renderStats() {
       </div>
     </div>
 
-    <!-- SCORE BREAKDOWN -->
+    <!-- HOLE RESULTS -->
     <div class="sys-label">Hole Results</div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
@@ -3245,13 +3675,81 @@ function renderStats() {
       </div>
     </div>
 
+    <!-- SHOT DISPERSION -->
+    ${hasShots ? `
+    <div class="sys-label">Shot Dispersion <span style="font-size:9px;color:var(--muted);font-weight:400">— Full Swings</span></div>
+    <div class="card">
+      <div class="disp-wrap">
+        <canvas id="disp-canvas" class="disp-canvas" width="280" height="200"></canvas>
+      </div>
+      <div class="disp-legend" id="disp-legend"></div>
+    </div>` : ''}
+
+    <!-- MISS PATTERN -->
+    ${hasShots ? `
+    <div class="sys-label">Miss Pattern <span style="font-size:9px;color:var(--muted);font-weight:400">— By Lie Type</span></div>
+    <div class="card">
+      ${missPatternTable(missMap)}
+    </div>` : ''}
+
+    <!-- APPROACH GIR BY DISTANCE -->
+    ${hasShots ? `
+    <div class="sys-label">Approach GIR% <span style="font-size:9px;color:var(--muted);font-weight:400">— By Distance</span></div>
+    <div class="card">
+      ${appGirBands.map(b => distBandBar(b.lbl, b.hit, b.total)).join('')}
+    </div>` : ''}
+
+    <!-- PUTTING BY DISTANCE -->
+    ${hasShots ? `
+    <div class="sys-label">Putting <span style="font-size:9px;color:var(--muted);font-weight:400">— 1-Putt% By Distance</span></div>
+    <div class="card">
+      ${puttBandStats.map(b => distBandBar(b.lbl, b.makes, b.total)).join('')}
+      ${puttBandStats.some(b=>b.total>0) ? `<div style="margin-top:10px">
+        ${statRow('Avg Putts / Hole', fmtNum(puttShots.length / Math.max(allShots.filter(s=>s.lie==='green'||s.shotIdx>0).length,1) ,1), '—')}
+      </div>` : ''}
+    </div>` : ''}
+
+    <!-- CAT MISS PROFILE -->
+    <div class="sys-label danger">Catastrophic Miss Profile</div>
+    <div class="card accent-card threat-frame">
+      <div class="stat-grid" style="margin-bottom:12px">
+        <div class="stat-box" style="border-color:rgba(155,53,53,0.3)"><div class="stat-val red">${fmtNum(avg(rounds.map(r=>per18(r.catMisses||0,r.holes))),1)}</div><div class="stat-lbl">Avg / 18</div></div>
+        <div class="stat-box" style="border-color:rgba(155,53,53,0.3)"><div class="stat-val green">${rounds.filter(r=>r.catMisses===0).length}</div><div class="stat-lbl">Clean Rounds</div></div>
+      </div>
+      ${catProf ? `
+      <div class="card-title readout">// Profile</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div class="stat-box" style="text-align:center;border-color:rgba(155,53,53,0.3)">
+          <div class="stat-val" style="font-size:14px;color:var(--red)">${catProf.topLie ? LIE_LBL[catProf.topLie]||catProf.topLie.toUpperCase() : '—'}</div>
+          <div class="stat-lbl">Top Lie</div>
+        </div>
+        <div class="stat-box" style="text-align:center;border-color:rgba(155,53,53,0.3)">
+          <div class="stat-val" style="font-size:14px;color:var(--red)">${catProf.topShape ? catProf.topShape.toUpperCase() : '—'}</div>
+          <div class="stat-lbl">Top Shape</div>
+        </div>
+        <div class="stat-box" style="text-align:center;border-color:rgba(155,53,53,0.3)">
+          <div class="stat-val" style="font-size:14px;color:var(--red)">${catProf.avgDist != null ? catProf.avgDist+'yd' : '—'}</div>
+          <div class="stat-lbl">Avg Dist</div>
+        </div>
+      </div>` : ''}
+      <div class="card-title readout">// Last 5 Rounds</div>
+      ${last5.map(r=>{
+        const dots='●'.repeat(r.catMisses||0)+'○'.repeat(Math.max(0,5-(r.catMisses||0)));
+        return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+          <span style="font-family:var(--mono);font-size:9px;color:var(--muted);width:70px">${fmtShort(r.date)}</span>
+          <span style="font-family:var(--mono);font-size:13px;letter-spacing:3px;color:${(r.catMisses||0)===0?'var(--green)':(r.catMisses||0)>2?'var(--red)':'#c89640'}">${dots}</span>
+          <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${(r.catMisses||0)===0?'var(--green)':(r.catMisses||0)>2?'var(--red)':'#c89640'}">${r.catMisses||0}</span>
+        </div>`;
+      }).join('')}
+    </div>
+
     <!-- DRIVING -->
     <div class="sys-label">Driving</div>
     <div class="card">
       <div style="font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;text-align:right">ALL &nbsp;·&nbsp; LAST 5</div>
       ${statRow('Fairways Hit %', firPctAll, firPct5)}
-      ${statRow('Avg Drive (m)', avgDrive, last5.filter(r=>r.driveDist).length ? Math.round(avg(last5.filter(r=>r.driveDist).map(r=>r.driveDist))) : '—')}
-      ${statRow('Best Drive (m)', maxDrive, '—')}
+      ${statRow('Avg Drive (yd)', avgDrive, last5.filter(r=>r.driveDist).length ? Math.round(avg(last5.filter(r=>r.driveDist).map(r=>r.driveDist))) : '—')}
+      ${statRow('Best Drive (yd)', maxDrive, '—')}
       ${statRow('Penalties / 18', penPer18, fmtNum(last5.reduce((a,r)=>a+(r.penalties||0),0)/Math.max(last5.length,1)/1*18,1))}
     </div>
 
@@ -3260,10 +3758,7 @@ function renderStats() {
     <div class="card">
       <div style="font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;text-align:right">ALL &nbsp;·&nbsp; LAST 5</div>
       ${statRow('GIR %', girPctAll, girPct5)}
-      ${statRow('Avg Proximity', avgProximity, last5.filter(r=>r.proximity).length ? fmtNum(avg(last5.filter(r=>r.proximity).map(r=>r.proximity)),1)+'m' : '—')}
-      ${par3holes>0 ? statRow('Par-3 GIR %', pct(par3girs,par3holes), '—') : ''}
-      ${par4holes>0 ? statRow('Par-4 GIR %', pct(par4girs,par4holes), '—') : ''}
-      ${par5holes>0 ? statRow('Par-5 GIR %', pct(par5girs,par5holes), '—') : ''}
+      ${statRow('Avg Proximity', avgProximity, last5.filter(r=>r.proximity).length ? fmtNum(avg(last5.filter(r=>r.proximity).map(r=>r.proximity)),1)+'yd' : '—')}
     </div>
 
     <!-- PUTTING -->
@@ -3281,25 +3776,6 @@ function renderStats() {
       <div style="font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;text-align:right">ALL &nbsp;·&nbsp; LAST 5</div>
       ${statRow('Up-and-Down %', udPctAll, udPct5)}
       ${statRow('Sand Save %', sandPct, '—')}
-      ${statRow('Chipping U&D %', chipPct, '—')}
-    </div>
-
-    <!-- CAT MISSES -->
-    <div class="sys-label danger">Catastrophic Misses</div>
-    <div class="card accent-card threat-frame">
-      <div class="stat-grid" style="margin-bottom:12px">
-        <div class="stat-box" style="border-color:rgba(155,53,53,0.3)"><div class="stat-val red">${avgCat}</div><div class="stat-lbl">Avg / 18</div></div>
-        <div class="stat-box" style="border-color:rgba(155,53,53,0.3)"><div class="stat-val green">${cleanRounds}</div><div class="stat-lbl">Clean Rounds</div></div>
-      </div>
-      <div class="card-title readout">// Last 5 Rounds</div>
-      ${last5.map(r=>{
-        const dots='●'.repeat(r.catMisses||0)+'○'.repeat(Math.max(0,5-(r.catMisses||0)));
-        return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
-          <span style="font-family:var(--mono);font-size:9px;color:var(--muted);width:70px">${fmtShort(r.date)}</span>
-          <span style="font-family:var(--mono);font-size:13px;letter-spacing:3px;color:${(r.catMisses||0)===0?'var(--green)':(r.catMisses||0)>2?'var(--red)':'#c89640'}">${dots}</span>
-          <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${(r.catMisses||0)===0?'var(--green)':(r.catMisses||0)>2?'var(--red)':'#c89640'}">${r.catMisses||0}</span>
-        </div>`;
-      }).join('')}
     </div>
 
     <!-- MENTAL -->
@@ -3327,6 +3803,88 @@ function renderStats() {
       <div style="font-family:var(--mono);font-size:8.5px;color:var(--muted);letter-spacing:0.08em;margin-top:8px;line-height:1.6">Estimated vs scratch benchmarks: FIR 60% · GIR 67% · U&D 50% · 30 putts/18</div>
     </div>
   `;
+
+  // ── DRAW DISPERSION CANVAS after DOM inserted ──
+  if (hasShots) {
+    requestAnimationFrame(() => {
+      const canvas = document.getElementById('disp-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0,0,W,H);
+
+      // background grid
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 0.5;
+      for (let x=0; x<=W; x+=W/4) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+      for (let y=0; y<=H; y+=H/5) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+      // center line (straight)
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.setLineDash([4,4]);
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke();
+      ctx.setLineDash([]);
+
+      // axis labels
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.font = '8px monospace';
+      ctx.fillText('◀ LEFT', 4, H-4);
+      ctx.fillText('RIGHT ▶', W-46, H-4);
+      ctx.fillText('SHORT', 4, 12);
+      ctx.fillText('LONG', W-32, 12);
+
+      // collect plotable shots
+      const shots = fullSwingShots.filter(s => s.dir && s.dist != null);
+      if (!shots.length) {
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = '10px monospace';
+        ctx.fillText('NO SHOT DATA YET', W/2-50, H/2);
+        return;
+      }
+
+      const maxDist = Math.max(...shots.map(s=>parseFloat(s.dist)||0), 1);
+      const dirX = {L: W*0.15, SQ: W*0.5, R: W*0.85};
+
+      shots.forEach(s => {
+        const x = dirX[s.dir] || W/2;
+        // add jitter to avoid stacking
+        const jx = x + (Math.random()-0.5)*22;
+        const dist = parseFloat(s.dist)||0;
+        const y = H - 16 - (dist/maxDist)*(H-32);
+        const col = LIE_COL[s.lie] || '#888';
+        const r = s.cat ? 6 : 3.5;
+
+        if (s.cat) {
+          // cat miss: red ring
+          ctx.beginPath();
+          ctx.arc(jx, y, r+2, 0, Math.PI*2);
+          ctx.strokeStyle = 'rgba(200,60,60,0.8)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+        ctx.beginPath();
+        ctx.arc(jx, y, r, 0, Math.PI*2);
+        ctx.fillStyle = s.cat ? 'rgba(200,60,60,0.9)' : col.replace(')',',0.75)').replace('rgb','rgba').replace('#','').replace(/^([0-9a-f]{6})/i,(_,h)=>{
+          const n=parseInt(h,16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},0.75)`;
+        });
+        // simpler fill
+        ctx.fillStyle = s.cat ? 'rgba(200,60,60,0.9)' : col;
+        ctx.globalAlpha = s.cat ? 0.95 : 0.7;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+
+      // legend
+      const legendEl = document.getElementById('disp-legend');
+      if (legendEl) {
+        const usedLies = [...new Set(fullSwingShots.map(s=>s.lie).filter(l=>l&&LIE_COL[l]))];
+        legendEl.innerHTML = usedLies.map(l=>
+          `<div class="disp-leg-item"><span class="disp-leg-dot" style="background:${LIE_COL[l]}"></span>${LIE_LBL[l]||l}</div>`
+        ).join('') + `<div class="disp-leg-item"><span class="disp-leg-dot" style="background:var(--red);box-shadow:0 0 4px var(--red)"></span>⚠ CAT</div>`;
+      }
+    });
+  }
 }
 
 // ─── NUTRITION TAB ─────────────────────────────────────────────────
