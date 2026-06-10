@@ -3147,7 +3147,7 @@ function rwRender(){
         <div class="dir-btns">
           ${dirOpts.map((d,di)=>`<button class="dir-btn${s.dir===d?' on-'+d:''}" onclick="rwSetDir(${si},'${d}')">${dirLbls[di]}</button>`).join('')}
         </div>
-        <button class="cat-btn${s.cat?' on':''}" onclick="rwToggleCat(${si})">⚠ CAT</button>
+        ${!isGreen?`<button class="cat-btn${s.cat?' on':''}" onclick="rwToggleCat(${si})">⚠ CAT</button>`:''}
       </div>
       ${!isGreen?`<div class="shot-row-head" style="margin-top:5px;margin-bottom:0">
         <span class="shot-num" style="font-size:7px;padding-top:4px">SHAPE</span>
