@@ -1656,20 +1656,6 @@
         <div class="sys-label training-lbl first">Daily Objectives</div>
         <div id="habit-list" class="hud-frame" style="padding:8px 8px 1px;border-radius:12px;background:rgba(10,11,12,0.4);border:1px solid var(--border)"><span class="hud-corners"></span></div>
 
-        <div id="perf-metrics">
-          <div class="sys-label">Sensor Telemetry</div>
-          <div class="input-row">
-            <div>
-              <label>Catastrophic Misses</label>
-              <input type="number" id="t-catmisses" min="0" max="20" placeholder="0">
-            </div>
-            <div>
-              <label>Stock-Shot Command /10</label>
-              <input type="number" id="t-stockshot" min="0" max="10" placeholder="7">
-            </div>
-          </div>
-        </div>
-
         <div class="sys-label">Reflection</div>
         <textarea id="t-oneline" placeholder="One line — what mattered today"></textarea>
 
@@ -1776,7 +1762,7 @@
       <button class="btn btn-primary" onclick="saveRound()">Save Round</button>
 
       <div class="divider"></div>
-      <div class="sys-label">Mission Records — Last 5</div>
+      <div class="sys-label">Round History</div>
       <div id="round-list"></div>
     </div>
 
@@ -2364,7 +2350,7 @@ function deleteRound(id) {
 }
 
 function renderRoundList() {
-  const rounds = (load('nexflow_rounds') || []).slice(0, 5);
+  const rounds = load('nexflow_rounds') || [];
   const el = $('round-list');
   if (!rounds.length) {
     el.innerHTML = '<div class="empty-state"><p>No rounds logged yet.</p></div>';
@@ -2429,7 +2415,7 @@ function renderStats() {
   const cats = rounds.map(r => per18(r.catMisses || 0, r.holes));
   const avgCat = avg(cats).toFixed(1);
 
-  // T2G
+  // T2G — all-time averages for display
   const allFir = rounds.reduce((a, r) => a + r.fir, 0);
   const allFirT = rounds.reduce((a, r) => a + r.firTotal, 0);
   const allGir = rounds.reduce((a, r) => a + r.gir, 0);
@@ -2439,11 +2425,19 @@ function renderStats() {
   const allUdA = rounds.reduce((a, r) => a + r.udAttempts, 0);
   const allUdM = rounds.reduce((a, r) => a + r.udMakes, 0);
 
-  // SG estimates (simplified vs scratch)
-  const firPct = allFirT ? allFir / allFirT : 0.5;
-  const girPct = allGirT ? allGir / allGirT : 0.5;
-  const udPct = allUdA ? allUdM / allUdA : 0.5;
-  const avgPuttsNum = allPutts.length ? avg(allPutts) : 30;
+  // SG estimates — last 5 only so numbers reflect current form
+  const sg5 = last5;
+  const sg5Fir = sg5.reduce((a, r) => a + r.fir, 0);
+  const sg5FirT = sg5.reduce((a, r) => a + r.firTotal, 0);
+  const sg5Gir = sg5.reduce((a, r) => a + r.gir, 0);
+  const sg5GirT = sg5.reduce((a, r) => a + r.girTotal, 0);
+  const sg5Putts = sg5.filter(r => r.putts).map(r => per18(r.putts, r.holes));
+  const sg5UdA = sg5.reduce((a, r) => a + r.udAttempts, 0);
+  const sg5UdM = sg5.reduce((a, r) => a + r.udMakes, 0);
+  const firPct = sg5FirT ? sg5Fir / sg5FirT : 0.5;
+  const girPct = sg5GirT ? sg5Gir / sg5GirT : 0.5;
+  const udPct = sg5UdA ? sg5UdM / sg5UdA : 0.5;
+  const avgPuttsNum = sg5Putts.length ? avg(sg5Putts) : 30;
 
   // scratch benchmarks: FIR ~60%, GIR ~67%, U&D ~50%, putts ~30
   const sgOTT = ((firPct - 0.60) * 5).toFixed(2);
@@ -2552,9 +2546,9 @@ function renderStats() {
     </div>
 
     <!-- SG SIMPLIFIED -->
-    <div class="sys-label">Strokes Gained</div>
+    <div class="sys-label">Strokes Gained <span style="font-size:10px;color:var(--muted);font-weight:400">— Last 5 Rounds</span></div>
     <div class="card hud-frame"><span class="hud-corners"></span>
-      <div class="card-title readout">// Estimated vs Scratch</div>
+      <div class="card-title readout">// Estimated vs Scratch · Current Form</div>
       <div style="margin-bottom:4px">
         <div class="sg-row">
           <span class="sg-label">Off the Tee</span>
