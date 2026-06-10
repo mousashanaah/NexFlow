@@ -3003,8 +3003,8 @@ function saveDay() {
 }
 
 // ─── ROUND WIZARD ──────────────────────────────────────────────────
-const RW_LIES   = ['tee','fairway','rough','deep','sand','recovery','penalty','green'];
-const RW_LLBLS  = ['TEE','FWY','ROUGH','DEEP','SAND','RECOV','PENALT','GREEN'];
+const RW_LIES   = ['tee','tee-layup','fairway','rough','deep','sand','recovery','penalty','green'];
+const RW_LLBLS  = ['TEE','TEE-LAY','FWY','ROUGH','DEEP','SAND','RECOV','PENALT','GREEN'];
 const RW_SHAPES = ['draw','fade','hook','slice','push','pull','fat','thin','shank'];
 const RW_SLBLS  = ['DRAW','FADE','HOOK','SLICE','PUSH','PULL','FAT','THIN','SHANK'];
 
@@ -3462,9 +3462,9 @@ function renderStats() {
 
   // ── SHOT ANALYTICS (from holeData) ──
   // miss direction: 'L','SQ','R' for full shots; 'SH','SQ','LG' for putts
-  const LIE_ORDER = ['tee','fairway','rough','deep','sand','recovery'];
-  const LIE_LBL   = {tee:'TEE',fairway:'FWY',rough:'ROUGH',deep:'DEEP',sand:'SAND',recovery:'RECOV'};
-  const LIE_COL   = {tee:'#5a9fd4',fairway:'#4aad6e',rough:'#7ab648',deep:'#3d6e32',sand:'#c8a84b',recovery:'#c87a4b'};
+  const LIE_ORDER = ['tee','tee-layup','fairway','rough','deep','sand','recovery'];
+  const LIE_LBL   = {tee:'TEE','tee-layup':'TEE-LAY',fairway:'FWY',rough:'ROUGH',deep:'DEEP',sand:'SAND',recovery:'RECOV'};
+  const LIE_COL   = {tee:'#5a9fd4','tee-layup':'#4a7aaa',fairway:'#4aad6e',rough:'#7ab648',deep:'#3d6e32',sand:'#c8a84b',recovery:'#c87a4b'};
 
   // approach shots = non-green, non-tee shots that target green (last shot before green on each hole)
   // or all non-green shots for miss analysis
