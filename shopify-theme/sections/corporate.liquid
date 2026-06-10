@@ -1,0 +1,57 @@
+<section class="section" id="corporate" style="padding-top:0">
+  <div class="wrap">
+    <div class="corp reveal">
+      <div class="corp-grid">
+        <div>
+          <span class="eyebrow">{{ section.settings.eyebrow }}</span>
+          <h2 class="display">{{ section.settings.heading }}</h2>
+          <p class="lede" style="color:rgba(255,255,255,.85)">{{ section.settings.subtext }}</p>
+          <ul>
+            {% for block in section.blocks %}<li {{ block.shopify_attributes }}>{{ block.settings.text }}</li>{% endfor %}
+          </ul>
+        </div>
+        <form class="corp-form" action="/contact#corp" method="post" accept-charset="UTF-8">
+          <input type="hidden" name="form_type" value="contact">
+          <input type="hidden" name="utf8" value="✓">
+          <h4>{{ section.settings.form_title }}</h4>
+          <p>{{ section.settings.form_subtext }}</p>
+          <div class="field"><input type="text" name="contact[name]" placeholder="Full name" required></div>
+          <div class="field"><input type="text" name="contact[company]" placeholder="Company" required></div>
+          <div class="field"><input type="email" name="contact[email]" placeholder="Work email" required></div>
+          <div class="field">
+            <select name="contact[need]" required>
+              <option value="">What do you need?</option>
+              <option>Custom golf balls</option>
+              <option>Tournament gifting</option>
+              <option>Corporate gear &amp; apparel</option>
+              <option>Resort / hospitality supply</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-green" style="width:100%;justify-content:center">Request Quote</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Corporate / B2B",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Corporate & Tournaments" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Golf Days, Done Right" },
+    { "type": "textarea", "id": "subtext", "label": "Subtext", "default": "Branded golf balls, gifting packs and bulk gear for corporates, tournaments, resorts and hospitality groups across MENA & Africa. Insider pricing, full personalisation, one point of contact." },
+    { "type": "text", "id": "form_title", "label": "Form title", "default": "Get a Bulk Quote" },
+    { "type": "text", "id": "form_subtext", "label": "Form subtext", "default": "Tell us what you need — we'll reply within one business day." }
+  ],
+  "blocks": [ { "type": "tag", "name": "Tag", "settings": [ { "type": "text", "id": "text", "label": "Text", "default": "🏢 Corporates" } ] } ],
+  "presets": [{ "name": "Corporate / B2B", "blocks": [
+    { "type": "tag", "settings": { "text": "🏢 Corporates" } },
+    { "type": "tag", "settings": { "text": "🏌️ Tournaments" } },
+    { "type": "tag", "settings": { "text": "🏨 Resorts & Hotels" } },
+    { "type": "tag", "settings": { "text": "🏦 Banks" } },
+    { "type": "tag", "settings": { "text": "🏗️ Real Estate" } },
+    { "type": "tag", "settings": { "text": "🎁 Gifting" } }
+  ]}]
+}
+{% endschema %}

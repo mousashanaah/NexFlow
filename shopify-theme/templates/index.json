@@ -1,0 +1,18 @@
+{
+  "sections": {
+    "hero": { "type": "hero" },
+    "brands": { "type": "brand-strip" },
+    "deal": { "type": "deal-of-day" },
+    "categories": { "type": "category-grid" },
+    "featured": {
+      "type": "featured-products",
+      "settings": { "eyebrow": "Smart Picks", "heading": "This Week's Best Value" }
+    },
+    "custom": { "type": "custom-balls" },
+    "stats": { "type": "stats" },
+    "social": { "type": "social-reels" },
+    "corporate": { "type": "corporate" },
+    "newsletter": { "type": "newsletter" }
+  },
+  "order": ["hero", "brands", "deal", "categories", "featured", "custom", "stats", "social", "corporate", "newsletter"]
+}

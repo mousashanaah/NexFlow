@@ -1,0 +1,46 @@
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">{{ section.settings.eyebrow }}</span>
+      <h2 class="display">{{ section.settings.heading }}</h2>
+    </div>
+    <div class="cat-grid">
+      {% for block in section.blocks %}
+        <a class="cat-card reveal{% if block.settings.feature %} tall feature{% endif %}" href="{{ block.settings.link }}" {{ block.shopify_attributes }}
+           {% if block.settings.image %}style="background-image:url({{ block.settings.image | image_url: width: 600 }});background-size:cover;background-position:center"{% endif %}>
+          <span class="emoji">{{ block.settings.emoji }}</span>
+          <div><h4>{{ block.settings.title }}</h4><p>{{ block.settings.caption }} →</p></div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Category grid",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Shop by Category" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Build Your Bag for Less" }
+  ],
+  "blocks": [
+    { "type": "cat", "name": "Category", "settings": [
+      { "type": "text", "id": "title", "label": "Title", "default": "Clubs" },
+      { "type": "text", "id": "caption", "label": "Caption", "default": "Up to 50% off" },
+      { "type": "text", "id": "emoji", "label": "Emoji", "default": "🏌️" },
+      { "type": "image_picker", "id": "image", "label": "Image" },
+      { "type": "url", "id": "link", "label": "Link" },
+      { "type": "checkbox", "id": "feature", "label": "Feature (large tile)", "default": false }
+    ]}
+  ],
+  "presets": [{ "name": "Category grid", "blocks": [
+    { "type": "cat", "settings": { "title": "Custom Balls", "caption": "Free printing", "emoji": "⛳", "feature": true } },
+    { "type": "cat", "settings": { "title": "Clubs", "caption": "Up to 50% off", "emoji": "🏌️" } },
+    { "type": "cat", "settings": { "title": "Apparel", "caption": "Deal picks", "emoji": "👕" } },
+    { "type": "cat", "settings": { "title": "Gloves", "caption": "From AED 39", "emoji": "🧤" } },
+    { "type": "cat", "settings": { "title": "Shoes", "caption": "Smart buys", "emoji": "👟" } },
+    { "type": "cat", "settings": { "title": "Bags", "caption": "Value range", "emoji": "🎒" } },
+    { "type": "cat", "settings": { "title": "Gifting", "caption": "Corporate", "emoji": "🎁" } }
+  ]}]
+}
+{% endschema %}

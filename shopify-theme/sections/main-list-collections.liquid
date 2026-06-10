@@ -1,0 +1,12 @@
+<div class="wrap" style="padding:40px 0 80px">
+  <h1 class="display" style="font-size:clamp(2rem,4vw,3rem);margin-bottom:28px">Shop by Category</h1>
+  <div class="cat-grid">
+    {% for collection in collections %}
+      <a class="cat-card" href="{{ collection.url }}"
+         {% if collection.featured_image %}style="background-image:url({{ collection.featured_image | image_url: width: 600 }});background-size:cover;background-position:center"{% endif %}>
+        <div><h4>{{ collection.title }}</h4><p>{{ collection.products_count }} products →</p></div>
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% schema %}{ "name": "List collections" }{% endschema %}

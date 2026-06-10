@@ -1,0 +1,11 @@
+<div class="wrap" style="max-width:460px;padding:50px 0 80px">
+  <h1 class="display" style="font-size:2.4rem;margin-bottom:20px">Create Account</h1>
+  {% form 'create_customer' %}
+    {{ form.errors | default_errors }}
+    <div class="field"><input type="text" name="customer[first_name]" placeholder="First name"></div>
+    <div class="field"><input type="text" name="customer[last_name]" placeholder="Last name"></div>
+    <div class="field"><input type="email" name="customer[email]" placeholder="Email" required></div>
+    <div class="field"><input type="password" name="customer[password]" placeholder="Password" required></div>
+    <button type="submit" class="btn btn-green" style="width:100%;justify-content:center">Join the Club</button>
+  {% endform %}
+</div>

@@ -1,0 +1,5 @@
+<div class="wrap" style="text-align:center;padding:60px 0">
+  <h1 class="display" style="font-size:2.6rem">Golf4Less Gift Card</h1>
+  <p class="lede" style="margin:10px auto 20px">Value: {{ gift_card.balance | money }}</p>
+  <div style="font-family:var(--font-display);font-size:1.4rem;letter-spacing:2px;background:#fff;border:1.5px dashed var(--line);border-radius:14px;padding:20px;max-width:420px;margin:0 auto">{{ gift_card.code | format_code }}</div>
+</div>

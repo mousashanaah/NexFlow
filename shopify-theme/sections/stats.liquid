@@ -1,0 +1,25 @@
+<section class="section" style="padding-top:0">
+  <div class="wrap stats">
+    {% for block in section.blocks %}
+      <div class="stat reveal" {{ block.shopify_attributes }}>
+        <b data-count="{{ block.settings.value }}">0</b><span>{{ block.settings.label }}</span>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Stats",
+  "blocks": [ { "type": "stat", "name": "Stat", "settings": [
+    { "type": "text", "id": "value", "label": "Number", "default": "50" },
+    { "type": "text", "id": "label", "label": "Label", "default": "% Average savings vs. RRP" }
+  ]}],
+  "presets": [{ "name": "Stats", "blocks": [
+    { "type": "stat", "settings": { "value": "50", "label": "% Average savings vs. RRP" } },
+    { "type": "stat", "settings": { "value": "2800", "label": "+ Happy golfers" } },
+    { "type": "stat", "settings": { "value": "24", "label": "hr UAE delivery" } },
+    { "type": "stat", "settings": { "value": "12", "label": "Markets served" } }
+  ]}]
+}
+{% endschema %}

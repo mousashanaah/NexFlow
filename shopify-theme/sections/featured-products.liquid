@@ -1,0 +1,46 @@
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="rail-head reveal">
+      <div>
+        <span class="eyebrow">{{ section.settings.eyebrow }}</span>
+        <h2 class="display" style="font-size:clamp(1.8rem,3.5vw,2.6rem);margin-top:8px">{{ section.settings.heading }}</h2>
+      </div>
+      <a href="{{ section.settings.link | default: routes.all_products_collection_url }}" class="btn btn-ghost">View all</a>
+    </div>
+    <div class="product-grid">
+      {% assign coll = collections[section.settings.collection] %}
+      {% if coll != blank and coll.products_count > 0 %}
+        {% for product in coll.products limit: section.settings.count %}
+          {% render 'product-card', product: product %}
+        {% endfor %}
+      {% else %}
+        {% comment %} Placeholder cards before a collection is assigned {% endcomment %}
+        {% for i in (1..4) %}
+          <article class="card">
+            <div class="card-media"><span class="tag save">Save 30%</span><img src="{{ 'golfball.svg' | asset_url }}" alt="Sample product"></div>
+            <div class="card-body">
+              <span class="card-brand">Golf4Less</span>
+              <h3 class="card-name">Assign a collection in the editor</h3>
+              <div class="price-row"><span class="now">AED 189</span><span class="was">AED 269</span></div>
+              <a href="{{ routes.all_products_collection_url }}" class="btn btn-dark add">Add to Bag</a>
+            </div>
+          </article>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Featured products",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Smart Picks" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "This Week's Best Value" },
+    { "type": "collection", "id": "collection", "label": "Collection" },
+    { "type": "range", "id": "count", "label": "Products to show", "min": 4, "max": 12, "step": 4, "default": 8 },
+    { "type": "url", "id": "link", "label": "View all link" }
+  ],
+  "presets": [{ "name": "Featured products" }]
+}
+{% endschema %}

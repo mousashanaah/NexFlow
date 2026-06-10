@@ -1,0 +1,7 @@
+<div class="wrap" style="padding:50px 0 80px">
+  <h1 class="display" style="font-size:2.2rem;margin-bottom:16px">Your Addresses</h1>
+  <p><a href="{{ routes.account_url }}" style="color:var(--green-deep)">← Back to account</a></p>
+  {% for address in customer.addresses %}
+    <div class="co-section">{{ address | format_address }}</div>
+  {% endfor %}
+</div>

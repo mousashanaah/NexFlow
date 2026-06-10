@@ -1,0 +1,34 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "Golf4Less",
+    "theme_version": "1.0.0",
+    "theme_author": "eGolf Megastore",
+    "theme_documentation_url": "https://www.egolfmegastore.ae",
+    "theme_support_url": "https://www.egolfmegastore.ae"
+  },
+  {
+    "name": "Brand",
+    "settings": [
+      { "type": "color", "id": "color_accent", "label": "Accent (lime green)", "default": "#7ac72e" },
+      { "type": "color", "id": "color_ink", "label": "Ink (black)", "default": "#0e0e0e" },
+      { "type": "image_picker", "id": "logo", "label": "Logo (optional, falls back to mark + wordmark)" },
+      { "type": "text", "id": "tagline", "label": "Tagline", "default": "Spend Less. Play More." }
+    ]
+  },
+  {
+    "name": "Navigation",
+    "settings": [
+      { "type": "link_list", "id": "menu", "label": "Main menu", "default": "main-menu" }
+    ]
+  },
+  {
+    "name": "Contact & Social",
+    "settings": [
+      { "type": "text", "id": "whatsapp_number", "label": "WhatsApp number (intl, no +)", "info": "e.g. 9715XXXXXXXX" },
+      { "type": "text", "id": "social_instagram", "label": "Instagram URL" },
+      { "type": "text", "id": "social_tiktok", "label": "TikTok URL" },
+      { "type": "text", "id": "social_youtube", "label": "YouTube URL" }
+    ]
+  }
+]

@@ -1,0 +1,120 @@
+<div class="wrap pdp">
+  <nav class="crumb">
+    <a href="{{ routes.root_url }}">Home</a><span>/</span>
+    {% if product.collections.first %}<a href="{{ product.collections.first.url }}">{{ product.collections.first.title }}</a><span>/</span>{% endif %}
+    <b>{{ product.title }}</b>
+  </nav>
+
+  <div class="pdp-grid">
+    <!-- GALLERY -->
+    <div class="gallery">
+      <div class="thumbs" data-thumbs>
+        {% for media in product.media limit: 5 %}
+          <button class="thumb{% if forloop.first %} active{% endif %}" data-img="{{ media | image_url: width: 600 }}">
+            <img src="{{ media | image_url: width: 120 }}" alt="{{ product.title }} view {{ forloop.index }}">
+          </button>
+        {% else %}
+          <button class="thumb active" data-img="{{ 'driver.svg' | asset_url }}"><img src="{{ 'driver.svg' | asset_url }}" alt=""></button>
+        {% endfor %}
+      </div>
+      <div class="main-image">
+        {% if product.compare_at_price > product.price %}
+          <span class="tag save">Save {{ product.compare_at_price | minus: product.price | times: 100.0 | divided_by: product.compare_at_price | round }}%</span>
+        {% endif %}
+        {% if product.featured_image %}
+          <img data-main-img src="{{ product.featured_image | image_url: width: 900 }}" alt="{{ product.title }}">
+        {% else %}
+          <img data-main-img src="{{ 'driver.svg' | asset_url }}" alt="{{ product.title }}">
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- INFO -->
+    <div class="pdp-info">
+      <span class="pdp-brand">{{ product.vendor }}</span>
+      <h1>{{ product.title }}</h1>
+      {% if product.metafields.reviews.rating %}
+        <div class="pdp-rating"><span class="stars">★★★★★</span> {{ product.metafields.reviews.rating.value }} · {{ product.metafields.reviews.rating_count }} reviews</div>
+      {% endif %}
+
+      <div class="pdp-price">
+        <span class="now" data-price>{{ product.price | money }}</span>
+        {% if product.compare_at_price > product.price %}
+          <span class="was">{{ product.compare_at_price | money }}</span>
+          <span class="off">SAVE {{ product.compare_at_price | minus: product.price | times: 100.0 | divided_by: product.compare_at_price | round }}%</span>
+        {% endif %}
+      </div>
+      <p class="tabby-line">or 4 interest-free payments of {{ product.price | divided_by: 4 | money }} with <b>tabby</b></p>
+
+      <div class="pdp-desc">{{ product.description }}</div>
+
+      {%- form 'product', product, id: 'product-form', novalidate: 'novalidate' -%}
+        {% unless product.has_only_default_variant %}
+          {% for option in product.options_with_values %}
+            <div class="opt-block">
+              <div class="opt-label"><span>{{ option.name }}</span></div>
+              <div class="opts" data-option-index="{{ forloop.index0 }}">
+                {% for value in option.values %}
+                  <button type="button" class="opt{% if option.selected_value == value %} active{% endif %}" data-value="{{ value | escape }}">{{ value }}</button>
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+        {% endunless %}
+
+        <select name="id" data-variant-select hidden>
+          {% for variant in product.variants %}
+            <option value="{{ variant.id }}" {% if variant == product.selected_or_first_available_variant %}selected{% endif %}
+              {% unless variant.available %}disabled{% endunless %}>{{ variant.title }}</option>
+          {% endfor %}
+        </select>
+
+        <div class="buy-row">
+          <div class="qty">
+            <button type="button" data-q-minus aria-label="Decrease">−</button>
+            <span data-q-val>1</span>
+            <button type="button" data-q-plus aria-label="Increase">+</button>
+          </div>
+          <input type="hidden" name="quantity" value="1" data-q-input>
+          <button type="submit" class="btn btn-dark add" {% unless product.available %}disabled{% endunless %}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14l-1.5 12.5a1.5 1.5 0 0 1-1.5 1.5H8a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>
+            {% if product.available %}Add to Bag{% else %}Sold Out{% endif %}
+          </button>
+          <button type="button" class="wish-lg" aria-label="Wishlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.5-9.5-8.5C.5 9 2 5.5 5.2 5.5c1.9 0 3.1 1 3.8 2 .7-1 1.9-2 3.8-2 3.2 0 4.7 3.5 2.7 7C19 16.5 12 21 12 21z"/></svg></button>
+        </div>
+
+        {{ form | payment_button }}
+      {%- endform -%}
+
+      <div class="pdp-trust">
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="14" height="11" rx="2"/><path d="M16 9h4l2 3v4h-6z"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg> Next-day delivery</div>
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg> Free returns</div>
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg> 100% genuine</div>
+      </div>
+    </div>
+  </div>
+
+  {% if section.settings.show_related %}
+    <section style="margin-top:70px">
+      <div class="rail-head">
+        <div><span class="eyebrow">Smart Picks</span><h2 class="display" style="font-size:clamp(1.6rem,3vw,2.2rem);margin-top:8px">You Might Also Like</h2></div>
+        <a href="{{ routes.all_products_collection_url }}" class="btn btn-ghost">View all</a>
+      </div>
+      <div class="product-grid">
+        {% assign rel = product.collections.first %}
+        {% if rel %}
+          {% for p in rel.products limit: 4 %}{% unless p.id == product.id %}{% render 'product-card', product: p %}{% endunless %}{% endfor %}
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+</div>
+
+{% schema %}
+{
+  "name": "Product",
+  "settings": [
+    { "type": "checkbox", "id": "show_related", "label": "Show related products", "default": true }
+  ]
+}
+{% endschema %}

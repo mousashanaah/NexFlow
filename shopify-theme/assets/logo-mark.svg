@@ -1,0 +1,26 @@
+<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Golf4Less mark">
+  <defs>
+    <radialGradient id="ball" cx="38%" cy="32%" r="70%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c9cdc6"/>
+    </radialGradient>
+  </defs>
+  <!-- outer swoosh ring -->
+  <path d="M60 8a52 52 0 1 0 30 94" fill="none" stroke="#0e0e0e" stroke-width="7" stroke-linecap="round"/>
+  <path d="M22 86a52 52 0 0 0 78 6" fill="none" stroke="#7ac72e" stroke-width="7" stroke-linecap="round"/>
+  <!-- golf ball -->
+  <circle cx="50" cy="56" r="30" fill="url(#ball)" stroke="#b9bdb4" stroke-width="1.5"/>
+  <g fill="#c2c6bd" opacity="0.85">
+    <circle cx="42" cy="48" r="2.4"/><circle cx="52" cy="46" r="2.4"/><circle cx="60" cy="52" r="2.4"/>
+    <circle cx="40" cy="58" r="2.4"/><circle cx="50" cy="58" r="2.4"/><circle cx="58" cy="62" r="2.4"/>
+    <circle cx="45" cy="68" r="2.4"/><circle cx="55" cy="68" r="2.4"/>
+  </g>
+  <!-- the 4 -->
+  <text x="74" y="74" font-family="Anton, Arial Narrow, sans-serif" font-size="62" fill="#7ac72e" text-anchor="middle">4</text>
+  <!-- speed lines -->
+  <g stroke="#7ac72e" stroke-width="4" stroke-linecap="round">
+    <line x1="100" y1="40" x2="114" y2="36"/>
+    <line x1="101" y1="50" x2="116" y2="48"/>
+    <line x1="100" y1="60" x2="113" y2="61"/>
+  </g>
+</svg>

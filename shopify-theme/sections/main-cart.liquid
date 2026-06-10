@@ -1,0 +1,74 @@
+<div class="wrap" style="padding:30px 0 80px">
+  <div class="steps">
+    <div class="step active"><span class="num">1</span> Bag</div>
+    <span class="arrow">›</span>
+    <div class="step"><span class="num">2</span> Information</div>
+    <span class="arrow">›</span>
+    <div class="step"><span class="num">3</span> Shipping</div>
+    <span class="arrow">›</span>
+    <div class="step"><span class="num">4</span> Payment</div>
+  </div>
+
+  {% if cart.item_count > 0 %}
+    <form action="{{ routes.cart_url }}" method="post" novalidate class="co-layout">
+      <!-- LEFT: items -->
+      <div>
+        <div class="co-section">
+          <h3>Your Bag ({{ cart.item_count }})</h3>
+          {% for item in cart.items %}
+            <div class="s-item" style="align-items:center">
+              <div class="s-img">
+                <span class="qbadge">{{ item.quantity }}</span>
+                {% if item.image %}<img src="{{ item.image | image_url: width: 120 }}" alt="{{ item.title }}">
+                {% else %}<img src="{{ 'golfball.svg' | asset_url }}" alt="{{ item.title }}">{% endif %}
+              </div>
+              <div class="s-meta" style="flex:1">
+                <b>{{ item.product.title }}</b>
+                {% unless item.product.has_only_default_variant %}<small>{{ item.variant.title }}</small>{% endunless %}
+                <div style="margin-top:8px"><a href="{{ item.url_to_remove }}" style="color:var(--muted);font-size:0.78rem">Remove</a></div>
+              </div>
+              <div class="s-price">{{ item.final_line_price | money }}</div>
+            </div>
+          {% endfor %}
+          <a href="{{ routes.all_products_collection_url }}" style="color:var(--green-deep);font-weight:600;font-size:0.9rem">← Continue shopping</a>
+        </div>
+      </div>
+
+      <!-- RIGHT: summary -->
+      <aside>
+        <div class="summary">
+          <h3>Order Summary</h3>
+          <div class="s-line"><span>Subtotal</span><span>{{ cart.items_subtotal_price | money }}</span></div>
+          {% if cart.total_discount > 0 %}<div class="s-line discount"><span>Discount</span><span>− {{ cart.total_discount | money }}</span></div>{% endif %}
+          <div class="s-line"><span>Delivery</span><span>Calculated at checkout</span></div>
+          <div class="s-total"><span>Total <small>incl. VAT</small></span><span>{{ cart.total_price | money }}</span></div>
+
+          <button type="submit" name="checkout" class="btn btn-green place-order">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            Secure Checkout
+          </button>
+
+          <div class="co-trust">
+            <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg> 100% Genuine</div>
+            <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> Secure SSL</div>
+            <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg> Free Returns</div>
+          </div>
+          <div class="pays" style="justify-content:center;margin-top:14px">
+            <span>VISA</span><span>MC</span><span>AMEX</span><span>APPLE PAY</span><span>TABBY</span><span>COD</span>
+          </div>
+        </div>
+      </aside>
+    </form>
+  {% else %}
+    <div style="text-align:center;padding:80px 0">
+      <img src="{{ 'mascot.svg' | asset_url }}" alt="" style="width:160px;margin:0 auto 20px">
+      <h2 class="display" style="font-size:2.4rem">Your bag is empty</h2>
+      <p class="lede" style="margin:10px auto 24px">Time to fill it with smart-value gear.</p>
+      <a href="{{ routes.all_products_collection_url }}" class="btn btn-green">Shop the Drops</a>
+    </div>
+  {% endif %}
+</div>
+
+{% schema %}
+{ "name": "Cart" }
+{% endschema %}

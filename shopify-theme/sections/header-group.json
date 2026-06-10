@@ -1,0 +1,9 @@
+{
+  "type": "header",
+  "name": "Header group",
+  "sections": {
+    "announcement-bar": { "type": "announcement-bar" },
+    "header": { "type": "header", "settings": { "show_subnav": true } }
+  },
+  "order": ["announcement-bar", "header"]
+}

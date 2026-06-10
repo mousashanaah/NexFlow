@@ -1,0 +1,10 @@
+<div class="wrap" style="padding:50px 0 80px">
+  <h1 class="display" style="font-size:2.4rem;margin-bottom:8px">Hi {{ customer.first_name | default: 'golfer' }} 👋</h1>
+  <p style="color:var(--muted);margin-bottom:24px"><a href="{{ routes.account_logout_url }}" style="color:var(--green-deep)">Log out</a></p>
+  <h3 style="margin-bottom:14px">Order History</h3>
+  {% paginate customer.orders by 20 %}
+    {% for order in customer.orders %}
+      <div class="co-section" style="display:flex;justify-content:space-between"><span><b>{{ order.name }}</b> · {{ order.created_at | date: '%b %d, %Y' }}</span><span>{{ order.total_price | money }} · {{ order.financial_status_label }}</span></div>
+    {% else %}<p style="color:var(--muted)">No orders yet.</p>{% endfor %}
+  {% endpaginate %}
+</div>

@@ -1,0 +1,61 @@
+{%- assign p = section.settings.product -%}
+<section class="section" id="deals">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">{{ section.settings.eyebrow }}</span>
+      <h2 class="display">{{ section.settings.heading }}</h2>
+      <p class="lede">{{ section.settings.subtext }}</p>
+    </div>
+    <div class="deal reveal">
+      <div class="deal-media">
+        <span class="deal-flag">🔥 Deal of the Day</span>
+        {% if p != blank and p.featured_image %}
+          <img src="{{ p.featured_image | image_url: width: 600 }}" alt="{{ p.title }}">
+        {% else %}
+          <img src="{{ 'driver.svg' | asset_url }}" alt="Featured deal">
+        {% endif %}
+      </div>
+      <div class="deal-body">
+        <span class="eyebrow">{{ p.vendor | default: 'TaylorMade' }}</span>
+        <h3>{{ p.title | default: 'Stealth 2 Driver' }}</h3>
+        <p style="color:rgba(255,255,255,.65);max-width:42ch">{{ section.settings.blurb }}</p>
+        <div class="deal-price">
+          <span class="now">{% if p != blank %}{{ p.price | money }}{% else %}AED 1,299{% endif %}</span>
+          {% if p.compare_at_price > p.price %}<span class="was">{{ p.compare_at_price | money }}</span>
+            <span class="off">SAVE {{ p.compare_at_price | minus: p.price | times: 100.0 | divided_by: p.compare_at_price | round }}%</span>
+          {% else %}<span class="was">AED 2,199</span><span class="off">SAVE 41%</span>{% endif %}
+        </div>
+        <div class="countdown" data-countdown aria-label="Time remaining">
+          <div class="cd-box"><b data-h>00</b><small>Hrs</small></div>
+          <div class="cd-box"><b data-m>00</b><small>Min</small></div>
+          <div class="cd-box"><b data-s>00</b><small>Sec</small></div>
+        </div>
+        {% if p != blank %}
+          {%- form 'product', p -%}
+            <input type="hidden" name="id" value="{{ p.selected_or_first_available_variant.id }}">
+            <button type="submit" class="btn btn-green">Grab This Deal
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+          {%- endform -%}
+        {% else %}
+          <a href="{{ routes.all_products_collection_url }}" class="btn btn-green">Grab This Deal
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Deal of the day",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Today Only" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "The Daily Deal Drop" },
+    { "type": "text", "id": "subtext", "label": "Subtext", "default": "One unbeatable deal, every single day. When the timer hits zero, it's gone." },
+    { "type": "product", "id": "product", "label": "Featured product" },
+    { "type": "textarea", "id": "blurb", "label": "Product blurb", "default": "Tour-level distance and forgiveness — at a price that actually makes sense." }
+  ],
+  "presets": [{ "name": "Deal of the day" }]
+}
+{% endschema %}

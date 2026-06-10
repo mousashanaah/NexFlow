@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="{{ request.locale.iso_code }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#7ac72e">
+  <link rel="canonical" href="{{ canonical_url }}">
+  <link rel="icon" type="image/svg+xml" href="{{ 'logo-mark.svg' | asset_url }}">
+
+  <title>{{ page_title }}{% if current_tags %} &ndash; {{ current_tags | join: ', ' }}{% endif %}{% unless page_title contains shop.name %} &ndash; {{ shop.name }}{% endunless %}</title>
+  {% if page_description %}<meta name="description" content="{{ page_description | escape }}">{% endif %}
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  {{ 'theme.css' | asset_url | stylesheet_tag }}
+
+  {{ content_for_header }}
+
+  <style>
+    :root {
+      --green: {{ settings.color_accent | default: '#7ac72e' }};
+      --ink: {{ settings.color_ink | default: '#0e0e0e' }};
+    }
+  </style>
+</head>
+<body class="template-{{ template.name }}">
+  <a class="skip-link" href="#MainContent">Skip to content</a>
+
+  {% sections 'header-group' %}
+
+  <main id="MainContent" role="main">
+    {{ content_for_layout }}
+  </main>
+
+  {% sections 'footer-group' %}
+
+  {% comment %} Floating WhatsApp {% endcomment %}
+  {% if settings.whatsapp_number != blank %}
+    <a class="wa-float" href="https://wa.me/{{ settings.whatsapp_number }}" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.7 15l-1.3 5 5.1-1.3A10 10 0 1 0 12 2zm4.4 12.4c-.2-.1-1.4-.7-1.6-.8s-.4-.1-.5.1l-.8 1c-.1.2-.3.2-.5.1a6.5 6.5 0 0 1-3.2-2.8c-.1-.2 0-.4.1-.5l.4-.5c.1-.2.1-.3.2-.5s0-.3 0-.5l-.7-1.6c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.5.1-.7.3a3 3 0 0 0-1 2.3 5.3 5.3 0 0 0 1.1 2.8 12 12 0 0 0 4.7 4.1c2.3 1 2.3.7 2.7.6a2.6 2.6 0 0 0 1.7-1.2 2 2 0 0 0 .2-1.2c-.1-.1-.3-.2-.5-.3z"/></svg>
+      <b>Chat &amp; shop with us</b>
+    </a>
+  {% endif %}
+
+  <div class="drawer" id="drawer">
+    <div class="scrim" data-close></div>
+    <nav class="panel" aria-label="Mobile">
+      <button class="close" data-close aria-label="Close">&times;</button>
+      {% for link in linklists[settings.menu].links %}
+        <a href="{{ link.url }}" data-close>{{ link.title }}</a>
+      {% endfor %}
+    </nav>
+  </div>
+
+  {{ 'theme.js' | asset_url | script_tag }}
+</body>
+</html>

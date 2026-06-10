@@ -1,0 +1,41 @@
+<section class="section" id="social" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">{{ section.settings.eyebrow }}</span>
+      <h2 class="display">{{ section.settings.heading }}</h2>
+      <p class="lede">{{ section.settings.subtext }}</p>
+    </div>
+    <div class="social-grid">
+      {% for block in section.blocks %}
+        <a class="reel reveal" href="{{ block.settings.link }}" target="_blank" rel="noopener" {{ block.shopify_attributes }}
+           {% if block.settings.image %}style="background-image:url({{ block.settings.image | image_url: width: 500 }});background-size:cover;background-position:center"{% endif %}>
+          <span class="play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+          <div class="meta"><b>{{ block.settings.caption }}</b><small>👁 {{ block.settings.views }}</small></div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Social reels",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Attention First. Commerce Second." },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Watch. Laugh. Shop." },
+    { "type": "textarea", "id": "subtext", "label": "Subtext", "default": "Funny reels, challenge content, blind tests and deal drops — the most engaging golf brand in the region." }
+  ],
+  "blocks": [ { "type": "reel", "name": "Reel", "settings": [
+    { "type": "image_picker", "id": "image", "label": "Thumbnail" },
+    { "type": "text", "id": "caption", "label": "Caption", "default": "Build a bag under AED 1k 💸" },
+    { "type": "text", "id": "views", "label": "Views", "default": "312k views" },
+    { "type": "url", "id": "link", "label": "Link" }
+  ]}],
+  "presets": [{ "name": "Social reels", "blocks": [
+    { "type": "reel", "settings": { "caption": "Build a bag under AED 1k 💸", "views": "312k views" } },
+    { "type": "reel", "settings": { "caption": "AED 50 vs AED 500 balls 🤯", "views": "198k views" } },
+    { "type": "reel", "settings": { "caption": "Custom ball printing ASMR ⛳", "views": "421k views" } },
+    { "type": "reel", "settings": { "caption": "Desert golf challenge 🏜️", "views": "276k views" } }
+  ]}]
+}
+{% endschema %}

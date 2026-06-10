@@ -1,0 +1,64 @@
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy reveal">
+      {% if section.settings.eyebrow != blank %}<span class="eyebrow">{{ section.settings.eyebrow }}</span>{% endif %}
+      <h1 class="display">{{ section.settings.heading }}</h1>
+      <p class="lede">{{ section.settings.subtext }}</p>
+      <div class="hero-cta">
+        {% if section.settings.btn1_label != blank %}<a href="{{ section.settings.btn1_link }}" class="btn btn-dark">{{ section.settings.btn1_label }}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>{% endif %}
+        {% if section.settings.btn2_label != blank %}<a href="{{ section.settings.btn2_link }}" class="btn btn-ghost">{{ section.settings.btn2_label }}</a>{% endif %}
+      </div>
+      <div class="hero-trust">
+        {% for block in section.blocks %}
+          <div {{ block.shopify_attributes }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg> {{ block.settings.text }}</div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="hero-visual reveal">
+      <div class="hero-disc"></div>
+      {% if section.settings.image %}
+        <img class="hero-mascot" src="{{ section.settings.image | image_url: width: 700 }}" alt="{{ shop.name }}">
+      {% else %}
+        <img class="hero-mascot" src="{{ 'mascot.svg' | asset_url }}" alt="{{ shop.name }} mascot">
+      {% endif %}
+      {% if section.settings.badge_text != blank %}<div class="hero-badge tr"><span>{{ section.settings.badge_value }}</span><span>{{ section.settings.badge_text }}</span></div>{% endif %}
+      <div class="hero-chip bl">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <div>Free Printing<small>on 3+ dozen balls</small></div>
+      </div>
+      <div class="hero-chip br">
+        <span class="ic">⭐</span>
+        <div>{{ section.settings.rating }}<small>{{ section.settings.rating_sub }}</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Hero",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "MENA & Africa's #1 Value Golf Brand" },
+    { "type": "html", "id": "heading", "label": "Heading", "default": "Spend Less.<br><span class='pop'>Play More.</span>" },
+    { "type": "textarea", "id": "subtext", "label": "Subtext", "default": "Tour-quality gear. Insider pricing. Free custom golf balls. The smartest — and most fun — way to shop golf across the region." },
+    { "type": "image_picker", "id": "image", "label": "Hero image / mascot" },
+    { "type": "text", "id": "btn1_label", "label": "Button 1 label", "default": "Shop the Drops" },
+    { "type": "url", "id": "btn1_link", "label": "Button 1 link" },
+    { "type": "text", "id": "btn2_label", "label": "Button 2 label", "default": "Customise Your Balls" },
+    { "type": "url", "id": "btn2_link", "label": "Button 2 link" },
+    { "type": "text", "id": "badge_value", "label": "Badge value", "default": "-40%" },
+    { "type": "text", "id": "badge_text", "label": "Badge text", "default": "DEAL DROP" },
+    { "type": "text", "id": "rating", "label": "Rating", "default": "4.9 / 5" },
+    { "type": "text", "id": "rating_sub", "label": "Rating subtext", "default": "2,800+ happy golfers" }
+  ],
+  "blocks": [
+    { "type": "trust", "name": "Trust item", "settings": [ { "type": "text", "id": "text", "label": "Text", "default": "100% Genuine Brands" } ] }
+  ],
+  "presets": [{ "name": "Hero", "blocks": [
+    { "type": "trust", "settings": { "text": "100% Genuine Brands" } },
+    { "type": "trust", "settings": { "text": "Fast GCC-wide Delivery" } },
+    { "type": "trust", "settings": { "text": "Shop on WhatsApp" } }
+  ]}]
+}
+{% endschema %}

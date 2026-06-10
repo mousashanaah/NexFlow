@@ -1,0 +1,7 @@
+<article class="wrap" style="padding:40px 0 80px;max-width:760px">
+  <a href="{{ blog.url }}" style="color:var(--green-deep);font-weight:600">← {{ blog.title }}</a>
+  <h1 class="display" style="font-size:clamp(2rem,4vw,3rem);margin:14px 0">{{ article.title }}</h1>
+  <p style="color:var(--muted);margin-bottom:24px">{{ article.published_at | date: '%B %d, %Y' }} · {{ article.author }}</p>
+  {% if article.image %}<img src="{{ article.image | image_url: width: 1200 }}" alt="{{ article.title }}" style="border-radius:16px;margin-bottom:24px">{% endif %}
+  <div class="rte" style="line-height:1.8">{{ article.content }}</div>
+</article>

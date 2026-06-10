@@ -1,0 +1,6 @@
+{
+  "settings_schema": {
+    "brand": { "name": "Brand" },
+    "navigation": { "name": "Navigation" }
+  }
+}

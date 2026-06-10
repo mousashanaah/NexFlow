@@ -1,0 +1,16 @@
+<div class="wrap collection" style="padding-top:30px">
+  <h1 class="display" style="font-size:clamp(1.9rem,4vw,2.8rem);margin-bottom:8px">Search</h1>
+  <form action="{{ routes.search_url }}" method="get" role="search" style="margin:18px 0 30px;display:flex;gap:10px;max-width:520px">
+    <input type="search" name="q" value="{{ search.terms | escape }}" placeholder="Search clubs, balls, brands…" class="" style="flex:1;padding:14px 18px;border:1.5px solid var(--line);border-radius:999px;font-family:inherit">
+    <button type="submit" class="btn btn-dark">Search</button>
+  </form>
+  {% if search.performed %}
+    <p style="color:var(--muted);margin-bottom:20px">{{ search.results_count }} results for "{{ search.terms }}"</p>
+    <div class="col-grid">
+      {% for item in search.results %}
+        {% if item.object_type == 'product' %}{% render 'product-card', product: item %}{% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% schema %}{ "name": "Search" }{% endschema %}

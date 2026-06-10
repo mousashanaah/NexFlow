@@ -1,0 +1,79 @@
+<div class="wrap collection">
+  <nav class="crumb"><a href="{{ routes.root_url }}">Home</a><span>/</span><b>{{ collection.title }}</b></nav>
+
+  <div class="col-top">
+    <div>
+      <h1>{{ collection.title }}</h1>
+      {% if collection.description != blank %}<p>{{ collection.description | strip_html | truncatewords: 24 }}</p>{% endif %}
+    </div>
+    <div class="col-tools">
+      <span class="count">{{ collection.products_count }} products</span>
+      <button class="btn btn-ghost filters-toggle" id="filtersToggle" style="padding:9px 16px">Filters</button>
+      <div class="sortbox">
+        <label for="sort">Sort</label>
+        <select id="sort" data-sort>
+          {% assign sort_by = collection.sort_by | default: collection.default_sort_by %}
+          {% for option in collection.sort_options %}
+            <option value="{{ option.value }}" {% if option.value == sort_by %}selected{% endif %}>{{ option.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-layout">
+    <!-- FILTERS -->
+    <aside class="filters" id="filters">
+      {% for filter in collection.filters %}
+        <div class="filter-group">
+          <h4>{{ filter.label }}</h4>
+          {% if filter.type == 'price_range' %}
+            <div class="price-inputs">
+              <input type="number" placeholder="{{ filter.min_value.value | default: 0 | money_without_currency }}" data-filter-min>
+              <span>—</span>
+              <input type="number" placeholder="{{ filter.max_value.value | default: filter.range_max | money_without_currency }}" data-filter-max>
+            </div>
+          {% else %}
+            {% for value in filter.values %}
+              <label>
+                <input type="checkbox" {% if value.active %}checked{% endif %}
+                  onclick="window.location.href='{{ value.url_to_add | default: value.url_to_remove }}'">
+                {{ value.label }} <span class="n">{{ value.count }}</span>
+              </label>
+            {% endfor %}
+          {% endif %}
+        </div>
+      {% endfor %}
+    </aside>
+
+    <!-- GRID -->
+    <div>
+      {% if collection.products_count > 0 %}
+        {% paginate collection.products by section.settings.per_page %}
+          <div class="col-grid">
+            {% for product in collection.products %}
+              {% render 'product-card', product: product %}
+            {% endfor %}
+          </div>
+          {% if paginate.pages > 1 %}
+            <div class="loadmore">{{ paginate | default_pagination }}</div>
+          {% endif %}
+        {% endpaginate %}
+      {% else %}
+        <div style="padding:60px 0;text-align:center;color:var(--muted)">
+          <h3 class="display" style="font-size:2rem;color:var(--ink)">No products yet</h3>
+          <p>Check back soon — new deals drop daily.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Collection",
+  "settings": [
+    { "type": "range", "id": "per_page", "label": "Products per page", "min": 12, "max": 36, "step": 12, "default": 24 }
+  ]
+}
+{% endschema %}

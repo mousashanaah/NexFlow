@@ -1,0 +1,60 @@
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-about">
+        <a class="brand" href="{{ routes.root_url }}">
+          <img class="mark" src="{{ 'logo-mark.svg' | asset_url }}" alt="">
+          <span class="word">GOLF<b>4</b>LESS</span>
+        </a>
+        <p>{{ section.settings.about_text }}</p>
+        <div class="socials">
+          {% if settings.social_instagram != blank %}<a href="{{ settings.social_instagram }}" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg></a>{% endif %}
+          {% if settings.social_tiktok != blank %}<a href="{{ settings.social_tiktok }}" target="_blank" rel="noopener" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 3c.3 2.4 1.8 4 4 4.3v3c-1.5 0-2.9-.4-4-1.2V15a6 6 0 1 1-6-6c.3 0 .7 0 1 .1v3.2A2.8 2.8 0 1 0 13 15V3z"/></svg></a>{% endif %}
+          {% if settings.social_youtube != blank %}<a href="{{ settings.social_youtube }}" target="_blank" rel="noopener" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12s0-3.5-.4-5a2.6 2.6 0 0 0-1.8-1.8C18.3 5 12 5 12 5s-6.3 0-7.8.2A2.6 2.6 0 0 0 2.4 7C2 8.5 2 12 2 12s0 3.5.4 5a2.6 2.6 0 0 0 1.8 1.8C5.7 19 12 19 12 19s6.3 0 7.8-.2a2.6 2.6 0 0 0 1.8-1.8c.4-1.5.4-5 .4-5zm-12 3V9l5 3z"/></svg></a>{% endif %}
+          {% if settings.whatsapp_number != blank %}<a href="https://wa.me/{{ settings.whatsapp_number }}" target="_blank" rel="noopener" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.7 15l-1.3 5 5.1-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 20z"/></svg></a>{% endif %}
+        </div>
+      </div>
+
+      {% for block in section.blocks %}
+        {% if block.type == 'menu' %}
+          <div class="footer-col" {{ block.shopify_attributes }}>
+            <h5>{{ block.settings.heading }}</h5>
+            {% for link in linklists[block.settings.menu].links %}
+              <a href="{{ link.url }}">{{ link.title }}</a>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="footer-bottom">
+      <span>&copy; {{ 'now' | date: '%Y' }} {{ shop.name }}. {{ section.settings.legal_text }}</span>
+      <div class="pays">
+        <span>VISA</span><span>MASTERCARD</span><span>AMEX</span><span>APPLE PAY</span><span>TABBY</span><span>COD</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+{% schema %}
+{
+  "name": "Footer",
+  "settings": [
+    { "type": "textarea", "id": "about_text", "label": "About text", "default": "The smartest way to shop golf across MENA & Africa. Spend Less. Play More." },
+    { "type": "text", "id": "legal_text", "label": "Legal line", "default": "An eGolf Megastore venture. All rights reserved." }
+  ],
+  "blocks": [
+    { "type": "menu", "name": "Menu column", "settings": [
+      { "type": "text", "id": "heading", "label": "Heading", "default": "Shop" },
+      { "type": "link_list", "id": "menu", "label": "Menu", "default": "footer" }
+    ]}
+  ],
+  "default": {
+    "blocks": [
+      { "type": "menu", "settings": { "heading": "Shop" } },
+      { "type": "menu", "settings": { "heading": "Company" } },
+      { "type": "menu", "settings": { "heading": "Help" } }
+    ]
+  }
+}
+{% endschema %}

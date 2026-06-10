@@ -1,0 +1,5 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-label="Glove">
+  <path d="M70 60c0-8 14-8 14 0v40m0 0V44c0-8 14-8 14 0v56m0 0V40c0-8 14-8 14 0v60m0 0V52c0-8 14-8 14 0v62c0 30-18 46-44 46s-44-16-44-44c0-10 4-18 10-22l22-14" fill="#fff" stroke="#0e0e0e" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M64 120l-14-18c-6-8 6-18 14-10l14 16" fill="#fff" stroke="#0e0e0e" stroke-width="6" stroke-linejoin="round"/>
+  <rect x="78" y="150" width="44" height="10" rx="5" fill="#7ac72e"/>
+</svg>

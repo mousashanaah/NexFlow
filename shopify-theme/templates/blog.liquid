@@ -1,0 +1,11 @@
+<div class="wrap" style="padding:40px 0 80px">
+  <h1 class="display" style="font-size:clamp(2rem,4vw,3rem);margin-bottom:28px">{{ blog.title }}</h1>
+  <div class="product-grid">
+    {% for article in blog.articles %}
+      <a class="card" href="{{ article.url }}" style="display:block">
+        <div class="card-media">{% if article.image %}<img src="{{ article.image | image_url: width: 500 }}" alt="{{ article.title }}">{% else %}<img src="{{ 'mascot.svg' | asset_url }}" alt="">{% endif %}</div>
+        <div class="card-body"><span class="card-brand">{{ article.published_at | date: '%b %d, %Y' }}</span><h3 class="card-name">{{ article.title }}</h3><p style="color:var(--muted);font-size:0.85rem">{{ article.excerpt_or_content | strip_html | truncatewords: 18 }}</p></div>
+      </a>
+    {% endfor %}
+  </div>
+</div>

@@ -1,0 +1,28 @@
+<section class="section news" style="padding-top:0">
+  <div class="wrap">
+    <div class="box reveal">
+      <h2 class="display">{{ section.settings.heading }}</h2>
+      <p>{{ section.settings.subtext }}</p>
+      {% form 'customer' %}
+        <input type="hidden" name="contact[tags]" value="newsletter">
+        <input type="email" name="contact[email]" placeholder="your@email.com" required aria-label="Email">
+        <button type="submit" class="btn btn-green">{{ section.settings.btn_label }}</button>
+        {% if form.posted_successfully? %}<small style="color:var(--green)">✓ You're in! Welcome to the club.</small>{% endif %}
+      {% endform %}
+      <small>{{ section.settings.disclaimer }}</small>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Newsletter",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Get the Deal Drops First" },
+    { "type": "textarea", "id": "subtext", "label": "Subtext", "default": "Join the list for early access to daily deals, free printing offers and members-only insider pricing." },
+    { "type": "text", "id": "btn_label", "label": "Button label", "default": "Join the Club" },
+    { "type": "text", "id": "disclaimer", "label": "Disclaimer", "default": "No spam. Just good golf for less. Unsubscribe anytime." }
+  ],
+  "presets": [{ "name": "Newsletter" }]
+}
+{% endschema %}

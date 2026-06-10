@@ -1,0 +1,59 @@
+<section class="section" id="custom" style="padding-top:0">
+  <div class="wrap">
+    <div class="custom reveal">
+      <div class="custom-grid">
+        <div>
+          <span class="eyebrow" style="color:var(--green)">{{ section.settings.eyebrow }}</span>
+          <h2 class="display">{{ section.settings.heading }}</h2>
+          <p class="lede">{{ section.settings.subtext }}</p>
+          <ul class="custom-feats">
+            {% for block in section.blocks %}
+              <li {{ block.shopify_attributes }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> {{ block.settings.text }}</li>
+            {% endfor %}
+          </ul>
+          <a href="{{ section.settings.btn_link }}" class="btn btn-green">{{ section.settings.btn_label }}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+        <div class="printer">
+          <div class="screen">
+            <div class="ball-preview">
+              <img src="{{ 'golfball.svg' | asset_url }}" alt="Customisable golf ball">
+              <span class="ball-text" data-ball-text>YOUR TEXT</span>
+            </div>
+          </div>
+          <div class="controls">
+            <input data-ball-input maxlength="10" placeholder="Type a name…" aria-label="Custom ball text">
+          </div>
+          <div class="swatches" data-swatches aria-label="Text colour">
+            <span class="swatch active" style="background:#0e0e0e" data-color="#0e0e0e"></span>
+            <span class="swatch" style="background:#7ac72e" data-color="#7ac72e"></span>
+            <span class="swatch" style="background:#e23b3b" data-color="#e23b3b"></span>
+            <span class="swatch" style="background:#2f6fe0" data-color="#2f6fe0"></span>
+            <span class="swatch" style="background:#e0a02f" data-color="#e0a02f"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Custom golf balls",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "The Golf4Less Signature" },
+    { "type": "html", "id": "heading", "label": "Heading", "default": "Your Name.<br>On Every Ball.<br><span style='color:var(--green)'>Free.</span>" },
+    { "type": "textarea", "id": "subtext", "label": "Subtext", "default": "Personalise tour-quality golf balls in seconds. Free custom printing on every order of 3 dozen or more — perfect for tournaments, gifting and corporate golf days." },
+    { "type": "text", "id": "btn_label", "label": "Button label", "default": "Start Customising" },
+    { "type": "url", "id": "btn_link", "label": "Button link" }
+  ],
+  "blocks": [ { "type": "feat", "name": "Feature", "settings": [ { "type": "text", "id": "text", "label": "Text", "default": "Free print on 3+ dozen" } ] } ],
+  "presets": [{ "name": "Custom golf balls", "blocks": [
+    { "type": "feat", "settings": { "text": "Free print on 3+ dozen" } },
+    { "type": "feat", "settings": { "text": "Names, logos & text" } },
+    { "type": "feat", "settings": { "text": "Tournament branding" } },
+    { "type": "feat", "settings": { "text": "Bulk corporate orders" } }
+  ]}]
+}
+{% endschema %}

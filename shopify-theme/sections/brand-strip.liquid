@@ -1,0 +1,24 @@
+<section class="brands-strip">
+  <div class="label">{{ section.settings.label }}</div>
+  <div class="brands-track" aria-hidden="true">
+    {% for i in (1..2) %}{% for block in section.blocks %}<span>{{ block.settings.name }}</span>{% endfor %}{% endfor %}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Brand strip",
+  "settings": [ { "type": "text", "id": "label", "label": "Label", "default": "Authentic gear from the brands you trust" } ],
+  "blocks": [ { "type": "brand", "name": "Brand", "settings": [ { "type": "text", "id": "name", "label": "Name", "default": "TaylorMade" } ] } ],
+  "presets": [{ "name": "Brand strip", "blocks": [
+    { "type": "brand", "settings": { "name": "TaylorMade" } },
+    { "type": "brand", "settings": { "name": "Callaway" } },
+    { "type": "brand", "settings": { "name": "Titleist" } },
+    { "type": "brand", "settings": { "name": "PING" } },
+    { "type": "brand", "settings": { "name": "Cobra" } },
+    { "type": "brand", "settings": { "name": "Srixon" } },
+    { "type": "brand", "settings": { "name": "Mizuno" } },
+    { "type": "brand", "settings": { "name": "Under Armour" } }
+  ]}]
+}
+{% endschema %}

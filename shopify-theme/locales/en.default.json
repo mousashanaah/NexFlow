@@ -1,0 +1,27 @@
+{
+  "general": {
+    "search": { "search": "Search", "placeholder": "Search for clubs, balls, brands…" },
+    "404": { "title": "Page not found", "subtext": "The page you’re looking for has been moved or no longer exists." },
+    "pagination": { "load_more": "Load more products" }
+  },
+  "products": {
+    "product": {
+      "add_to_cart": "Add to Bag",
+      "buy_it_now": "Buy it now",
+      "sold_out": "Sold out",
+      "from": "From",
+      "save": "Save",
+      "quantity": "Quantity"
+    }
+  },
+  "cart": {
+    "general": {
+      "title": "Your Bag",
+      "empty": "Your bag is empty",
+      "subtotal": "Subtotal",
+      "checkout": "Secure Checkout",
+      "continue": "Continue shopping",
+      "remove": "Remove"
+    }
+  }
+}
