@@ -614,13 +614,38 @@ def run_live(symbols, capital):
         mult = {0: 0.0, 1: 1.0, 2: 1.5, 3: 2.0}.get(n, 2.0)
         return _atr_notional(sym, mult)
 
+    def _available_margin() -> float:
+        """Free USDT margin on the exchange right now. 0.0 if fetch fails."""
+        try:
+            from nexflow.exchange.bitget_order import get_account_balance
+            return max(0.0, get_account_balance(client))
+        except Exception:
+            return 0.0
+
+    _MARGIN_BUFFER = 0.95  # never commit more than 95% of free margin
+
     def _exec(action, sym, price, src):
         try:
             if action == "OPEN_LONG":
                 notional = _confluence_notional(sym)
+                # Clamp to what the account can actually carry (1× cross margin)
+                avail = _available_margin()
+                if avail > 0 and notional > avail * _MARGIN_BUFFER:
+                    clamped = avail * _MARGIN_BUFFER
+                    if clamped < notional * 0.25:
+                        print(f"  [{src}] {sym} skipped — free margin ${avail:,.0f} "
+                              f"too low for ${notional:,.0f} position")
+                        return
+                    print(f"  [{src}] {sym} size clamped ${notional:,.0f} → ${clamped:,.0f} "
+                          f"(free margin ${avail:,.0f})")
+                    notional = clamped
                 qty = notional / price if price > 0 else 0
                 if qty <= 0: return
-                adapter.on_entry(sym, "long", qty, 0.0, 0.0, 0.0)
+                res = adapter.on_entry(sym, "long", qty, 0.0, 0.0, 0.0)
+                if res is not None and not getattr(res, "accepted", True):
+                    print(f"  [ERROR] {src} BUY {sym} rejected by exchange: "
+                          f"{getattr(res, 'note', '?')} — position NOT opened")
+                    return
                 n = len(coin_longs[sym])
                 mult = {1:1.0, 2:1.5, 3:2.0}.get(n, 1.0)
                 print(f"  [{src}] BUY  {sym:<12} @ {price:,.4f}  "
@@ -701,14 +726,30 @@ def run_live(symbols, capital):
         except Exception as e:
             print(f"  [WARN] Could not reconcile positions: {e}")
 
-    def _exec_short(action: str, sym: str, price: float) -> None:
-        """Place or close a short position on the exchange."""
+    def _exec_short(action: str, sym: str, price: float,
+                    notional: float | None = None) -> None:
+        """Place or close a short position on the exchange.
+
+        notional: pre-computed budget-aware size (from the rebalance batch).
+        Falls back to standalone ATR sizing clamped to free margin.
+        """
         try:
             if action == "OPEN_SHORT":
-                notional = _atr_notional(sym)
+                if notional is None:
+                    notional = _atr_notional(sym)
+                    avail = _available_margin()
+                    if avail > 0 and notional > avail * _MARGIN_BUFFER:
+                        notional = avail * _MARGIN_BUFFER
+                if notional < 10:  # below exchange minimum — don't bother
+                    print(f"  [SHORT] {sym} skipped — size ${notional:,.0f} too small")
+                    return
                 qty = notional / price if price > 0 else 0
                 if qty <= 0: return
-                adapter.on_entry(sym, "short", qty, 0.0, 0.0, 0.0)
+                res = adapter.on_entry(sym, "short", qty, 0.0, 0.0, 0.0)
+                if res is not None and not getattr(res, "accepted", True):
+                    print(f"  [ERROR] SHORT SELL {sym} rejected by exchange: "
+                          f"{getattr(res, 'note', '?')} — position NOT opened")
+                    return
                 live_shorts[sym] = price
                 print(f"  [SHORT] SELL {sym:<12} @ {price:,.4f}  size=${notional:,.0f} (ATR-sized)")
             elif action == "CLOSE_SHORT":
@@ -880,14 +921,36 @@ def run_live(symbols, capital):
                 if circuit_open:
                     print("  [CIRCUIT] New short entries paused — portfolio DD too high")
                 else:
-                    for sym in desired:
-                        if sym not in live_shorts and sym in closes:
+                    # Budget-aware batch sizing: ATR sizes are computed per-coin,
+                    # then scaled down together so the whole batch fits inside
+                    # actual free margin. Weakest momentum (most negative 126d
+                    # return) gets priority — scores is sorted ascending.
+                    to_open = [sym for _, sym in scores
+                               if sym in desired and sym not in live_shorts
+                               and sym in closes]
+                    if to_open:
+                        wanted = {sym: _atr_notional(sym) for sym in to_open}
+                        total_wanted = sum(wanted.values())
+                        avail = _available_margin()
+                        budget = avail * _MARGIN_BUFFER if avail > 0 else total_wanted
+                        scale = min(1.0, budget / total_wanted) if total_wanted > 0 else 0.0
+                        if scale < 1.0:
+                            print(f"  [TSMOM] Batch scaled to fit margin: "
+                                  f"wanted ${total_wanted:,.0f}, free ${avail:,.0f} "
+                                  f"→ {scale*100:.0f}% of ATR size per coin")
+                        for sym in to_open:
                             _, close = closes[sym]
-                            _exec_short("OPEN_SHORT", sym, close)
-                        time.sleep(0.2)
+                            _exec_short("OPEN_SHORT", sym, close,
+                                        notional=wanted[sym] * scale)
+                            time.sleep(0.2)
 
-                if desired:
-                    print(f"  [TSMOM] Shorts active: {', '.join(sorted(desired))}")
+                if live_shorts:
+                    print(f"  [TSMOM] Shorts active: {', '.join(sorted(live_shorts))}")
+                    missing = desired - set(live_shorts)
+                    if missing:
+                        print(f"  [TSMOM] Qualified but NOT opened: {', '.join(sorted(missing))}")
+                elif desired:
+                    print(f"  [TSMOM] {len(desired)} coins qualified but no shorts opened")
                 else:
                     print("  [TSMOM] No coins qualify for shorting")
             else:
