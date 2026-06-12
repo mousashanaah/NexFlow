@@ -2066,6 +2066,70 @@
   .rl-sc-cell.sc-double { background: rgba(180,60,60,0.2); color: var(--red); }
   .rl-sc-cell.sc-triple { background: rgba(180,60,60,0.35); color: var(--red); border-color: var(--red); }
 
+  /* ── TARGETS ── */
+  .target-add-card { padding: 14px; margin-bottom: 4px; }
+  .target-input {
+    width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+    padding: 10px 12px; outline: none; margin-top: 6px;
+  }
+  .target-input:focus { border-color: rgba(232,232,234,0.3); }
+  .target-input::placeholder { color: var(--muted); }
+  select.target-input option { background: #121214; }
+  .target-field-lbl { font-family: var(--mono); font-size: 8px; letter-spacing: 0.14em; color: var(--muted); margin-top: 4px; }
+
+  .target-item {
+    background: rgba(0,0,0,0.35); border: 1px solid var(--border);
+    padding: 13px 14px; margin-bottom: 6px; position: relative; overflow: hidden;
+  }
+  .target-item.critical { border-left: 2px solid var(--red); }
+  .target-item.high { border-left: 2px solid #c89640; }
+  .target-item.standard { border-left: 2px solid var(--border); }
+  .target-item.neutralised { opacity: 0.55; }
+
+  .target-name {
+    font-family: var(--mono); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.06em; color: var(--text); line-height: 1.4;
+    text-transform: uppercase; position: relative;
+  }
+  .target-item.neutralised .target-name::after {
+    content: ''; position: absolute; left: -2px; right: -2px;
+    top: 50%; height: 1.5px; background: var(--red); transform: scaleX(0);
+    transform-origin: left; animation: strikethrough 0.4s cubic-bezier(0.4,0,0.2,1) forwards;
+  }
+  @keyframes strikethrough { to { transform: scaleX(1); } }
+
+  .target-meta { display: flex; align-items: center; gap: 10px; margin-top: 5px; flex-wrap: wrap; }
+  .target-pri-tag {
+    font-family: var(--mono); font-size: 7.5px; letter-spacing: 0.14em;
+    padding: 2px 6px; border: 1px solid currentColor;
+  }
+  .target-pri-tag.critical { color: var(--red); border-color: rgba(192,69,63,0.4); }
+  .target-pri-tag.high { color: #c89640; border-color: rgba(200,150,64,0.4); }
+  .target-pri-tag.standard { color: var(--muted); border-color: var(--border); }
+
+  .target-due { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 0.08em; }
+  .target-due.overdue { color: var(--red); }
+  .target-due.soon { color: #c89640; }
+
+  .target-added { font-family: var(--mono); font-size: 8px; color: rgba(122,126,133,0.6); letter-spacing: 0.06em; }
+
+  .target-actions { display: flex; gap: 6px; margin-top: 10px; }
+  .tgt-btn {
+    font-family: var(--mono); font-size: 8px; letter-spacing: 0.12em;
+    padding: 6px 10px; border: 1px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer;
+  }
+  .tgt-btn.neutralise { border-color: rgba(63,158,106,0.35); color: var(--green); }
+  .tgt-btn.neutralise:active { background: rgba(63,158,106,0.1); }
+  .tgt-btn.eliminate { border-color: rgba(192,69,63,0.3); color: var(--red); }
+
+  .neutralised-banner {
+    font-family: var(--mono); font-size: 8px; letter-spacing: 0.18em;
+    color: var(--red); margin-top: 8px; opacity: 0.7;
+  }
+  .neutralised-date { font-family: var(--mono); font-size: 8px; color: var(--muted); letter-spacing: 0.06em; }
+
   /* ── SG BARS ── */
   .sg-label { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; color: var(--muted); }
   .sg-bar-wrap { height: 2px; background: var(--border); }
@@ -2640,6 +2704,40 @@
         <div id="backup-status" style="font-size:11px;color:var(--muted);text-align:center;min-height:16px"></div>
       </div>
     </div>
+
+    <!-- ── TARGETS TAB ── -->
+    <div id="tab-targets" class="tab-panel">
+      <div class="page-date">TARGET BOARD</div>
+
+      <!-- ADD TARGET -->
+      <div class="card hud-frame target-add-card"><span class="hud-corners"></span>
+        <div class="sys-label first" style="margin-top:0">// New Target</div>
+        <input id="tgt-name" class="target-input" type="text" placeholder="DESIGNATE TARGET..." maxlength="80">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <div style="flex:1">
+            <div class="target-field-lbl">DEADLINE</div>
+            <input id="tgt-due" class="target-input" type="date">
+          </div>
+          <div style="flex:1">
+            <div class="target-field-lbl">PRIORITY</div>
+            <select id="tgt-pri" class="target-input">
+              <option value="critical">CRITICAL</option>
+              <option value="high">HIGH</option>
+              <option value="standard" selected>STANDARD</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:10px;width:100%;letter-spacing:0.14em" onclick="addTarget()">+ ACQUIRE TARGET</button>
+      </div>
+
+      <!-- ACTIVE TARGETS -->
+      <div class="sys-label danger">Active Targets <span id="tgt-active-count" style="color:var(--muted);font-weight:400"></span></div>
+      <div id="tgt-active-list"></div>
+
+      <!-- NEUTRALISED -->
+      <div class="sys-label" id="tgt-done-label" style="display:none">Neutralised</div>
+      <div id="tgt-done-list"></div>
+    </div>
   </div>
 
   <nav id="bottom-nav">
@@ -2678,6 +2776,12 @@
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
       </svg>
       Streak
+    </button>
+    <button class="nav-btn" data-tab="targets" onclick="switchTab('targets',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+      </svg>
+      Targets
     </button>
   </nav>
 </div>
@@ -2805,6 +2909,7 @@ function switchTab(name, btn) {
   if (name === 'nutrition') { /* nutrition tab loaded */ }
   if (name === 'character') renderCharacter();
   if (name === 'today') checkSavedDay();
+  if (name === 'targets') renderTargets();
 }
 
 // ─── TODAY TAB ─────────────────────────────────────────────────────
@@ -5487,9 +5592,102 @@ function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 
+// ── TARGETS ─────────────────────────────────────────────────────────────────
+const TARGETS_KEY = 'nexflow_targets';
+
+function loadTargets() { return JSON.parse(localStorage.getItem(TARGETS_KEY) || '[]'); }
+function saveTargets(t) { localStorage.setItem(TARGETS_KEY, JSON.stringify(t)); }
+
+function addTarget() {
+  const name = $('tgt-name').value.trim();
+  if (!name) return;
+  const due = $('tgt-due').value || null;
+  const pri = $('tgt-pri').value;
+  const targets = loadTargets();
+  targets.unshift({ id: Date.now(), name, due, pri, added: new Date().toISOString().slice(0,10), done: false, doneDate: null });
+  saveTargets(targets);
+  $('tgt-name').value = '';
+  $('tgt-due').value = '';
+  $('tgt-pri').value = 'standard';
+  renderTargets();
+}
+
+function neutraliseTarget(id) {
+  const targets = loadTargets();
+  const t = targets.find(t => t.id === id);
+  if (!t) return;
+  t.done = true;
+  t.doneDate = new Date().toISOString().slice(0,10);
+  saveTargets(targets);
+  renderTargets();
+}
+
+function eliminateTarget(id) {
+  const targets = loadTargets().filter(t => t.id !== id);
+  saveTargets(targets);
+  renderTargets();
+}
+
+function renderTargets() {
+  const targets = loadTargets();
+  const today = new Date().toISOString().slice(0,10);
+  const active = targets.filter(t => !t.done);
+  const done = targets.filter(t => t.done);
+
+  $('tgt-active-count').textContent = active.length ? `(${active.length})` : '';
+
+  function dueLabel(due) {
+    if (!due) return '';
+    const daysLeft = Math.ceil((new Date(due) - new Date(today)) / 86400000);
+    let cls = 'target-due';
+    let txt = '';
+    if (daysLeft < 0) { cls += ' overdue'; txt = `OVERDUE ${Math.abs(daysLeft)}D`; }
+    else if (daysLeft === 0) { cls += ' soon'; txt = 'DUE TODAY'; }
+    else if (daysLeft <= 3) { cls += ' soon'; txt = `${daysLeft}D REMAINING`; }
+    else txt = `DEADLINE: ${due}`;
+    return `<span class="${cls}">${txt}</span>`;
+  }
+
+  function buildCard(t, isNeutralised) {
+    return `<div class="target-item hud-frame ${t.pri}${isNeutralised?' neutralised':''}" id="tgt-${t.id}"><span class="hud-corners"></span>
+      <div class="target-name">${t.name}</div>
+      <div class="target-meta">
+        <span class="target-pri-tag ${t.pri}">${t.pri.toUpperCase()}</span>
+        ${!isNeutralised ? dueLabel(t.due) : ''}
+        <span class="target-added">ACQ: ${t.added}</span>
+      </div>
+      ${isNeutralised ? `
+        <div class="neutralised-banner">▓▓ TARGET NEUTRALISED ▓▓</div>
+        <div class="neutralised-date">COMPLETED: ${t.doneDate}</div>
+        <div class="target-actions">
+          <button class="tgt-btn eliminate" onclick="eliminateTarget(${t.id})">PURGE FROM RECORD</button>
+        </div>
+      ` : `
+        <div class="target-actions">
+          <button class="tgt-btn neutralise" onclick="neutraliseTarget(${t.id})">✓ NEUTRALISE</button>
+          <button class="tgt-btn eliminate" onclick="eliminateTarget(${t.id})">✕ ABORT</button>
+        </div>
+      `}
+    </div>`;
+  }
+
+  $('tgt-active-list').innerHTML = active.length
+    ? active.map(t => buildCard(t, false)).join('')
+    : `<div class="empty-state"><p>No active targets. Acquire a target to begin.</p></div>`;
+
+  const doneLabel = $('tgt-done-label');
+  if (done.length) {
+    doneLabel.style.display = '';
+    $('tgt-done-list').innerHTML = done.slice(0,10).map(t => buildCard(t, true)).join('');
+  } else {
+    doneLabel.style.display = 'none';
+    $('tgt-done-list').innerHTML = '';
+  }
+}
+
 // ── BACKUP ──────────────────────────────────────────────────────────────────
 function exportData() {
-  const keys = ['nexflow_days','nexflow_rounds','nexflow_nutrition','nexflow_character','nexflow_rpg_meta'];
+  const keys = ['nexflow_days','nexflow_rounds','nexflow_nutrition','nexflow_character','nexflow_rpg_meta','nexflow_targets'];
   const snapshot = {};
   keys.forEach(k => { const v = localStorage.getItem(k); if (v) snapshot[k] = JSON.parse(v); });
   snapshot._exported = new Date().toISOString();
@@ -5511,7 +5709,7 @@ function importData(e) {
   reader.onload = ev => {
     try {
       const data = JSON.parse(ev.target.result);
-      const keys = ['nexflow_days','nexflow_rounds','nexflow_nutrition','nexflow_character','nexflow_rpg_meta'];
+      const keys = ['nexflow_days','nexflow_rounds','nexflow_nutrition','nexflow_character','nexflow_rpg_meta','nexflow_targets'];
       let restored = 0;
       keys.forEach(k => { if (data[k] !== undefined) { localStorage.setItem(k, JSON.stringify(data[k])); restored++; } });
       const s = $('backup-status');
