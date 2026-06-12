@@ -2734,8 +2734,21 @@
       <div class="sys-label danger">Active Targets <span id="tgt-active-count" style="color:var(--muted);font-weight:400"></span></div>
       <div id="tgt-active-list"></div>
 
-      <!-- NEUTRALISED -->
-      <div class="sys-label" id="tgt-done-label" style="display:none">Neutralised</div>
+      <!-- KILL COUNTER -->
+      <div class="sys-label">Kill Counter</div>
+      <div class="card hud-frame" id="tgt-kill-card" style="padding:14px;display:flex;align-items:center;gap:16px"><span class="hud-corners"></span>
+        <div style="text-align:center;flex-shrink:0">
+          <div class="streak-big" id="tgt-kill-count" style="font-size:42px;line-height:1">0</div>
+          <div style="font-family:var(--mono);font-size:8px;letter-spacing:0.16em;color:var(--red);margin-top:2px">TARGETS NEUTRALISED</div>
+        </div>
+        <div style="flex:1;border-left:1px solid var(--border);padding-left:16px">
+          <div style="font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:0.1em;margin-bottom:4px">LAST NEUTRALISED</div>
+          <div id="tgt-last-kill" style="font-family:var(--mono);font-size:10px;color:var(--text);letter-spacing:0.06em;line-height:1.4">—</div>
+        </div>
+      </div>
+
+      <!-- NEUTRALISED HISTORY -->
+      <div class="sys-label" id="tgt-done-label" style="display:none">Neutralised — Full Record</div>
       <div id="tgt-done-list"></div>
     </div>
   </div>
@@ -5659,9 +5672,6 @@ function renderTargets() {
       ${isNeutralised ? `
         <div class="neutralised-banner">▓▓ TARGET NEUTRALISED ▓▓</div>
         <div class="neutralised-date">COMPLETED: ${t.doneDate}</div>
-        <div class="target-actions">
-          <button class="tgt-btn eliminate" onclick="eliminateTarget(${t.id})">PURGE FROM RECORD</button>
-        </div>
       ` : `
         <div class="target-actions">
           <button class="tgt-btn neutralise" onclick="neutraliseTarget(${t.id})">✓ NEUTRALISE</button>
@@ -5675,10 +5685,18 @@ function renderTargets() {
     ? active.map(t => buildCard(t, false)).join('')
     : `<div class="empty-state"><p>No active targets. Acquire a target to begin.</p></div>`;
 
+  // kill counter
+  $('tgt-kill-count').textContent = done.length;
+  if (done.length) {
+    const last = done[0];
+    $('tgt-last-kill').textContent = last.name.length > 40 ? last.name.slice(0,40)+'…' : last.name;
+  }
+
+  // full neutralised history
   const doneLabel = $('tgt-done-label');
   if (done.length) {
     doneLabel.style.display = '';
-    $('tgt-done-list').innerHTML = done.slice(0,10).map(t => buildCard(t, true)).join('');
+    $('tgt-done-list').innerHTML = done.map(t => buildCard(t, true)).join('');
   } else {
     doneLabel.style.display = 'none';
     $('tgt-done-list').innerHTML = '';
