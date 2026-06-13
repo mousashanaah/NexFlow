@@ -715,6 +715,9 @@ def _run(
         "diag_regime_flips": diag_regime_flips,
         "diag_year_short_pnl": diag_year_short_pnl,
         "diag_year_long_pnl": diag_year_long_pnl,
+        # real daily equity curve — same length as all_ts
+        "daily_equity": daily_equity,
+        "daily_ts": all_ts,
     }
 
 
