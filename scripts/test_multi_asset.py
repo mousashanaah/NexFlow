@@ -90,8 +90,12 @@ def _load_stock(t: str) -> pd.DataFrame | None:
 # ---------------------------------------------------------------------------
 def run_stock_book(capital: float, from_ts: int, to_ts: int,
                    bear_drop: float = -0.12,
-                   hard_stop: float = 0.15,
+                   hard_stop: float = 0.10,
                    confirm_days: int = 10) -> dict:
+    """Stock book using the SWEEP-WINNING config:
+    8/21 EMA, PER-ASSET SMA200 regime, 90d momentum gate, 10% stop, long-only.
+    (Original SPY-anchor version made 0 trades; the sweep found per-asset
+    regime + 90d momentum is the configuration that actually works.)"""
     data = {t: d for t in _STOCKS if (d := _load_stock(t)) is not None}
     if _REGIME_ANCHOR not in data:
         raise SystemExit(f"No data for regime anchor {_REGIME_ANCHOR} — "
@@ -99,6 +103,7 @@ def run_stock_book(capital: float, from_ts: int, to_ts: int,
     syms = list(data)
     base_notional = capital / len(syms)
     target_risk   = 0.01
+    _MOM_W = 90  # winning momentum window
 
     # index rows by open_time
     idx = {t: {int(ts): i for i, ts in enumerate(d["open_time"].values)}
@@ -111,8 +116,6 @@ def run_stock_book(capital: float, from_ts: int, to_ts: int,
     positions: dict[str, dict] = {}
     year_pnl: dict[int, float] = {}
     daily_eq: list[float] = []
-    prev_bear = False
-    above_streak = 0
     n_trades = 0; n_wins = 0
     gross_win = 0.0; gross_loss = 0.0
 
@@ -124,24 +127,9 @@ def run_stock_book(capital: float, from_ts: int, to_ts: int,
         return float(np.clip(sized, base_notional * 0.5, base_notional * 2))
 
     for ts in all_ts:
-        ai = idx[_REGIME_ANCHOR].get(ts)
-        if ai is None:
-            continue
-        arow = anchor.iloc[ai]
-        sma200 = arow["sma200"]
-        above  = bool(arow["close"] > sma200) if np.isfinite(sma200) else True
-        mom30  = arow["mom30"] if np.isfinite(arow["mom30"]) else 0.0
-
-        enter_bear = (not above) and (mom30 < bear_drop)
-        above_streak = above_streak + 1 if above else 0
-        confirmed = above_streak >= confirm_days
-        bear = (not confirmed) if prev_bear else enter_bear
-        prev_bear = bear
-        can_long = not bear
-
         yr = datetime.fromtimestamp(ts / 1000, tz=timezone.utc).year
 
-        # exits
+        # exits — per-asset regime: close if price drops below its own SMA200
         for t in list(positions):
             i = idx[t].get(ts)
             if i is None:
@@ -150,9 +138,11 @@ def run_stock_book(capital: float, from_ts: int, to_ts: int,
             pos = positions[t]
             ema_bull  = data[t]["ema8"].values[i]  > data[t]["ema21"].values[i]
             macd_bull = data[t]["macd"].values[i]  > data[t]["macds"].values[i]
+            sa = data[t]["sma200"].values[i]
+            per_above = bool(c > sa) if np.isfinite(sa) else True
             stop_hit  = c <= pos["entry"] * (1 - hard_stop)
             sig_exit  = (not ema_bull) and (not macd_bull)
-            if stop_hit or sig_exit or not can_long:
+            if stop_hit or sig_exit or not per_above:
                 px = pos["entry"] * (1 - hard_stop) if stop_hit else c
                 raw = (px - pos["entry"]) / pos["entry"] * pos["notional"]
                 net = raw - _FEE * pos["notional"]
@@ -163,23 +153,26 @@ def run_stock_book(capital: float, from_ts: int, to_ts: int,
                 else:       gross_loss += -net
                 positions.pop(t)
 
-        # entries
-        if can_long:
-            for t in syms:
-                if t in positions:
-                    continue
-                i = idx[t].get(ts)
-                if i is None:
-                    continue
-                d = data[t]
-                ema_bull  = d["ema8"].values[i]  > d["ema21"].values[i]
-                macd_bull = d["macd"].values[i]  > d["macds"].values[i]
-                mom20     = d["mom20"].values[i]
-                if ema_bull and macd_bull and np.isfinite(mom20) and mom20 > 0:
-                    c = float(d["close"].values[i])
-                    n = _notional(t, i)
-                    equity -= _FEE * n
-                    positions[t] = {"entry": c, "notional": n}
+        # entries — per-asset regime: only enter if above own SMA200
+        for t in syms:
+            if t in positions:
+                continue
+            i = idx[t].get(ts)
+            if i is None:
+                continue
+            d = data[t]
+            sa = d["sma200"].values[i]
+            if np.isfinite(sa) and float(d["close"].values[i]) <= sa:
+                continue
+            ema_bull  = d["ema8"].values[i]  > d["ema21"].values[i]
+            macd_bull = d["macd"].values[i]  > d["macds"].values[i]
+            mom = d["close"].values[i] / d["close"].values[i - _MOM_W] - 1 \
+                  if i >= _MOM_W else float("nan")
+            if ema_bull and macd_bull and np.isfinite(mom) and mom > 0:
+                c = float(d["close"].values[i])
+                n = _notional(t, i)
+                equity -= _FEE * n
+                positions[t] = {"entry": c, "notional": n}
 
         # mark to market
         mtm = 0.0
