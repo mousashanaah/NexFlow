@@ -292,14 +292,43 @@ def run_v9_confidence(
 
 # ── strict combo search ───────────────────────────────────────────────────────
 
-def strict_combo_search(max_k: int = 5) -> list:
+def strict_combo_search(max_k: int = 5, top_n_universe: int = 22) -> list:
+    """
+    Two-phase search:
+      Phase 1 — rank all tradeable tickers individually; keep top N by a composite
+                score (Sharpe × 0.5 + MAR × 0.3 + CAGR × 0.2). This prunes the
+                universe from ~48 to top_n_universe before the combinatorial search.
+      Phase 2 — exhaustive C(top_n, 3..max_k) through the full strict no-lookahead
+                engine with 6-window walk-forward validation.
+    C(22, 3..5) ≈ 28 K combos — fast, rigorous, and de-biased.
+    """
     stock_dir = _REPO / "data" / "stocks"
-    excl      = {"SPY", "QQQ", "IWM", "DIA", "GLD"}
-    universe  = sorted(f.stem.replace("_1D","")
-                       for f in stock_dir.glob("*_1D.parquet")
-                       if f.stem.replace("_1D","") not in excl)
-    print(f"  Universe ({len(universe)} tickers): {universe}\n")
+    excl      = {"SPY", "QQQ", "IWM", "DIA", "GLD",
+                 "XLE", "XLF", "XLI", "XLK", "XLP", "XLRE",
+                 "XLU", "XLV", "XLY", "SLV", "USO"}
+    full_universe = sorted(f.stem.replace("_1D","")
+                           for f in stock_dir.glob("*_1D.parquet")
+                           if f.stem.replace("_1D","") not in excl)
+    print(f"  Full universe ({len(full_universe)} tickers): {full_universe}\n")
 
+    # ── Phase 1: individual ticker ranking ────────────────────────────────────
+    print(f"  Phase 1: ranking individual tickers...")
+    solo = []
+    for t in full_universe:
+        r = _stock_bt([t], **RECOMMENDED)
+        if r["cagr"] < 0.05 or r["trades"] < 5: continue   # skip dead tickers
+        sc = r["sharpe"] * 0.5 + (r["cagr"] / max(r["dd"], 0.05)) * 0.3 + r["cagr"] * 0.2
+        solo.append((sc, t, r))
+    solo.sort(reverse=True)
+    print(f"  {'Ticker':8s}  {'CAGR':>7s}  {'DD':>6s}  {'Sharpe':>6s}  {'Trades':>6s}  {'Score':>6s}")
+    print("  " + "-" * 58)
+    for sc, t, r in solo:
+        print(f"  {t:8s}  {r['cagr']:>+6.1%}  {r['dd']:>5.1%}  {r['sharpe']:>6.2f}"
+              f"  {r['trades']:>6d}  {sc:>6.2f}")
+    universe = [t for _, t, _ in solo[:top_n_universe]]
+    print(f"\n  Top {top_n_universe} for combo search: {universe}\n")
+
+    # ── Phase 2: combo search ─────────────────────────────────────────────────
     def wf(tickers):
         d0 = _load_stock(tickers[0])
         if not d0: return [], 0
@@ -319,7 +348,7 @@ def strict_combo_search(max_k: int = 5) -> list:
     best = []
     for k in range(3, min(max_k+1, len(universe)+1)):
         combos = list(itertools.combinations(universe, k))
-        print(f"  k={k}: testing {len(combos)} combos...", end="", flush=True)
+        print(f"  k={k}: testing {len(combos):,} combos...", end="", flush=True)
         kept = 0
         for combo in combos:
             combo = list(combo)
@@ -327,7 +356,6 @@ def strict_combo_search(max_k: int = 5) -> list:
             if r["cagr"] < 0.12 or r["dd"] > 0.55: continue
             wf_r, n_pos = wf(combo)
             if not wf_r: continue
-            # primary: WF robustness × 5; secondary: Sharpe; tertiary: MAR ratio
             score = (n_pos / len(wf_r)) * 5.0 \
                   + r["sharpe"] * 0.5 \
                   + (r["cagr"] / max(r["dd"], 0.05)) * 0.3
