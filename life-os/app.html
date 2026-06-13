@@ -2833,18 +2833,6 @@
       <div class="sys-label" id="tgt-done-label" style="display:none">Neutralised — Full Record</div>
       <div id="tgt-done-list"></div>
 
-      <!-- FACTORY RESET -->
-      <div style="margin-top:32px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.05)">
-        <div style="font-family:var(--mono);font-size:7.5px;letter-spacing:0.18em;color:var(--muted);margin-bottom:10px">// SYSTEM · DANGER ZONE</div>
-        <div id="reset-confirm" style="display:none" class="card hud-frame" style="padding:14px;border-color:rgba(192,69,63,0.3)"><span class="hud-corners"></span>
-          <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:var(--red);margin-bottom:10px">⚠ ALL DATA WILL BE WIPED. THIS CANNOT BE UNDONE.</div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-danger" style="flex:1;letter-spacing:0.12em" onclick="factoryReset()">CONFIRM WIPE</button>
-            <button class="btn btn-ghost" style="flex:1;letter-spacing:0.12em" onclick="$('reset-confirm').style.display='none'">ABORT</button>
-          </div>
-        </div>
-        <button class="btn btn-ghost" style="width:100%;font-size:9px;letter-spacing:0.16em;border-color:rgba(192,69,63,0.2);color:rgba(192,69,63,0.6)" onclick="$('reset-confirm').style.display='flex'">FACTORY RESET</button>
-      </div>
     </div>
   </div>
 
@@ -5733,11 +5721,6 @@ function addTarget() {
   $('tgt-due').value = '';
   $('tgt-pri').value = 'standard';
   renderTargets();
-}
-
-function factoryReset() {
-  localStorage.clear();
-  location.reload();
 }
 
 function neutraliseTarget(id) {
