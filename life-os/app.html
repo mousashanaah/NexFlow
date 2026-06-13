@@ -2066,6 +2066,68 @@
   .rl-sc-cell.sc-double { background: rgba(180,60,60,0.2); color: var(--red); }
   .rl-sc-cell.sc-triple { background: rgba(180,60,60,0.35); color: var(--red); border-color: var(--red); }
 
+  /* ── OPERATION COUNTDOWN ── */
+  .op-countdown {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(192,69,63,0.25);
+    padding: 16px 16px 14px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .op-header {
+    display: flex; align-items: center; gap: 7px; margin-bottom: 8px;
+  }
+  .op-tag {
+    font-family: var(--mono); font-size: 7.5px; letter-spacing: 0.22em;
+    color: var(--red); opacity: 0.7;
+  }
+  .op-status-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 6px var(--red);
+    animation: op-pulse 2s ease-in-out infinite;
+  }
+  @keyframes op-pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--red); }
+    50% { opacity: 0.4; box-shadow: 0 0 2px var(--red); }
+  }
+  .op-title {
+    font-family: var(--mono); font-size: 22px; font-weight: 700;
+    letter-spacing: 0.18em; color: var(--text); line-height: 1;
+  }
+  .op-sub {
+    font-family: var(--mono); font-size: 8px; letter-spacing: 0.16em;
+    color: var(--muted); margin-top: 3px; margin-bottom: 14px;
+  }
+  .op-timer-row {
+    display: flex; align-items: flex-end; gap: 6px; margin-bottom: 14px;
+  }
+  .op-unit { text-align: center; }
+  .op-num {
+    font-family: var(--mono); font-size: 32px; font-weight: 700;
+    letter-spacing: -0.02em; color: var(--text); line-height: 1;
+  }
+  .op-lbl {
+    font-family: var(--mono); font-size: 7px; letter-spacing: 0.18em;
+    color: var(--muted); margin-top: 3px;
+  }
+  .op-sep {
+    font-family: var(--mono); font-size: 24px; color: var(--border);
+    padding-bottom: 14px; line-height: 1;
+  }
+  .op-bar-wrap {
+    height: 2px; background: var(--border); width: 100%;
+  }
+  .op-bar-fill {
+    height: 100%; background: var(--red);
+    transition: width 1s ease;
+    box-shadow: 0 0 6px rgba(192,69,63,0.5);
+  }
+  .op-progress-lbl {
+    font-family: var(--mono); font-size: 8px; letter-spacing: 0.12em;
+    color: var(--muted); margin-top: 5px; text-align: right;
+  }
+
   /* ── TARGETS ── */
   .target-add-card { padding: 14px; margin-bottom: 4px; }
   .target-input {
@@ -2435,6 +2497,30 @@
     <!-- TAB 1: TODAY -->
     <div id="tab-today" class="tab-panel active">
       <div class="page-date" id="today-date-label"></div>
+
+      <!-- OPERATION COUNTDOWN -->
+      <div class="op-countdown hud-frame">
+        <span class="hud-corners"></span>
+        <div class="op-header">
+          <span class="op-tag">OPERATION</span>
+          <span class="op-status-dot"></span>
+          <span class="op-tag">ACTIVE</span>
+        </div>
+        <div class="op-title">TOUR CARD</div>
+        <div class="op-sub">ASIAN TOUR Q-SCHOOL · DEC 2026</div>
+        <div class="op-timer-row">
+          <div class="op-unit"><div class="op-num" id="op-days">—</div><div class="op-lbl">DAYS</div></div>
+          <div class="op-sep">:</div>
+          <div class="op-unit"><div class="op-num" id="op-weeks">—</div><div class="op-lbl">WEEKS</div></div>
+          <div class="op-sep">:</div>
+          <div class="op-unit"><div class="op-num" id="op-months">—</div><div class="op-lbl">MONTHS</div></div>
+        </div>
+        <div class="op-bar-wrap">
+          <div class="op-bar-fill" id="op-bar"></div>
+        </div>
+        <div class="op-progress-lbl" id="op-pct-lbl"></div>
+      </div>
+
       <div class="mission-line" id="mission-line">MISSION LOG</div>
       <div class="page-title">Today's Training</div>
 
@@ -5564,6 +5650,25 @@ function init() {
   $('today-date-label').textContent = fmtd;
   $('nutri-date-label').textContent = fmtd;
   $('streak-date-label').textContent = fmtd;
+
+  // Operation countdown — Q-School Dec 2026
+  (function() {
+    const TARGET = new Date('2026-12-01T00:00:00');
+    const START  = new Date('2026-06-15T00:00:00'); // comeback start
+    const now    = new Date();
+    const totalDays = Math.round((TARGET - START) / 86400000);
+    const daysLeft  = Math.max(0, Math.ceil((TARGET - now) / 86400000));
+    const weeksLeft = Math.floor(daysLeft / 7);
+    const monthsLeft = Math.floor(daysLeft / 30.44);
+    const elapsed = totalDays - daysLeft;
+    const pct = Math.min(100, Math.max(0, Math.round(elapsed / totalDays * 100)));
+
+    $('op-days').textContent   = daysLeft;
+    $('op-weeks').textContent  = weeksLeft;
+    $('op-months').textContent = monthsLeft;
+    $('op-bar').style.width    = pct + '%';
+    $('op-pct-lbl').textContent = pct + '% OF MISSION ELAPSED · ' + (100-pct) + '% REMAINS';
+  })();
 
   // Set default round date
   $('r-date').value = td;
