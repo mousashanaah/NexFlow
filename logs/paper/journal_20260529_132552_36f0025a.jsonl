@@ -1,0 +1,3 @@
+{"ts": "2026-05-29T13:25:52.656868+00:00", "ts_epoch": 1780061152.656868, "event": "SESSION_START", "session_id": "36f0025a-303f-4f2c-8a0f-87bee9789b89"}
+{"ts": "2026-05-29T13:26:22.674329+00:00", "ts_epoch": 1780061182.674329, "event": "EQUITY_SNAPSHOT", "session_id": "36f0025a-303f-4f2c-8a0f-87bee9789b89", "equity": 100000.0, "realized_pnl": 0.0, "unrealized_pnl": 0.0, "drawdown": 0.0, "open_positions": 0}
+{"ts": "2026-05-29T13:26:44.763056+00:00", "ts_epoch": 1780061204.7630563, "event": "SESSION_END", "session_id": "36f0025a-303f-4f2c-8a0f-87bee9789b89", "final_equity": 100000.0, "total_trades": 0}

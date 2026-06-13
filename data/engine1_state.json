@@ -1,0 +1,29 @@
+{
+  "equity": 9998.374387987107,
+  "last_processed_date": "2026-06-03",
+  "positions": {
+    "BTCUSDT": {
+      "direction": "short",
+      "entry_price": 73633.4,
+      "entry_time_ms": 1780243200000,
+      "size": 0.021047522298561286,
+      "initial_stop": 78384.55306122448,
+      "trail_stop": 71559.6595673918,
+      "best_close": 67269.9,
+      "fees_paid": 0.9298803770513294,
+      "stop_order_id": "1445494648499367936"
+    },
+    "ETHUSDT": {
+      "direction": "short",
+      "entry_price": 2010.1,
+      "entry_time_ms": 1780243200000,
+      "size": 0.576863204021375,
+      "initial_stop": 2183.4352040816325,
+      "trail_stop": 2060.100577978957,
+      "best_close": 1913.85,
+      "fees_paid": 0.6957316358420195,
+      "stop_order_id": "1445494653134061568"
+    }
+  },
+  "pending_entries": {}
+}
