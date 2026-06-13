@@ -92,10 +92,31 @@ def run_stock_book(capital: float, from_ts: int, to_ts: int,
                    bear_drop: float = -0.12,
                    hard_stop: float = 0.10,
                    confirm_days: int = 10) -> dict:
-    """Stock book using the SWEEP-WINNING config:
-    8/21 EMA, PER-ASSET SMA200 regime, 90d momentum gate, 10% stop, long-only.
-    (Original SPY-anchor version made 0 trades; the sweep found per-asset
-    regime + 90d momentum is the configuration that actually works.)"""
+    """Stock book — STRICT engine (no lookahead, next-open fills, intraday-modelled
+    stops). Delegates to scripts/test_stock_risk_mgmt.backtest() with the
+    strict-validated production config:
+      combo  = GOOGL+AMD+NFLX+MSFT+AMZN+COIN (de-biased combo-finder winner)
+      exit   = MACD-cross + 10% hard stop
+      sizing = equal-across-active, gross 1.0x (no leverage)
+      circuit breaker OFF (proven to HURT trend systems in sweep D)
+    This is the single source of truth so combined numbers stay honest."""
+    import test_stock_risk_mgmt as RM
+    r = RM.backtest(RM.COMBO, capital=capital, from_ts=from_ts, to_ts=to_ts,
+                    **RM.RECOMMENDED)
+    return {
+        "equity": r["final"], "year_pnl": r["year_pnl"], "max_dd": r["dd"],
+        "cagr": r["cagr"], "sharpe": r["sharpe"], "pf": r["pf"],
+        "trades": r["trades"], "win_rate": r["win_rate"],
+        "daily_eq": r["equity"],
+    }
+
+
+def _run_stock_book_legacy(capital: float, from_ts: int, to_ts: int,
+                   bear_drop: float = -0.12,
+                   hard_stop: float = 0.10,
+                   confirm_days: int = 10) -> dict:
+    """DEPRECATED lookahead version (same-bar close fills, all 16 tickers).
+    Kept for reference only — run_stock_book() now uses the strict engine."""
     data = {t: d for t in _STOCKS if (d := _load_stock(t)) is not None}
     if _REGIME_ANCHOR not in data:
         raise SystemExit(f"No data for regime anchor {_REGIME_ANCHOR} — "
