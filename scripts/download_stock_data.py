@@ -52,7 +52,10 @@ def main():
             df.columns = [c[0].lower() if isinstance(c, tuple) else c.lower()
                           for c in df.columns]
             df = df.rename(columns={"date": "date"})
-            df["open_time"] = (pd.to_datetime(df["date"]).astype("int64") // 10**6)
+            # Resolution-proof ms timestamp (pandas 2.x keeps datetime64[s],
+            # so a naive .astype(int64)//1e6 corrupts it). Force ns first.
+            ts = pd.to_datetime(df["date"]).astype("datetime64[ns]")
+            df["open_time"] = ts.astype("int64") // 10**6
             out = df[["open_time", "open", "high", "low", "close", "volume"]].copy()
             path = _OUT_DIR / f"{t}_1D.parquet"
             out.to_parquet(path, index=False)
