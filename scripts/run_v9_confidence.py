@@ -27,13 +27,11 @@ Bitget min order = $5 notional. With ~$50-65 per book you cannot spread across
 conviction names that each clear the $5 floor (default crypto K=3, stock all-4
 when the slice allows; names that can't clear $5 are skipped, not forced).
 
-⚠️  BEFORE LIVE — VERIFY THESE (real money):
-  1. STOCK_PRODUCT_TYPE and STOCK_SYMBOLS below match your Bitget account's
-     stock-perp product. The crypto path is proven; the stock path uses the
-     same REST primitives with a different productType and MUST be confirmed.
-  2. The stock leg DEFAULTS TO DRY-RUN (computes + logs orders, sends nothing).
-     Pass --stock-live ONLY after you've confirmed #1 with a manual test order.
-  3. Start in Bitget demo:  BITGET_PAPER=1 ... --mode live
+⚠️  START HERE — real money checklist:
+  1. The stock leg DEFAULTS TO DRY-RUN (logs orders, sends nothing).
+     Pass --stock-live to enable it.
+  2. Always start in Bitget demo first:  BITGET_PAPER=1 ... --mode live
+  3. When happy, remove BITGET_PAPER=1 to go live.
 
 Usage
 -----
@@ -79,8 +77,8 @@ STOCK_COMBO = ["MSTR", "AMD", "GOOGL", "META"]   # de-biased strict winner (Bitg
 # ⚠️  VERIFY against your Bitget account before --stock-live.
 # Bitget lists equity perps under their own productType/symbol scheme; the values
 # below are the integration points you confirm once (productType + symbol suffix).
-STOCK_PRODUCT_TYPE = "SUSDT-FUTURES"      # <-- confirm exact productType in Bitget docs
-STOCK_SYMBOL_MAP = {                       # <-- confirm exact perp symbols
+STOCK_PRODUCT_TYPE = "SUSDT-FUTURES"      # confirmed: Bitget "Stock perps" tab
+STOCK_SYMBOL_MAP = {                       # confirmed from Bitget app screenshots
     "MSTR":  "MSTRUSDT",
     "AMD":   "AMDUSDT",
     "GOOGL": "GOOGLUSDT",
@@ -336,8 +334,8 @@ def run_live(capital: float, stock_live: bool) -> None:
           f"stock {_STOCK_HARD_STOP:.0%}")
     print("=" * 78)
     if not stock_live:
-        print("  NOTE: stock leg is DRY-RUN (logs orders, sends none). Pass --stock-live")
-        print("        only after verifying STOCK_PRODUCT_TYPE/STOCK_SYMBOL_MAP.\n")
+        print("  NOTE: stock leg is DRY-RUN (logs orders, sends none).")
+        print("        Pass --stock-live to enable real stock orders.\n")
 
     # ── seed crypto state ──
     today = int(datetime.now(timezone.utc).replace(
