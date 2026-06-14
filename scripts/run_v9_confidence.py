@@ -62,21 +62,16 @@ _REPO = Path(__file__).parent.parent
 sys.path.insert(0, str(_REPO))
 sys.path.insert(0, str(_REPO / "scripts"))
 
-# Reuse the proven crypto live helpers (importing run_trio_paper is side-effect free)
+# Crypto helpers (importing run_trio_paper is side-effect free). MACDState is
+# reused for the stock book's MACD; the full crypto engine lives in crypto_book_v863.
 from run_trio_paper import (
-    MACDState, EMA4HState, BTCRegime,
-    _load_candles, _resample_4h, _fetch_close, _fetch_1h_recent,
-    _SYMBOLS as _CRYPTO_SYMBOLS, _DAY_MS, _HARD_STOP_PCT as _CRYPTO_STOP,
+    MACDState, _SYMBOLS as _CRYPTO_SYMBOLS, _DAY_MS,
 )
-from nexflow.services.strategy.ema_trend_strategy import EMATrendStrategy
 
 # ── V9 production config ────────────────────────────────────────────────────────
 
 STOCK_COMBO = ["MSTR", "AMD", "GOOGL", "META"]   # de-biased strict winner (Bitget-tradeable)
 
-# ⚠️  VERIFY against your Bitget account before --stock-live.
-# Bitget lists equity perps under their own productType/symbol scheme; the values
-# below are the integration points you confirm once (productType + symbol suffix).
 STOCK_PRODUCT_TYPE = "SUSDT-FUTURES"      # confirmed: Bitget "Stock perps" tab
 STOCK_SYMBOL_MAP = {                       # confirmed from Bitget app screenshots
     "MSTR":  "MSTRUSDT",
@@ -86,8 +81,7 @@ STOCK_SYMBOL_MAP = {                       # confirmed from Bitget app screensho
 }
 
 _MIN_NOTIONAL   = 5.0       # Bitget min order value (USDT)
-_CRYPTO_TOP_K   = 3         # concentrate crypto into top-K conviction names ($100 mode)
-_STOCK_HARD_STOP = 0.10     # 10% per-position hard stop (stock book)
+_STOCK_HARD_STOP = 0.10     # 10% per-position hard stop (stock book, backtest parity)
 _TAKER_FEE      = 0.0006
 _STATE_FILE     = _REPO / "data" / "v9_confidence_state.json"
 _STOCK_DIR      = _REPO / "data" / "stocks"
@@ -245,10 +239,11 @@ class StockState:
             self.in_pos = True
             self.entry = c
             return "OPEN_LONG"
-        if self.in_pos and (macd_action == "CLOSE_LONG" or
-                            (s200 is not None and c < s200)):
-            self.in_pos = False
-            return "CLOSE_LONG"
+        if self.in_pos:
+            hard_stop = self.entry > 0 and c <= self.entry * (1 - _STOCK_HARD_STOP)
+            if macd_action == "CLOSE_LONG" or (s200 is not None and c < s200) or hard_stop:
+                self.in_pos = False
+                return "CLOSE_LONG"
         return None
 
     def signal(self) -> str:
@@ -353,12 +348,12 @@ def run_replay(capital: float) -> None:
 def run_live(capital: float, stock_live: bool) -> None:
     from nexflow.execution.adapter import BitgetPaperAdapter
     from nexflow.exchange.bitget_client import BitgetClient
-    from nexflow.exchange.bitget_order import get_account_balance, get_position
+    from nexflow.exchange.bitget_order import get_account_balance
+    from crypto_book_v863 import CryptoBookV863
 
     client = BitgetClient.from_env()
     adapter = BitgetPaperAdapter(client)
 
-    # real balance if available
     try:
         bal = get_account_balance(client)
         if bal > 0:
@@ -370,49 +365,29 @@ def run_live(capital: float, stock_live: bool) -> None:
     print("=" * 78)
     print("  NEXFLOW V9 — CONFIDENCE BOT (LIVE)")
     print(f"  Capital      : ${capital:,.2f}")
-    print(f"  Crypto book  : V8.63 concentrate top-{_CRYPTO_TOP_K}  (Bitget USDT perps)")
+    print(f"  Crypto book  : FULL V8.63 (ATR sizing, confluence, TSMOM shorts,")
+    print(f"                 4H signals, 15% stops, news filter, 20% circuit breaker)")
     print(f"  Stock  book  : {'+'.join(STOCK_COMBO)}  "
           f"({'LIVE' if stock_live else 'DRY-RUN'}, {STOCK_PRODUCT_TYPE})")
-    print(f"  Min notional : ${_MIN_NOTIONAL}  | Stops: crypto {_CRYPTO_STOP:.0%}, "
-          f"stock {_STOCK_HARD_STOP:.0%}")
+    print(f"  Cadence      : crypto daily 00:05 + stops every 6h; stock daily 21:05 UTC")
     print("=" * 78)
     if not stock_live:
         print("  NOTE: stock leg is DRY-RUN (logs orders, sends none).")
         print("        Pass --stock-live to enable real stock orders.\n")
 
-    # ── seed crypto state ──
     today = int(datetime.now(timezone.utc).replace(
         hour=0, minute=0, second=0, microsecond=0).timestamp() * 1000)
     seed_from = today - 260 * _DAY_MS
 
-    ema_strat = EMATrendStrategy(symbols=_CRYPTO_SYMBOLS, fast=8, slow=21)
-    macd_c = {s: MACDState() for s in _CRYPTO_SYMBOLS}
-    ema4h_c = {s: EMA4HState() for s in _CRYPTO_SYMBOLS}
-    btc_regime = BTCRegime()
-    btc_closes: list[float] = []
-    coin_closes: dict[str, list[float]] = {s: [] for s in _CRYPTO_SYMBOLS}
+    # ── crypto: full V8.63 engine ──
+    crypto = CryptoBookV863(_CRYPTO_SYMBOLS, adapter, client, _STATE_FILE)
+    print("Seeding crypto (full V8.63) from history ...")
+    crypto.seed(seed_from, today)
+    crypto.load_state()
 
-    # Track the last daily-bar timestamp ingested per symbol so repeated checks
-    # (weekends, restarts, same-day re-runs) never double-append a bar and
-    # corrupt the SMA/EMA/momentum series.
-    last_crypto_ts: dict[str, int] = {s: 0 for s in _CRYPTO_SYMBOLS}
-    last_stock_ts: dict[str, int] = {t: 0 for t in STOCK_COMBO}
-
-    print("Seeding crypto from history ...")
-    for s in _CRYPTO_SYMBOLS:
-        for ts, c in _load_candles(s, "1D", seed_from, today):
-            ema_strat.on_daily_close(s, c, ts)
-            macd_c[s].update(c)
-            coin_closes[s].append(c)
-            last_crypto_ts[s] = max(last_crypto_ts[s], int(ts))
-            if s == "BTCUSDT":
-                btc_regime.update(c)
-                btc_closes.append(c)
-        for ts, c in _resample_4h(_load_candles(s, "1H", seed_from, today)):
-            ema4h_c[s].update(c)
-
-    # ── seed stock state ──
+    # ── stock book ──
     print("Seeding stock from parquet ...")
+    last_stock_ts: dict[str, int] = {t: 0 for t in STOCK_COMBO}
     seed_stock = _seed_stock_closes()
     stock_states = {t: StockState() for t in STOCK_COMBO}
     stock_closes: dict[str, list[float]] = {}
@@ -422,50 +397,35 @@ def run_live(capital: float, stock_live: bool) -> None:
         stock_closes[t] = list(closes)
         last_stock_ts[t] = last_ts
 
-    # Force stock perps to 1x before any trading (app defaults to 10x)
     _set_stock_leverage(client, stock_live)
 
-    coin_longs: dict[str, set] = {s: set() for s in _CRYPTO_SYMBOLS}
-
-    # ── restore last-bar timestamps from state file (cross-restart dedup) ──
+    # restore stock bar-timestamps from state file
     if _STATE_FILE.exists():
         try:
             st = json.loads(_STATE_FILE.read_text())
-            for s, v in st.get("last_crypto_ts", {}).items():
-                if s in last_crypto_ts:
-                    last_crypto_ts[s] = max(last_crypto_ts[s], int(v))
             for t, v in st.get("last_stock_ts", {}).items():
                 if t in last_stock_ts:
                     last_stock_ts[t] = max(last_stock_ts[t], int(v))
-            print(f"  Restored bar-timestamp state from {_STATE_FILE.name}")
         except Exception as e:
-            print(f"  [WARN] could not load state file: {e}")
+            print(f"  [WARN] could not load stock state: {e}")
 
-    def _save_state() -> None:
+    def _save_stock_state() -> None:
+        # merge into the shared state file without clobbering crypto state
         try:
+            data = {}
+            if _STATE_FILE.exists():
+                data = json.loads(_STATE_FILE.read_text())
+            data["last_stock_ts"] = last_stock_ts
+            data["updated"] = datetime.now(timezone.utc).isoformat()
             _STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-            _STATE_FILE.write_text(json.dumps({
-                "last_crypto_ts": last_crypto_ts,
-                "last_stock_ts":  last_stock_ts,
-                "updated":        datetime.now(timezone.utc).isoformat(),
-            }))
-        except Exception as e:
-            print(f"  [WARN] could not save state: {e}")
-
-    # ── reconcile OPEN POSITIONS from the exchange (source of truth) ──
-    print("Reconciling open positions from exchange ...")
-    n_c = n_s = 0
-    for s in _CRYPTO_SYMBOLS:
-        try:
-            pos = get_position(client, s)
+            _STATE_FILE.write_text(json.dumps(data))
         except Exception:
-            pos = None
-        if pos and pos.get("holdSide") == "long" and float(pos.get("total", 0)) > 0:
-            # treat as a full confluence position so it isn't re-opened or orphaned
-            coin_longs[s] = {"EMA", "MACD", "4H"}
-            n_c += 1
-            print(f"  Restored CRYPTO long {s} @ {pos.get('openPriceAvg','?')}")
-        time.sleep(0.1)
+            pass
+
+    # ── reconcile open positions from exchange ──
+    print("Reconciling open positions from exchange ...")
+    n_c = crypto.reconcile()
+    n_s = 0
     for t in STOCK_COMBO:
         pos = _stock_position(client, t)
         if pos:
@@ -474,45 +434,69 @@ def run_live(capital: float, stock_live: bool) -> None:
             stock_states[t].in_pos = True
             stock_states[t].entry = entry
             n_s += 1
-            print(f"  Restored STOCK long {t} @ {entry}")
-        time.sleep(0.1)
+            print(f"  Restored STOCK long  {t} @ {entry}")
     print(f"  Reconciled {n_c} crypto + {n_s} stock open position(s).\n")
 
-    def _daily_check():
+    # ── shared helpers ──
+    def _refresh_capital() -> float:
         nonlocal capital
-        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-        print(f"\n[{now}] ════ V9 DAILY CHECK ════")
-
-        # refresh balance
         try:
             b = get_account_balance(client)
             if b > 0:
                 capital = b
         except Exception:
             pass
+        return capital
 
-        # ── fetch crypto closes (price always; ingest only on NEW bar) ──
-        c_price: dict[str, float] = {}   # latest price for execution
-        c_new: dict[str, bool] = {}      # whether a new daily bar arrived
-        for s in _CRYPTO_SYMBOLS:
-            r = _fetch_close(s)          # (open_time_ms, close)
-            if r:
-                ts, px = int(r[0]), float(r[1])
-                c_price[s] = px
-                if ts > last_crypto_ts[s]:
-                    c_new[s] = True
-                    last_crypto_ts[s] = ts
-                    coin_closes[s].append(px)
-                    if s == "BTCUSDT":
-                        btc_regime.update(px)
-                        btc_closes.append(px)
-            time.sleep(0.15)
+    def _news_suspend() -> bool:
+        try:
+            from nexflow.services.news.fetcher import fetch_fear_greed, fetch_crypto_news
+            from nexflow.services.news.analyzer import analyze_sentiment
+            fg = fetch_fear_greed()
+            news = fetch_crypto_news(limit=15)
+            sent = analyze_sentiment(news, fg)
+            if sent.suspend_new_longs:
+                print("  ⚠ EXTREME EVENT — new long entries suspended")
+            return bool(sent.suspend_new_longs)
+        except Exception:
+            return False
 
-        # ── fetch stock closes (price always; ingest only on NEW bar) ──
+    def _alloc():
+        c_sc = crypto_score(crypto.coin_closes.get("BTCUSDT", []))
+        s_sc = stock_score(stock_closes)
+        wc, ws, label = allocate(c_sc, s_sc)
+        return wc, ws, label, c_sc, s_sc
+
+    # ── crypto daily check (full V8.63, allocator sets capital) ──
+    def _crypto_daily():
+        cap = _refresh_capital()
+        wc, ws, label, c_sc, s_sc = _alloc()
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        print(f"\n[{now}] ════ CRYPTO DAILY (V8.63) ════")
+        print(f"  Confidence: crypto {c_sc:.2f}/4  stock {s_sc:.2f}/3  → "
+              f"{wc*100:.0f}%C/{ws*100:.0f}%S  [{label}]")
+        print(f"  Crypto slice: ${cap*wc:,.2f}")
+        crypto.daily_check(capital=cap * wc, suspend=_news_suspend())
+
+    def _crypto_stop():
+        crypto.stop_check(suspend=False)
+
+    # ── stock daily check (after US close) ──
+    def _stock_daily():
+        cap = _refresh_capital()
+        wc, ws, label, c_sc, s_sc = _alloc()
+        stock_cap = cap * ws
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        print(f"\n[{now}] ════ STOCK DAILY ════")
+        print(f"  Confidence: crypto {c_sc:.2f}/4  stock {s_sc:.2f}/3  → "
+              f"{wc*100:.0f}%C/{ws*100:.0f}%S  [{label}]")
+        print(f"  Stock slice: ${stock_cap:,.2f}")
+
+        # fetch stock closes (price always; ingest only on NEW bar)
         s_price: dict[str, float] = {}
         s_new: dict[str, bool] = {}
         for t in STOCK_COMBO:
-            r = _fetch_stock_close(t)    # (ts_ms, close) or None
+            r = _fetch_stock_close(t)
             if r is not None:
                 ts, px = int(r[0]), float(r[1])
                 s_price[t] = px
@@ -522,88 +506,13 @@ def run_live(capital: float, stock_live: bool) -> None:
                     stock_closes[t].append(px)
             time.sleep(0.15)
 
-        # ── CONFIDENCE ALLOCATION ──
-        c_sc = crypto_score(btc_closes)
-        s_sc = stock_score(stock_closes)
-        wc, ws, label = allocate(c_sc, s_sc)
-        crypto_cap = capital * wc
-        stock_cap = capital * ws
-        print(f"  Crypto score {c_sc:.2f}/4   Stock score {s_sc:.2f}/3")
-        print(f"  → {wc*100:.0f}% crypto (${crypto_cap:,.2f})  "
-              f"{ws*100:.0f}% stock (${stock_cap:,.2f})  "
-              f"{max(0,1-wc-ws)*100:.0f}% cash   [{label}]")
-
-        bear = btc_regime.is_bear
-        print(f"  Crypto regime: {'BEAR' if bear else 'BULL'}")
-
-        # ── CRYPTO BOOK (concentrate top-K) ──
-        # update signals — ONLY on a new daily bar (stateful EMA/MACD)
-        for s in _CRYPTO_SYMBOLS:
-            if not c_new.get(s):
-                continue
-            for sig in ema_strat.on_daily_close(s, c_price[s], today):
-                if sig.action == "OPEN_LONG":  coin_longs[s].add("EMA")
-                elif sig.action == "CLOSE_LONG": coin_longs[s].discard("EMA")
-            a = macd_c[s].update(c_price[s])
-            if a == "OPEN_LONG":  coin_longs[s].add("MACD")
-            elif a == "CLOSE_LONG": coin_longs[s].discard("MACD")
-
-        if bear or crypto_cap < _MIN_NOTIONAL:
-            print(f"  Crypto: {'bear regime' if bear else 'slice too small'} — "
-                  f"closing/holding flat (long book paused)")
-            for s in list(coin_longs):
-                if coin_longs[s] and s in c_price:
-                    _crypto_close(adapter, client, s, c_price[s])
-                    coin_longs[s].clear()
-        else:
-            # rank active-signal coins by confluence then 20d momentum, take top-K
-            ranked = []
-            for s in _CRYPTO_SYMBOLS:
-                n = len(coin_longs[s])
-                if n == 0:
-                    continue
-                m20 = _mom(coin_closes[s], 20) or 0
-                if m20 <= 0:  # momentum gate
-                    continue
-                ranked.append((n, m20, s))
-            ranked.sort(reverse=True)
-            chosen = [s for _, _, s in ranked[:_CRYPTO_TOP_K]]
-            per = crypto_cap / max(len(chosen), 1) if chosen else 0
-            # close anything not chosen
-            for s in list(coin_longs):
-                held = get_position(client, s) if client else None
-                if held and s not in chosen and s in c_price:
-                    _crypto_close(adapter, client, s, c_price[s])
-                    coin_longs[s].clear()
-            # open chosen that clear min notional
-            for s in chosen:
-                if per < _MIN_NOTIONAL:
-                    print(f"  [CRYPTO] {s} skipped — ${per:,.2f} < ${_MIN_NOTIONAL} min")
-                    continue
-                if s not in c_price:
-                    continue
-                held = get_position(client, s) if client else None
-                if held:
-                    continue
-                qty = per / c_price[s]
-                res = adapter.on_entry(s, "long", qty, 0.0, 0.0, 0.0)
-                if res is not None and not getattr(res, "accepted", True):
-                    print(f"  [CRYPTO] {s} rejected: {getattr(res,'note','?')}")
-                else:
-                    print(f"  [CRYPTO] BUY {s} ${per:,.2f} @ {c_price[s]:,.4f} "
-                          f"({len(coin_longs[s])} strat)")
-            print(f"  Crypto active: {', '.join(chosen) or 'none'}")
-
-        # ── STOCK BOOK ──
         if stock_cap < _MIN_NOTIONAL:
             print(f"  Stock: slice ${stock_cap:,.2f} < ${_MIN_NOTIONAL} — paused")
         elif not any(s_new.get(t) for t in STOCK_COMBO):
-            # no new stock bar (weekend / US market closed) — hold, don't act
             active = [t for t in STOCK_COMBO if stock_states[t].in_pos]
             print(f"  Stock: no new bar (market closed) — holding "
                   f"{', '.join(active) or 'flat'}")
         else:
-            # process signals ONLY on new bars (stateful MACD), count active
             actions = {}
             for t in STOCK_COMBO:
                 if s_new.get(t) and stock_closes[t]:
@@ -617,37 +526,42 @@ def run_live(capital: float, stock_live: bool) -> None:
                 elif actions.get(t) == "CLOSE_LONG":
                     _stock_order(client, t, "close_long", 0, px, stock_live)
             print(f"  Stock active: {', '.join(active) or 'none'}")
+        _save_stock_state()
 
-        # persist bar-timestamp state so a restart resumes without re-processing
-        _save_state()
-
-    def _crypto_close(adapter, client, sym, price):
-        try:
-            pos = get_position(client, sym) if client else None
-            qty = float(pos.get("total", 0)) if pos else 0.0
-            if qty > 0:
-                adapter.on_close(sym, "long", qty, price, "v9_close")
-                print(f"  [CRYPTO] SELL {sym} qty={qty} @ {price:,.4f}")
-        except Exception as e:
-            print(f"  [ERROR] crypto close {sym}: {e}")
-
-    # ── loop: daily at 21:05 UTC (just after US close / daily bar) ──
-    def _next_check(now):
-        cand = now.replace(hour=21, minute=5, second=0, microsecond=0)
+    # ── scheduler: crypto daily 00:05, crypto stops every 6h, stock daily 21:05 ──
+    def _next_at(now, hour, minute):
+        cand = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
         if cand <= now:
             cand += timedelta(days=1)
         return cand
 
-    _daily_check()
-    nxt = _next_check(datetime.now(timezone.utc))
+    # run everything once on startup
+    _crypto_daily()
+    _stock_daily()
+
+    now = datetime.now(timezone.utc)
+    next_crypto_daily = _next_at(now, 0, 5)
+    next_stock_daily = _next_at(now, 21, 5)
+    next_stop = now + timedelta(hours=6)
+
     while True:
         now = datetime.now(timezone.utc)
-        sleep_s = max((nxt - now).total_seconds(), 60.0)
-        print(f"\n  Next V9 check: {nxt.strftime('%Y-%m-%d %H:%M UTC')} "
-              f"(sleeping {sleep_s/3600:.1f}h)")
+        wake = min(next_crypto_daily, next_stock_daily, next_stop)
+        sleep_s = max((wake - now).total_seconds(), 60.0)
+        print(f"\n  Next: crypto-daily {next_crypto_daily.strftime('%m-%d %H:%M')} | "
+              f"stock-daily {next_stock_daily.strftime('%m-%d %H:%M')} | "
+              f"stop {next_stop.strftime('%H:%M')} UTC  (sleep {sleep_s/3600:.1f}h)")
         time.sleep(sleep_s)
-        _daily_check()
-        nxt = _next_check(datetime.now(timezone.utc))
+        now = datetime.now(timezone.utc)
+        if now >= next_crypto_daily:
+            _crypto_daily()
+            next_crypto_daily = _next_at(now, 0, 5)
+        elif now >= next_stock_daily:
+            _stock_daily()
+            next_stock_daily = _next_at(now, 21, 5)
+        else:
+            _crypto_stop()
+            next_stop = now + timedelta(hours=6)
 
 
 def main():
