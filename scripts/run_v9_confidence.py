@@ -171,26 +171,30 @@ def allocate(c_sc: float, s_sc: float) -> tuple[float, float, str]:
 
 # ── stock data (seed from parquet, append live) ─────────────────────────────────
 
-def _seed_stock_closes() -> dict[str, list[float]]:
+def _seed_stock_closes() -> dict[str, tuple[list[float], int]]:
+    """Return {ticker: (closes, last_bar_ts_ms)} from local parquet seed."""
     import pyarrow.parquet as pq
-    out: dict[str, list[float]] = {}
+    out: dict[str, tuple[list[float], int]] = {}
     for t in STOCK_COMBO:
         p = _STOCK_DIR / f"{t}_1D.parquet"
         if not p.exists():
             print(f"  [WARN] no seed data for {t}")
-            out[t] = []
+            out[t] = ([], 0)
             continue
         tbl = pq.read_table(p)
         cols = {c.lower(): c for c in tbl.column_names}
         tcol = cols.get("open_time") or cols.get("time") or cols.get("date")
         ccol = cols.get("close")
         rows = sorted(zip(tbl.column(tcol).to_pylist(), tbl.column(ccol).to_pylist()))
-        out[t] = [float(c) for _, c in rows]
+        closes = [float(c) for _, c in rows]
+        last_ts = int(rows[-1][0]) if rows else 0
+        out[t] = (closes, last_ts)
     return out
 
 
 def _fetch_stock_close(ticker: str) -> Optional[float]:
-    """Fetch latest closed daily close for a Bitget stock perp. Returns None on failure."""
+    """Fetch latest closed daily (ts, close) for a Bitget stock perp.
+    Returns (open_time_ms, close) or None on failure."""
     sym = STOCK_SYMBOL_MAP[ticker]
     url = (f"https://api.bitget.com/api/v2/mix/market/history-candles"
            f"?symbol={sym}&productType={STOCK_PRODUCT_TYPE}&granularity=1D&limit=3")
@@ -200,7 +204,8 @@ def _fetch_stock_close(ticker: str) -> Optional[float]:
             data = json.loads(r.read())
         if data.get("code") != "00000" or not data.get("data"):
             return None
-        return float(data["data"][1][4])  # last fully-closed candle
+        row = data["data"][1]  # last fully-closed candle
+        return int(row[0]), float(row[4])
     except Exception as e:
         print(f"  [WARN] stock close {ticker}: {e}")
         return None
@@ -367,12 +372,19 @@ def run_live(capital: float, stock_live: bool) -> None:
     btc_closes: list[float] = []
     coin_closes: dict[str, list[float]] = {s: [] for s in _CRYPTO_SYMBOLS}
 
+    # Track the last daily-bar timestamp ingested per symbol so repeated checks
+    # (weekends, restarts, same-day re-runs) never double-append a bar and
+    # corrupt the SMA/EMA/momentum series.
+    last_crypto_ts: dict[str, int] = {s: 0 for s in _CRYPTO_SYMBOLS}
+    last_stock_ts: dict[str, int] = {t: 0 for t in STOCK_COMBO}
+
     print("Seeding crypto from history ...")
     for s in _CRYPTO_SYMBOLS:
         for ts, c in _load_candles(s, "1D", seed_from, today):
             ema_strat.on_daily_close(s, c, ts)
             macd_c[s].update(c)
             coin_closes[s].append(c)
+            last_crypto_ts[s] = max(last_crypto_ts[s], int(ts))
             if s == "BTCUSDT":
                 btc_regime.update(c)
                 btc_closes.append(c)
@@ -385,8 +397,10 @@ def run_live(capital: float, stock_live: bool) -> None:
     stock_states = {t: StockState() for t in STOCK_COMBO}
     stock_closes: dict[str, list[float]] = {}
     for t in STOCK_COMBO:
-        stock_states[t].seed(seed_stock[t])
-        stock_closes[t] = list(seed_stock[t])
+        closes, last_ts = seed_stock[t]
+        stock_states[t].seed(closes)
+        stock_closes[t] = list(closes)
+        last_stock_ts[t] = last_ts
 
     # Force stock perps to 1x before any trading (app defaults to 10x)
     _set_stock_leverage(client, stock_live)
@@ -406,23 +420,35 @@ def run_live(capital: float, stock_live: bool) -> None:
         except Exception:
             pass
 
-        # ── fetch crypto closes ──
-        c_closes = {}
+        # ── fetch crypto closes (price always; ingest only on NEW bar) ──
+        c_price: dict[str, float] = {}   # latest price for execution
+        c_new: dict[str, bool] = {}      # whether a new daily bar arrived
         for s in _CRYPTO_SYMBOLS:
-            r = _fetch_close(s)
+            r = _fetch_close(s)          # (open_time_ms, close)
             if r:
-                c_closes[s] = r[1]
-                coin_closes[s].append(r[1])
+                ts, px = int(r[0]), float(r[1])
+                c_price[s] = px
+                if ts > last_crypto_ts[s]:
+                    c_new[s] = True
+                    last_crypto_ts[s] = ts
+                    coin_closes[s].append(px)
+                    if s == "BTCUSDT":
+                        btc_regime.update(px)
+                        btc_closes.append(px)
             time.sleep(0.15)
-        if "BTCUSDT" in c_closes:
-            btc_regime.update(c_closes["BTCUSDT"])
-            btc_closes.append(c_closes["BTCUSDT"])
 
-        # ── fetch stock closes ──
+        # ── fetch stock closes (price always; ingest only on NEW bar) ──
+        s_price: dict[str, float] = {}
+        s_new: dict[str, bool] = {}
         for t in STOCK_COMBO:
-            sc = _fetch_stock_close(t)
-            if sc is not None:
-                stock_closes[t].append(sc)
+            r = _fetch_stock_close(t)    # (ts_ms, close) or None
+            if r is not None:
+                ts, px = int(r[0]), float(r[1])
+                s_price[t] = px
+                if ts > last_stock_ts[t]:
+                    s_new[t] = True
+                    last_stock_ts[t] = ts
+                    stock_closes[t].append(px)
             time.sleep(0.15)
 
         # ── CONFIDENCE ALLOCATION ──
@@ -440,14 +466,14 @@ def run_live(capital: float, stock_live: bool) -> None:
         print(f"  Crypto regime: {'BEAR' if bear else 'BULL'}")
 
         # ── CRYPTO BOOK (concentrate top-K) ──
-        # update signals
+        # update signals — ONLY on a new daily bar (stateful EMA/MACD)
         for s in _CRYPTO_SYMBOLS:
-            if s not in c_closes:
+            if not c_new.get(s):
                 continue
-            for sig in ema_strat.on_daily_close(s, c_closes[s], today):
+            for sig in ema_strat.on_daily_close(s, c_price[s], today):
                 if sig.action == "OPEN_LONG":  coin_longs[s].add("EMA")
                 elif sig.action == "CLOSE_LONG": coin_longs[s].discard("EMA")
-            a = macd_c[s].update(c_closes[s])
+            a = macd_c[s].update(c_price[s])
             if a == "OPEN_LONG":  coin_longs[s].add("MACD")
             elif a == "CLOSE_LONG": coin_longs[s].discard("MACD")
 
@@ -455,8 +481,8 @@ def run_live(capital: float, stock_live: bool) -> None:
             print(f"  Crypto: {'bear regime' if bear else 'slice too small'} — "
                   f"closing/holding flat (long book paused)")
             for s in list(coin_longs):
-                if coin_longs[s] and s in c_closes:
-                    _crypto_close(adapter, client, s, c_closes[s])
+                if coin_longs[s] and s in c_price:
+                    _crypto_close(adapter, client, s, c_price[s])
                     coin_longs[s].clear()
         else:
             # rank active-signal coins by confluence then 20d momentum, take top-K
@@ -475,40 +501,46 @@ def run_live(capital: float, stock_live: bool) -> None:
             # close anything not chosen
             for s in list(coin_longs):
                 held = get_position(client, s) if client else None
-                if held and s not in chosen and s in c_closes:
-                    _crypto_close(adapter, client, s, c_closes[s])
+                if held and s not in chosen and s in c_price:
+                    _crypto_close(adapter, client, s, c_price[s])
                     coin_longs[s].clear()
             # open chosen that clear min notional
             for s in chosen:
                 if per < _MIN_NOTIONAL:
                     print(f"  [CRYPTO] {s} skipped — ${per:,.2f} < ${_MIN_NOTIONAL} min")
                     continue
+                if s not in c_price:
+                    continue
                 held = get_position(client, s) if client else None
                 if held:
                     continue
-                qty = per / c_closes[s]
+                qty = per / c_price[s]
                 res = adapter.on_entry(s, "long", qty, 0.0, 0.0, 0.0)
                 if res is not None and not getattr(res, "accepted", True):
                     print(f"  [CRYPTO] {s} rejected: {getattr(res,'note','?')}")
                 else:
-                    print(f"  [CRYPTO] BUY {s} ${per:,.2f} @ {c_closes[s]:,.4f} "
+                    print(f"  [CRYPTO] BUY {s} ${per:,.2f} @ {c_price[s]:,.4f} "
                           f"({len(coin_longs[s])} strat)")
             print(f"  Crypto active: {', '.join(chosen) or 'none'}")
 
         # ── STOCK BOOK ──
         if stock_cap < _MIN_NOTIONAL:
             print(f"  Stock: slice ${stock_cap:,.2f} < ${_MIN_NOTIONAL} — paused")
+        elif not any(s_new.get(t) for t in STOCK_COMBO):
+            # no new stock bar (weekend / US market closed) — hold, don't act
+            active = [t for t in STOCK_COMBO if stock_states[t].in_pos]
+            print(f"  Stock: no new bar (market closed) — holding "
+                  f"{', '.join(active) or 'flat'}")
         else:
-            # process signals, count active for equal sizing
+            # process signals ONLY on new bars (stateful MACD), count active
             actions = {}
             for t in STOCK_COMBO:
-                if not stock_closes[t]:
-                    continue
-                actions[t] = stock_states[t].on_close(stock_closes[t][-1])
+                if s_new.get(t) and stock_closes[t]:
+                    actions[t] = stock_states[t].on_close(stock_closes[t][-1])
             active = [t for t in STOCK_COMBO if stock_states[t].in_pos]
             per_stock = stock_cap / max(len(active), 1) if active else 0
             for t in STOCK_COMBO:
-                px = stock_closes[t][-1] if stock_closes[t] else 0
+                px = s_price.get(t) or (stock_closes[t][-1] if stock_closes[t] else 0)
                 if actions.get(t) == "OPEN_LONG":
                     _stock_order(client, t, "open_long", per_stock, px, stock_live)
                 elif actions.get(t) == "CLOSE_LONG":
