@@ -310,6 +310,26 @@ def _stock_order(client, ticker: str, side: str, notional: float,
         return False
 
 
+def _stock_position(client, ticker: str) -> Optional[dict]:
+    """Return the open stock-perp position dict for ticker, or None if flat."""
+    if client is None:
+        return None
+    sym = STOCK_SYMBOL_MAP[ticker]
+    try:
+        data = client.get("/api/v2/mix/position/all-position", {
+            "symbol": sym, "productType": STOCK_PRODUCT_TYPE, "marginCoin": "USDT",
+        })
+        if not data:
+            return None
+        positions = data if isinstance(data, list) else [data]
+        for pos in positions:
+            if pos.get("symbol") == sym and float(pos.get("total", 0)) > 0:
+                return pos
+    except Exception:
+        return None
+    return None
+
+
 # ── replay (sanity check) ───────────────────────────────────────────────────────
 
 def run_replay(capital: float) -> None:
@@ -406,6 +426,57 @@ def run_live(capital: float, stock_live: bool) -> None:
     _set_stock_leverage(client, stock_live)
 
     coin_longs: dict[str, set] = {s: set() for s in _CRYPTO_SYMBOLS}
+
+    # ── restore last-bar timestamps from state file (cross-restart dedup) ──
+    if _STATE_FILE.exists():
+        try:
+            st = json.loads(_STATE_FILE.read_text())
+            for s, v in st.get("last_crypto_ts", {}).items():
+                if s in last_crypto_ts:
+                    last_crypto_ts[s] = max(last_crypto_ts[s], int(v))
+            for t, v in st.get("last_stock_ts", {}).items():
+                if t in last_stock_ts:
+                    last_stock_ts[t] = max(last_stock_ts[t], int(v))
+            print(f"  Restored bar-timestamp state from {_STATE_FILE.name}")
+        except Exception as e:
+            print(f"  [WARN] could not load state file: {e}")
+
+    def _save_state() -> None:
+        try:
+            _STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+            _STATE_FILE.write_text(json.dumps({
+                "last_crypto_ts": last_crypto_ts,
+                "last_stock_ts":  last_stock_ts,
+                "updated":        datetime.now(timezone.utc).isoformat(),
+            }))
+        except Exception as e:
+            print(f"  [WARN] could not save state: {e}")
+
+    # ── reconcile OPEN POSITIONS from the exchange (source of truth) ──
+    print("Reconciling open positions from exchange ...")
+    n_c = n_s = 0
+    for s in _CRYPTO_SYMBOLS:
+        try:
+            pos = get_position(client, s)
+        except Exception:
+            pos = None
+        if pos and pos.get("holdSide") == "long" and float(pos.get("total", 0)) > 0:
+            # treat as a full confluence position so it isn't re-opened or orphaned
+            coin_longs[s] = {"EMA", "MACD", "4H"}
+            n_c += 1
+            print(f"  Restored CRYPTO long {s} @ {pos.get('openPriceAvg','?')}")
+        time.sleep(0.1)
+    for t in STOCK_COMBO:
+        pos = _stock_position(client, t)
+        if pos:
+            entry = float(pos.get("openPriceAvg", 0)) or (
+                stock_closes[t][-1] if stock_closes[t] else 0)
+            stock_states[t].in_pos = True
+            stock_states[t].entry = entry
+            n_s += 1
+            print(f"  Restored STOCK long {t} @ {entry}")
+        time.sleep(0.1)
+    print(f"  Reconciled {n_c} crypto + {n_s} stock open position(s).\n")
 
     def _daily_check():
         nonlocal capital
@@ -546,6 +617,9 @@ def run_live(capital: float, stock_live: bool) -> None:
                 elif actions.get(t) == "CLOSE_LONG":
                     _stock_order(client, t, "close_long", 0, px, stock_live)
             print(f"  Stock active: {', '.join(active) or 'none'}")
+
+        # persist bar-timestamp state so a restart resumes without re-processing
+        _save_state()
 
     def _crypto_close(adapter, client, sym, price):
         try:
