@@ -252,6 +252,23 @@ class StockState:
 
 # ── stock execution (Bitget stock perps) ────────────────────────────────────────
 
+def _set_stock_leverage(client, stock_live: bool) -> None:
+    """Force every stock perp to 1x BEFORE any order (account safety — the app
+    defaults to 10x). Matches the no-leverage design of the crypto book."""
+    if not stock_live or client is None:
+        return
+    for ticker, sym in STOCK_SYMBOL_MAP.items():
+        for hold_side in ("long", "short"):
+            try:
+                client.post("/api/v2/mix/account/set-leverage", {
+                    "symbol": sym, "productType": STOCK_PRODUCT_TYPE,
+                    "marginCoin": "USDT", "leverage": "1", "holdSide": hold_side,
+                })
+            except Exception:
+                pass  # non-fatal; some accounts set leverage per-position only
+    print("  [STOCK] leverage forced to 1x on all stock perps")
+
+
 def _stock_order(client, ticker: str, side: str, notional: float,
                  price: float, stock_live: bool) -> bool:
     """Place/close a stock-perp market order. Dry-run unless stock_live=True.
@@ -268,6 +285,7 @@ def _stock_order(client, ticker: str, side: str, notional: float,
             qty = notional / price if price > 0 else 0
             if qty <= 0:
                 return False
+            # 1x leverage already enforced at startup via _set_stock_leverage
             body = {
                 "symbol": sym, "productType": STOCK_PRODUCT_TYPE,
                 "marginMode": "crossed", "marginCoin": "USDT",
@@ -369,6 +387,9 @@ def run_live(capital: float, stock_live: bool) -> None:
     for t in STOCK_COMBO:
         stock_states[t].seed(seed_stock[t])
         stock_closes[t] = list(seed_stock[t])
+
+    # Force stock perps to 1x before any trading (app defaults to 10x)
+    _set_stock_leverage(client, stock_live)
 
     coin_longs: dict[str, set] = {s: set() for s in _CRYPTO_SYMBOLS}
 
