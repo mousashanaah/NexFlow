@@ -33,7 +33,10 @@ _FEE     = 0.0006          # Bitget stock-perp maker
 _SLIP    = 0.0003          # slippage assumption on market fills
 _COST    = _FEE + _SLIP    # one-way cost
 
-COMBO = ["GOOGL", "AMD", "NFLX", "MSFT", "AMZN", "COIN"]
+# V9 production combo (de-biased 51-ticker strict search, Bitget-tradeable).
+# Strict winner was MSTR+AMD+GOOGL+SPOT; SPOT isn't on Bitget so the 4th slot
+# is META (next-best Bitget-listed name: +115.8% CAGR, 26% DD, Sharpe 1.71, 6/6 WF).
+COMBO = ["MSTR", "AMD", "GOOGL", "META"]
 
 # Strict-validated production config (no lookahead, full-deployment, no leverage).
 # Default = "balanced": best return that still holds 6/6 walk-forward.
