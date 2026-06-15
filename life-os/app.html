@@ -2627,6 +2627,15 @@
       <div class="mission-line">FUEL SYSTEMS</div>
       <div class="page-title">Life Support</div>
 
+      <!-- Saved nutrition view -->
+      <div id="saved-nutri-view" style="display:none">
+        <div class="flex-between" style="margin-bottom:16px">
+          <span id="saved-nutri-badge"></span>
+          <button class="btn btn-ghost btn-sm" onclick="editNutrition()">Edit</button>
+        </div>
+        <div class="card hud-frame" id="saved-nutri-content"><span class="hud-corners"></span></div>
+      </div>
+
       <div id="nutri-form">
         <div class="sys-label first">System Status</div>
         <div id="nutri-habit-list" class="hud-frame" style="padding:8px 8px 1px;border-radius:12px;background:rgba(10,11,12,0.4);border:1px solid var(--border)"><span class="hud-corners"></span></div>
@@ -2958,6 +2967,20 @@ function countUp(el, to, dur = 900) {
 }
 
 // Header HUD — keeps identity banner live across every screen
+function updateOpCountdown() {
+  const TARGET = new Date('2026-12-01T00:00:00');
+  const daysLeft = Math.max(0, Math.ceil((TARGET - new Date()) / 86400000));
+  if ($('op-days')) $('op-days').textContent = daysLeft;
+  const days = load('nexflow_days') || [];
+  const nut  = load('nexflow_nutrition') || [];
+  const greenCount = days.filter(d => isGreenDay(d, nut.find(n => n.date === d.date))).length;
+  const totalDays = Math.round((TARGET - new Date('2026-06-15T00:00:00')) / 86400000);
+  const pct = Math.min(100, Math.round(greenCount / totalDays * 100));
+  const fill = $('op-bar');
+  if (fill) { fill.style.transition = 'none'; fill.style.width = pct + '%'; requestAnimationFrame(() => { fill.style.transition = ''; }); }
+  if ($('op-pct-lbl')) $('op-pct-lbl').textContent = greenCount + ' GREEN DAYS · ' + (totalDays - greenCount) + ' TO GO';
+}
+
 function updateHeaderHud() {
   const streak = currentStreak();
   const xp = computeXP();
@@ -3006,7 +3029,7 @@ function switchTab(name, btn) {
   if (name === 'stats') renderStats();
   if (name === 'streak') renderStreak();
   if (name === 'round') renderRoundList();
-  if (name === 'nutrition') { /* nutrition tab loaded */ }
+  if (name === 'nutrition') { checkSavedNutri(); }
   if (name === 'character') renderCharacter();
   if (name === 'today') checkSavedDay();
   if (name === 'targets') renderTargets();
@@ -3100,6 +3123,17 @@ function buildHabitList() {
     grid.appendChild(tile);
   });
   updateCommandRing();
+}
+
+function checkSavedNutri() {
+  const nut = load('nexflow_nutrition') || [];
+  const saved = nut.find(n => n.date === today());
+  if (saved) {
+    showSavedNutri(saved);
+  } else {
+    $('saved-nutri-view').style.display = 'none';
+    $('nutri-form').style.display = 'block';
+  }
 }
 
 function checkSavedDay() {
@@ -3196,6 +3230,7 @@ function saveDay() {
   showSavedDay(obj);
   checkRpgProgress(false);
   updateHeaderHud();
+  updateOpCountdown();
 }
 
 // ─── ROUND WIZARD ──────────────────────────────────────────────────
@@ -4238,9 +4273,42 @@ function saveNutrition() {
   if (idx >= 0) nut[idx] = obj;
   else nut.push(obj);
   save('nexflow_nutrition', nut);
-  showToast('Nutrition log saved!');
   checkRpgProgress(false);
   updateHeaderHud();
+  updateOpCountdown();
+  showSavedNutri(obj);
+}
+
+function showSavedNutri(n) {
+  $('saved-nutri-view').style.display = 'block';
+  $('nutri-form').style.display = 'none';
+  const allChecked = Object.values(n.habits).filter(Boolean).length;
+  const total = NUTRI_HABITS.length;
+  const isGreen = allChecked === total && n.snackRating !== 'blowup';
+  $('saved-nutri-badge').innerHTML = isGreen
+    ? '<span class="badge badge-green">✓ FUEL SYSTEMS GREEN</span>'
+    : '<span class="badge badge-red">✗ FUEL SYSTEMS RED</span>';
+  const intLabel = { clean: 'Clean', slip: 'Slip', blowup: 'Critical' }[n.snackRating] || n.snackRating;
+  $('saved-nutri-content').innerHTML = `<span class="hud-corners"></span>
+    <div class="saved-row"><span class="saved-key">Protocols Completed</span><span class="readout">${allChecked} / ${total}</span></div>
+    <div class="saved-row"><span class="saved-key">Integrity</span><span class="readout">${intLabel}</span></div>
+    ${n.notes ? `<div class="saved-row"><span class="saved-key">Notes</span><span style="max-width:60%;text-align:right">${n.notes}</span></div>` : ''}
+  `;
+}
+
+function editNutrition() {
+  const nut = load('nexflow_nutrition') || [];
+  const n = nut.find(x => x.date === today());
+  if (n) {
+    nutriHabitState = { ...n.habits };
+    snackRating = n.snackRating || 'clean';
+    $('n-notes').value = n.notes || '';
+    buildNutriList();
+    const snackOpts = document.querySelectorAll('#snack-radio .snack-opt');
+    snackOpts.forEach(o => o.classList.toggle('selected', o.getAttribute('data-val') === snackRating));
+  }
+  $('saved-nutri-view').style.display = 'none';
+  $('nutri-form').style.display = 'block';
 }
 
 function renderNutriStreak() {
@@ -5664,19 +5732,7 @@ function init() {
   $('streak-date-label').textContent = fmtd;
 
   // Operation countdown — Q-School Dec 2026
-  (function() {
-    const TARGET = new Date('2026-12-01T00:00:00');
-    const START  = new Date('2026-06-15T00:00:00'); // comeback start
-    const now    = new Date();
-    const totalDays = Math.round((TARGET - START) / 86400000);
-    const daysLeft  = Math.max(0, Math.ceil((TARGET - now) / 86400000));
-    const elapsed = totalDays - daysLeft;
-    const pct = Math.min(100, Math.max(0, Math.round(elapsed / totalDays * 100)));
-
-    $('op-days').textContent = daysLeft;
-    $('op-bar').style.width    = pct + '%';
-    $('op-pct-lbl').textContent = pct + '% OF MISSION ELAPSED · ' + (100-pct) + '% REMAINS';
-  })();
+  updateOpCountdown();
 
   // Set default round date
   $('r-date').value = td;
