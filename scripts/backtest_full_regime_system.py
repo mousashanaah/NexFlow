@@ -327,6 +327,7 @@ def _run(
     short_trail_pct: float = 0.0,     # 0=off; trail a stop short_trail_pct above the
                                       # lowest (most favorable) price since short entry
     short_confluence: bool = False,   # size up shorts confirmed bearish by EMA/MACD/4H
+    regime_lag_days: int = 0,         # defer acting on regime flips by N daily bars
     # NEW: diagnostic mode — print regime flips + stranded long losses
     diagnostic: bool = False,
 ) -> dict:
@@ -409,6 +410,7 @@ def _run(
     diag_year_short_pnl: dict[int, float] = {}
     diag_year_long_pnl: dict[int, float] = {}
     prev_btc_bear_mode = False  # for asymmetric regime: tracks bear state
+    _regime_hist: list[bool] = []  # for regime_lag_days experiment
     btc_above_sma200_streak = 0  # consecutive days BTC above SMA200 (for confirm_days exit)
 
     def _position_size(sym: str, ts: int, mult: float = 1.0) -> float:
@@ -454,6 +456,14 @@ def _run(
             btc_bull = not btc_bear_mode
         else:
             btc_bull = btc_sma200_above
+
+        # Experiment G2: simulate regime-DETECTION latency. regime_lag_days=0 is
+        # the current backtest (acts the bar the daily candle closes). N>0 defers
+        # acting on the regime by N daily bars — modelling a bot that only checks
+        # the regime every N days. Brackets the value of checking more often.
+        if regime_lag_days > 0:
+            _regime_hist.append(btc_bull)
+            btc_bull = _regime_hist[max(0, len(_regime_hist) - 1 - regime_lag_days)]
 
         # Optionally also require BTC short-term uptrend (EMA8 > EMA21) for new longs
         btc_ema_bull = btc_sig.get("ema_long", True) if use_btc_ema_long_filter else True
