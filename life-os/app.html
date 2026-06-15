@@ -2969,7 +2969,10 @@ function updateHeaderHud() {
   const curBase = xpForLevel(level), nextReq = xpForLevel(level + 1);
   const span = nextReq - curBase;
   const pctXp = span ? Math.min(100, (xp - curBase) / span * 100) : 100;
-  $('hd-xp-fill').style.width = pctXp + '%';
+  const fill = $('hd-xp-fill');
+  fill.style.transition = 'none';
+  fill.style.width = pctXp + '%';
+  requestAnimationFrame(() => { fill.style.transition = ''; });
   // streak glow on the streak counter intensifies as it climbs
   const g = Math.min(streak, 40);
   el.style.textShadow = `0 0 ${8 + g * 0.6}px rgba(232,232,234,${Math.min(0.85, 0.35 + g/60)})`;
@@ -3124,7 +3127,7 @@ function showSavedDay(d) {
 
   const isRest = !!d.restDay;
   const badge = $('saved-day-badge');
-  const restTag = isRest ? '<span class="badge badge-rest" style="margin-left:8px">🧘 REST DAY</span>' : '';
+  const restTag = isRest ? '<span class="badge badge-rest" style="margin-left:8px">🛡 REST DAY</span>' : '';
   badge.innerHTML = (d.green
     ? '<span class="badge badge-green">✓ GREEN DAY</span>'
     : '<span class="badge badge-red">✗ RED DAY</span>') + restTag;
@@ -3163,19 +3166,13 @@ function saveDay() {
   const td = today();
   const catVal = $('t-catmisses').value;
   let green;
-  const nut = load('nexflow_nutrition') || [];
-  const todayNut = nut.find(n => n.date === td);
-  const nutGreen = todayNut
-    ? (Object.values(todayNut.habits).filter(Boolean).length >= 4 && todayNut.snackRating !== 'blowup')
-    : false;
   if (restDay) {
-    // Rest day: score only over non-golf/non-gym habits; waive cat-miss requirement.
     const restHabits = HABITS.filter(h => !REST_EXCLUDE.includes(h.key));
     const restChecked = restHabits.filter(h => habitState[h.key]).length;
-    green = nutGreen && (restHabits.length ? (restChecked / restHabits.length >= 0.8) : true);
+    green = restHabits.length ? (restChecked / restHabits.length >= 0.8) : true;
   } else {
     const checkedCount = HABITS.filter(h => habitState[h.key]).length;
-    green = nutGreen && (checkedCount / HABITS.length >= 0.8);
+    green = checkedCount / HABITS.length >= 0.8;
   }
 
   const days = load('nexflow_days') || [];
@@ -4275,8 +4272,20 @@ function renderNutriStreak() {
 }
 
 // ─── STREAK TAB ────────────────────────────────────────────────────
+function isGreenDay(entry, nutEntry) {
+  if (!entry) return false;
+  if (entry.restDay) {
+    const restHabits = HABITS.filter(h => !REST_EXCLUDE.includes(h.key));
+    const restChecked = restHabits.filter(h => entry.habits && entry.habits[h.key]).length;
+    return restHabits.length ? (restChecked / restHabits.length >= 0.8) : true;
+  }
+  const checkedCount = Object.values(entry.habits || {}).filter(Boolean).length;
+  return checkedCount / HABITS.length >= 0.8;
+}
+
 function renderStreak() {
   const days = load('nexflow_days') || [];
+  const nut = load('nexflow_nutrition') || [];
   const td = today();
 
   // Your journey starts at your first logged day — nothing before it counts as "missed".
@@ -4289,14 +4298,15 @@ function renderStreak() {
   let d = new Date();
   while (true) {
     const ds = d.toISOString().slice(0, 10);
-    const found = days.find(x => x.date === ds && x.green);
-    if (!found) break;
+    const entry = days.find(x => x.date === ds);
+    const nutEntry = nut.find(x => x.date === ds);
+    if (!isGreenDay(entry, nutEntry)) break;
     streak++;
     d.setDate(d.getDate() - 1);
   }
 
   // Longest streak
-  const sorted = [...days].filter(x => x.green).map(x => x.date).sort();
+  const sorted = days.filter(x => isGreenDay(x, nut.find(n => n.date === x.date))).map(x => x.date).sort();
   let longest = 0, cur = 0, prev = null;
   sorted.forEach(ds => {
     if (prev) {
@@ -4323,9 +4333,11 @@ function renderStreak() {
     dd.setDate(now.getDate() - dow + i);
     const ds = dd.toISOString().slice(0, 10);
     const entry = days.find(x => x.date === ds);
+    const nutEntry = nut.find(x => x.date === ds);
+    const green = isGreenDay(entry, nutEntry);
     let cls = '';
-    if (entry && entry.green) cls = entry.restDay ? 'rest' : 'green';
-    else if (started(ds)) cls = 'red'; // only "missed" once you've started and on/before today
+    if (green) cls = entry && entry.restDay ? 'rest' : 'green';
+    else if (started(ds)) cls = 'red';
     const box = document.createElement('div');
     box.className = 'week-box ' + cls;
     box.innerHTML = `<div class="wday">${dayNames[i]}</div><div class="wnum">${dd.getDate()}</div>`;
@@ -4342,8 +4354,10 @@ function renderStreak() {
     dd.setDate(now.getDate() - i);
     const ds = dd.toISOString().slice(0, 10);
     const entry = days.find(x => x.date === ds);
+    const nutEntry = nut.find(x => x.date === ds);
+    const green = isGreenDay(entry, nutEntry);
     let cls = '';
-    if (entry && entry.green) cls = entry.restDay ? 'rest' : 'green';
+    if (green) cls = entry && entry.restDay ? 'rest' : 'green';
     else if (entry || started(ds)) cls = 'red';
     if (ds === td) cls += ' today-cell';
     const cell = document.createElement('div');
@@ -4362,7 +4376,7 @@ function renderStreak() {
     const ds = dd.toISOString().slice(0, 10);
     if (started(ds)) thisWeekDays.push(ds);
   }
-  const thisWeekGreen = thisWeekDays.filter(ds => days.find(x => x.date === ds && x.green)).length;
+  const thisWeekGreen = thisWeekDays.filter(ds => isGreenDay(days.find(x => x.date === ds), nut.find(x => x.date === ds))).length;
   $('disc-week').textContent = thisWeekDays.length ? Math.round(thisWeekGreen / thisWeekDays.length * 100) + '%' : '—';
 
   const daysInMonth = [];
@@ -4372,7 +4386,7 @@ function renderStreak() {
     const ds = dd.toISOString().slice(0, 10);
     if (started(ds)) daysInMonth.push(ds);
   }
-  const monthGreen = daysInMonth.filter(ds => days.find(x => x.date === ds && x.green)).length;
+  const monthGreen = daysInMonth.filter(ds => isGreenDay(days.find(x => x.date === ds), nut.find(x => x.date === ds))).length;
   $('disc-month').textContent = daysInMonth.length ? Math.round(monthGreen / daysInMonth.length * 100) + '%' : '—';
 
   // Canvas chart
@@ -4585,10 +4599,12 @@ function getMeta() {
 // ─── XP & LEVEL ────────────────────────────────────────────────────
 function currentStreak() {
   const days = load('nexflow_days') || [];
+  const nut = load('nexflow_nutrition') || [];
   let streak = 0, d = new Date();
   while (true) {
     const ds = d.toISOString().slice(0,10);
-    if (!days.find(x => x.date === ds && x.green)) break;
+    const entry = days.find(x => x.date === ds);
+    if (!isGreenDay(entry, nut.find(n => n.date === ds))) break;
     streak++; d.setDate(d.getDate()-1);
   }
   return streak;
@@ -4612,7 +4628,8 @@ function longestNutriStreak() {
 
 function longestGreenStreak() {
   const days = load('nexflow_days') || [];
-  const g = days.filter(x=>x.green).map(x=>x.date).sort();
+  const nut = load('nexflow_nutrition') || [];
+  const g = days.filter(x => isGreenDay(x, nut.find(n => n.date === x.date))).map(x => x.date).sort();
   let best=0,cur=0,prev=null;
   g.forEach(ds=>{ if(prev){const diff=(new Date(ds)-new Date(prev))/86400000; cur=diff===1?cur+1:1;} else cur=1; if(cur>best)best=cur; prev=ds; });
   return best;
