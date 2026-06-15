@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import time
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -41,6 +42,35 @@ _TARGET_RISK = 0.01
 _ATR_WINDOW = 14
 _CIRCUIT_BREAKER_DD = 0.20
 _MARGIN_BUFFER = 0.95
+_DAY_MS_LOCAL = 86_400_000
+
+
+def _fetch_daily_candles(symbol: str, limit: int = 400) -> list[tuple[int, float]]:
+    """Fetch recent fully-CLOSED daily candles (ts_ms, close) from Bitget, asc.
+
+    Used to backfill any gap between stale local parquet data and today so the
+    regime / SMA / momentum series never has a hole. Mirrors _fetch_close's
+    endpoint and 'fully closed' guard.
+    """
+    url = (f"https://api.bitget.com/api/v2/mix/market/history-candles"
+           f"?symbol={symbol}&productType=USDT-FUTURES&granularity=1D&limit={limit}")
+    try:
+        req = urllib.request.Request(
+            url, headers={"User-Agent": "NexFlow/1.0", "Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = json.loads(r.read())
+        if data.get("code") != "00000" or not data.get("data"):
+            return []
+        now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+        out = []
+        for row in data["data"]:
+            ts = int(row[0])
+            if ts + _DAY_MS_LOCAL <= now_ms:   # only fully-closed candles
+                out.append((ts, float(row[4])))
+        return sorted(out)
+    except Exception as e:
+        print(f"  [WARN] daily backfill {symbol}: {e}")
+        return []
 
 
 class CryptoBookV863:
@@ -59,6 +89,7 @@ class CryptoBookV863:
         self.coin_closes: dict[str, list[float]] = {s: [] for s in symbols}
         self.coin_longs: dict[str, set] = {s: set() for s in symbols}
         self.last_4h_ts: dict[str, int] = {s: 0 for s in symbols}
+        self.last_daily_ts: dict[str, int] = {s: 0 for s in symbols}  # daily-bar dedup
         self.live_shorts: dict[str, float] = {}
         self.last_tsmom_rebal = 0
         self.portfolio_peak = 0.0
@@ -136,18 +167,39 @@ class CryptoBookV863:
     # ── seeding & reconciliation ──────────────────────────────────────────────
     def seed(self, seed_from: int, today: int) -> None:
         for s in self.symbols:
+            last_ts = 0
             for ts, c in _load_candles(s, "1D", seed_from, today):
                 self.ema_strat.on_daily_close(s, c, ts)
                 self.macd[s].update(c)
                 self.coin_closes[s].append(c)
                 if s == "BTCUSDT":
                     self.regime.update(c)
+                last_ts = ts
+
+            # ── gap backfill: pull any CLOSED daily bars after the parquet end ──
+            # so regime/SMA/momentum never run on a hole when local data is stale.
+            n_filled = 0
+            for ts, c in _fetch_daily_candles(s):
+                if ts > last_ts:
+                    self.ema_strat.on_daily_close(s, c, ts)
+                    self.macd[s].update(c)
+                    self.coin_closes[s].append(c)
+                    if s == "BTCUSDT":
+                        self.regime.update(c)
+                    last_ts = ts
+                    n_filled += 1
+            self.last_daily_ts[s] = last_ts
+            if n_filled:
+                print(f"  [backfill] {s}: +{n_filled} daily bar(s) from API "
+                      f"(local data was stale)")
+
             for ts, c in _resample_4h(_load_candles(s, "1H", seed_from, today)):
                 self.ema4h[s].update(c)
                 self.last_4h_ts[s] = ts
             csigs = self.ema_strat.current_signals()
             if s in csigs:
                 self.ema4h[s].update_daily_trend(1.0 if csigs[s] == "LONG" else 0.0, 0.5)
+            time.sleep(0.15)
 
     def reconcile(self) -> int:
         from nexflow.exchange.bitget_order import get_position
@@ -286,15 +338,23 @@ class CryptoBookV863:
         self._base_notional = capital / len(self.symbols)
         now_ts = int(datetime.now(timezone.utc).timestamp() * 1000)
 
-        closes: dict[str, float] = {}
+        # price = current close for ALL symbols (used for execution every run);
+        # new_closes = only genuinely NEW daily bars (used to advance indicators
+        # exactly once — prevents double-ingest on same-day re-runs/restarts).
+        price: dict[str, float] = {}
+        new_closes: dict[str, float] = {}
         for s in self.symbols:
             r = _fetch_close(s)
             if r:
-                closes[s] = r[1]
+                ts, c = int(r[0]), float(r[1])
+                price[s] = c
+                if ts > self.last_daily_ts.get(s, 0):
+                    new_closes[s] = c
+                    self.last_daily_ts[s] = ts
             time.sleep(0.2)
-        if "BTCUSDT" in closes:
-            self.regime.update(closes["BTCUSDT"])
-        for s, c in closes.items():
+        if "BTCUSDT" in new_closes:
+            self.regime.update(new_closes["BTCUSDT"])
+        for s, c in new_closes.items():
             self.coin_closes[s].append(c)
 
         bear = self.regime.is_bear
@@ -321,16 +381,16 @@ class CryptoBookV863:
             pass
 
         if bear:
-            self._bear_logic(closes, now_ts)
+            self._bear_logic(new_closes, now_ts, price)
         else:
-            self._bull_logic(closes, suspend)
+            self._bull_logic(new_closes, suspend, price)
         self.save_state()
 
-    def _bear_logic(self, closes, now_ts):
-        # close longs
+    def _bear_logic(self, new_closes, now_ts, price):
+        # close longs — regime-driven, use current price so it runs every check
         for s in list(self.coin_longs):
-            if self.coin_longs[s] and s in closes:
-                self._exec("CLOSE_LONG", s, closes[s], "REGIME")
+            if self.coin_longs[s] and s in price:
+                self._exec("CLOSE_LONG", s, price[s], "REGIME")
                 self.coin_longs[s].clear()
         # TSMOM short rebalance (14d cadence — backtested best: less churn,
         # lets winning shorts run; vs weekly = +$3,284 / +Sharpe in full V9)
@@ -344,14 +404,14 @@ class CryptoBookV863:
             scores.sort()
             desired = {s for ret, s in scores if ret < -0.05}
             for s in list(self.live_shorts):
-                if s not in desired and s in closes:
-                    self._exec_short("CLOSE_SHORT", s, closes[s])
+                if s not in desired and s in price:
+                    self._exec_short("CLOSE_SHORT", s, price[s])
                 time.sleep(0.2)
             if self.circuit_open:
                 print("  [CIRCUIT] short entries paused")
             else:
                 to_open = [s for _, s in scores
-                           if s in desired and s not in self.live_shorts and s in closes]
+                           if s in desired and s not in self.live_shorts and s in price]
                 if to_open:
                     wanted = {s: self._short_confluence_notional(s) for s in to_open}
                     total = sum(wanted.values())
@@ -359,20 +419,21 @@ class CryptoBookV863:
                     budget = avail * _MARGIN_BUFFER if avail > 0 else total
                     scale = min(1.0, budget / total) if total > 0 else 0.0
                     for s in to_open:
-                        self._exec_short("OPEN_SHORT", s, closes[s], notional=wanted[s] * scale)
+                        self._exec_short("OPEN_SHORT", s, price[s], notional=wanted[s] * scale)
                         time.sleep(0.2)
             print(f"  [TSMOM] shorts: {', '.join(sorted(self.live_shorts)) or 'none'}")
 
-    def _bull_logic(self, closes, suspend):
-        # close any shorts
+    def _bull_logic(self, new_closes, suspend, price):
+        # close any shorts — regime-driven, use current price so it runs every check
         if self.live_shorts:
             for s in list(self.live_shorts):
-                if s in closes:
-                    self._exec_short("CLOSE_SHORT", s, closes[s])
+                if s in price:
+                    self._exec_short("CLOSE_SHORT", s, price[s])
                 time.sleep(0.2)
         if self.circuit_open:
             print("  [CIRCUIT] long entries paused")
-        for s, c in closes.items():
+        # entries — indicator-driven, only advance on genuinely new daily bars
+        for s, c in new_closes.items():
             mom30 = self.regime.mom_return(self.coin_closes[s], BTCRegime._MOM_GATE_DAYS)
             mom_blocked = mom30 <= 0
             for sig in self.ema_strat.on_daily_close(s, c, int(datetime.now(timezone.utc).timestamp()*1000)):
