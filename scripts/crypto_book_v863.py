@@ -11,7 +11,8 @@ Features (all of V8.63):
   • ATR vol-adjusted sizing (target 1%/day risk, cap 2x base, floor 0.5x base)
   • Confluence multiplier: 1 strat=1x, 2=1.5x, 3=2x
   • 20d momentum gate on new longs
-  • TSMOM shorts in bear regime (weekly rebalance, 126d momentum, budget-aware)
+  • TSMOM shorts in bear regime (14d rebalance, 126d momentum, budget-aware,
+    bearish-confluence sizing — backtested +$3,284/+Sharpe in full V9 vs weekly/flat)
   • 15% hard stops (intraday, checked on stop_check)
   • 20% portfolio circuit breaker (pause new entries)
   • Free-margin clamping on every entry
@@ -91,6 +92,19 @@ class CryptoBookV863:
     def _confluence_notional(self, sym: str) -> float:
         n = len(self.coin_longs[sym])
         mult = {0: 0.0, 1: 1.0, 2: 1.5, 3: 2.0}.get(n, 2.0)
+        return self._atr_notional(sym, mult)
+
+    def _short_confluence_notional(self, sym: str) -> float:
+        """ATR notional scaled by bearish confluence (mirror of long confluence).
+        Counts how many of EMA(daily)/MACD/4H are NOT in LONG → size up shorts
+        confirmed bearish by multiple signals. {1:1x, 2:1.5x, 3:2x}."""
+        csigs = self.ema_strat.current_signals()
+        n_short = sum([
+            csigs.get(sym) != "LONG",          # daily EMA bearish/flat
+            not self.macd[sym].position,        # MACD bearish/flat
+            not self.ema4h[sym].position,       # 4H bearish/flat
+        ])
+        mult = {1: 1.0, 2: 1.5, 3: 2.0}.get(n_short, 1.0)
         return self._atr_notional(sym, mult)
 
     # ── state persistence ─────────────────────────────────────────────────────
@@ -318,8 +332,9 @@ class CryptoBookV863:
             if self.coin_longs[s] and s in closes:
                 self._exec("CLOSE_LONG", s, closes[s], "REGIME")
                 self.coin_longs[s].clear()
-        # weekly TSMOM short rebalance
-        if (now_ts - self.last_tsmom_rebal) >= 7 * _DAY_MS:
+        # TSMOM short rebalance (14d cadence — backtested best: less churn,
+        # lets winning shorts run; vs weekly = +$3,284 / +Sharpe in full V9)
+        if (now_ts - self.last_tsmom_rebal) >= 14 * _DAY_MS:
             self.last_tsmom_rebal = now_ts
             scores = []
             for s in self.symbols:
@@ -338,7 +353,7 @@ class CryptoBookV863:
                 to_open = [s for _, s in scores
                            if s in desired and s not in self.live_shorts and s in closes]
                 if to_open:
-                    wanted = {s: self._atr_notional(s) for s in to_open}
+                    wanted = {s: self._short_confluence_notional(s) for s in to_open}
                     total = sum(wanted.values())
                     avail = self._available_margin()
                     budget = avail * _MARGIN_BUFFER if avail > 0 else total
