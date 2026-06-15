@@ -45,7 +45,7 @@ _MARGIN_BUFFER = 0.95
 _DAY_MS_LOCAL = 86_400_000
 
 
-def _fetch_daily_candles(symbol: str, limit: int = 400) -> list[tuple[int, float]]:
+def _fetch_daily_candles(symbol: str, limit: int = 200) -> list[tuple[int, float]]:
     """Fetch recent fully-CLOSED daily candles (ts_ms, close) from Bitget, asc.
 
     Used to backfill any gap between stale local parquet data and today so the
