@@ -3021,7 +3021,6 @@ const HABITS = [
   { key: 'onCourse', label: 'On Course', sub: null },
   { key: 'nexflow', label: 'NexFlow Work', sub: null },
   { key: 'reading', label: 'Quran / Reading', sub: null },
-  { key: 'stateReset', label: 'State Reset Before Performance', sub: 'Breathing, visualisation, routine' },
 ];
 
 // Golf/gym-specific habits excluded from scoring on a rest day
@@ -3115,8 +3114,6 @@ function checkSavedDay() {
     restDay = false;
     applyRestUI();
     buildHabitList();
-    $('t-catmisses').value = '';
-    $('t-stockshot').value = '';
     $('t-oneline').value = '';
   }
 }
@@ -3141,8 +3138,6 @@ function showSavedDay(d) {
   content.innerHTML = `<span class="hud-corners"></span>
     ${isRest ? '<div class="saved-row"><span class="saved-key">Day Type</span><span style="color:var(--accent2)">Rest Day</span></div>' : ''}
     <div class="saved-row"><span class="saved-key">Objectives Cleared</span><span class="readout">${habitNum} / ${habitDen}</span></div>
-    <div class="saved-row"><span class="saved-key">Cat. Misses</span><span class="readout">${d.catMisses ?? '—'}</span></div>
-    <div class="saved-row"><span class="saved-key">Stock-Shot /10</span><span class="readout">${d.stockShot ?? '—'}</span></div>
     <div class="saved-row"><span class="saved-key">What mattered</span><span style="max-width:60%;text-align:right">${d.oneLine || '—'}</span></div>
   `;
 }
@@ -3154,8 +3149,6 @@ function editToday() {
   habitState = { ...d.habits };
   restDay = !!d.restDay;
   applyRestUI();
-  $('t-catmisses').value = d.catMisses ?? '';
-  $('t-stockshot').value = d.stockShot ?? '';
   $('t-oneline').value = d.oneLine || '';
   buildHabitList();
   $('saved-day-view').style.display = 'none';
@@ -3164,15 +3157,19 @@ function editToday() {
 
 function saveDay() {
   const td = today();
-  const catVal = $('t-catmisses').value;
+  const nut = load('nexflow_nutrition') || [];
+  const todayNut = nut.find(n => n.date === td);
+  const nutGreen = todayNut
+    ? (Object.values(todayNut.habits).filter(Boolean).length >= Object.keys(todayNut.habits).length && todayNut.snackRating !== 'blowup')
+    : false;
   let green;
   if (restDay) {
     const restHabits = HABITS.filter(h => !REST_EXCLUDE.includes(h.key));
     const restChecked = restHabits.filter(h => habitState[h.key]).length;
-    green = restHabits.length ? (restChecked / restHabits.length >= 0.8) : true;
+    green = nutGreen && (restHabits.length ? restChecked === restHabits.length : true);
   } else {
     const checkedCount = HABITS.filter(h => habitState[h.key]).length;
-    green = checkedCount / HABITS.length >= 0.8;
+    green = nutGreen && checkedCount === HABITS.length;
   }
 
   const days = load('nexflow_days') || [];
@@ -3182,13 +3179,10 @@ function saveDay() {
   const obj = {
     date: td,
     habits: { ...habitState },
-    catMisses: catVal !== '' ? parseInt(catVal) : null,
-    stockShot: $('t-stockshot').value !== '' ? parseFloat($('t-stockshot').value) : null,
     oneLine: $('t-oneline').value.trim(),
     restDay,
     green,
   };
-  // backward compat: keep any previously saved objective text
   if (existing && existing.objective) obj.objective = existing.objective;
 
   if (idx >= 0) days[idx] = obj;
@@ -4274,13 +4268,16 @@ function renderNutriStreak() {
 // ─── STREAK TAB ────────────────────────────────────────────────────
 function isGreenDay(entry, nutEntry) {
   if (!entry) return false;
+  const nutGreen = nutEntry
+    ? (Object.values(nutEntry.habits || {}).filter(Boolean).length >= Object.keys(nutEntry.habits || {}).length && nutEntry.snackRating !== 'blowup')
+    : false;
   if (entry.restDay) {
     const restHabits = HABITS.filter(h => !REST_EXCLUDE.includes(h.key));
     const restChecked = restHabits.filter(h => entry.habits && entry.habits[h.key]).length;
-    return restHabits.length ? (restChecked / restHabits.length >= 0.8) : true;
+    return nutGreen && (restHabits.length ? restChecked === restHabits.length : true);
   }
   const checkedCount = Object.values(entry.habits || {}).filter(Boolean).length;
-  return checkedCount / HABITS.length >= 0.8;
+  return nutGreen && checkedCount === HABITS.length;
 }
 
 function renderStreak() {
