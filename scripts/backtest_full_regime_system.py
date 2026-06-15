@@ -320,6 +320,13 @@ def _run(
     corr_days: int = 30,
     corr_ref: float = 0.5,     # avg pairwise corr above which sizing scales down
     corr_floor: float = 0.5,   # minimum size multiplier (never shrink below this)
+    # NEW: Experiment G — short-side upgrades (all default to current behavior).
+    short_lookback_days: int = 126,   # TSMOM momentum lookback for short selection
+    short_threshold: float = -0.05,   # short coins whose Nd return is below this
+    short_rebal_days: int = 7,        # rebalance cadence for the short book
+    short_trail_pct: float = 0.0,     # 0=off; trail a stop short_trail_pct above the
+                                      # lowest (most favorable) price since short entry
+    short_confluence: bool = False,   # size up shorts confirmed bearish by EMA/MACD/4H
     # NEW: diagnostic mode — print regime flips + stranded long losses
     diagnostic: bool = False,
 ) -> dict:
@@ -452,20 +459,21 @@ def _run(
         btc_ema_bull = btc_sig.get("ema_long", True) if use_btc_ema_long_filter else True
         long_allowed = btc_bull and btc_ema_bull
 
-        # ── TSMOM short rebalance (weekly) ──
-        if use_tsmom_short and not btc_bull and (ts - last_rebal_ts) >= 7*_DAY_MS:
+        # ── TSMOM short rebalance (cadence = short_rebal_days) ──
+        if use_tsmom_short and not btc_bull and (ts - last_rebal_ts) >= short_rebal_days*_DAY_MS:
             last_rebal_ts = ts
+            _lb = short_lookback_days + 1   # bars needed for an Nd return
             scores = []
             for sym in _SYMBOLS:
                 sym_ts_list = sorted(signals.get(sym,{}).keys())
                 past_ts_candidates = [t for t in sym_ts_list if t <= ts]
-                if len(past_ts_candidates) < 127: continue
+                if len(past_ts_candidates) < _lb: continue
                 c_now  = signals[sym][past_ts_candidates[-1]]["close"]
-                c_past = signals[sym][past_ts_candidates[-127]]["close"]
+                c_past = signals[sym][past_ts_candidates[-_lb]]["close"]
                 ret = (c_now - c_past) / c_past
                 scores.append((ret, sym))
             scores.sort()
-            desired_shorts = {sym for ret,sym in scores if ret < -0.05}
+            desired_shorts = {sym for ret,sym in scores if ret < short_threshold}
 
             # Close shorts no longer desired
             for sym in [s for s in list(positions) if positions[s].get("side")=="SHORT"]:
@@ -486,9 +494,16 @@ def _run(
                 if sym not in positions:
                     c = signals.get(sym,{}).get(ts,{}).get("close")
                     if c is None: continue
-                    n = _position_size(sym, ts)
+                    mult = 1.0
+                    if short_confluence:
+                        sig_s = signals.get(sym,{}).get(ts,{})
+                        n_short = sum([not sig_s.get("ema_long",False),
+                                       not sig_s.get("macd_long",False),
+                                       not sig_s.get("h4_long",False)])
+                        mult = {1:1.0,2:1.5,3:2.0}.get(n_short,1.0)
+                    n = _position_size(sym, ts, mult)
                     equity -= _TAKER_FEE * n
-                    positions[sym] = {"entry":c,"notional":n,"side":"SHORT"}
+                    positions[sym] = {"entry":c,"notional":n,"side":"SHORT","trough":c}
 
         # ── Hard stop: close any short that moved too far against us ──
         if hard_stop_pct > 0 and use_tsmom_short:
@@ -498,6 +513,27 @@ def _run(
                 pos = positions[sym]
                 loss_pct = (c - pos["entry"]) / pos["entry"]  # positive = price rose = loss on short
                 if loss_pct >= hard_stop_pct:
+                    positions.pop(sym)
+                    raw = (pos["entry"] - c) / pos["entry"] * pos["notional"]
+                    net = raw - _TAKER_FEE * pos["notional"]
+                    equity += net
+                    trades.append({"ts": ts, "sym": sym, "net": net, "side": "SHORT"})
+                    yr = datetime.fromtimestamp(ts / 1000, tz=timezone.utc).year
+                    year_pnl[yr] = year_pnl.get(yr, 0) + net
+                    diag_year_short_pnl[yr] = diag_year_short_pnl.get(yr, 0) + net
+
+        # ── Trailing stop on shorts (Experiment G): lock gains before bounces ──
+        if short_trail_pct > 0 and use_tsmom_short:
+            for sym in [s for s in list(positions) if positions[s].get("side") == "SHORT"]:
+                c = signals.get(sym, {}).get(ts, {}).get("close")
+                if c is None: continue
+                pos = positions[sym]
+                # track lowest (most favorable) price since entry
+                if c < pos.get("trough", pos["entry"]):
+                    pos["trough"] = c
+                trough = pos.get("trough", pos["entry"])
+                # exit if price has bounced short_trail_pct above the trough
+                if trough > 0 and (c - trough) / trough >= short_trail_pct:
                     positions.pop(sym)
                     raw = (pos["entry"] - c) / pos["entry"] * pos["notional"]
                     net = raw - _TAKER_FEE * pos["notional"]
