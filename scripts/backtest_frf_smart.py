@@ -35,9 +35,11 @@ import pyarrow.parquet as pq
 
 # ─── Universe & paths ────────────────────────────────────────────────────────
 _ALL_SYMBOLS = [
-    "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT",
-    "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT",
-    "LINKUSDT", "LTCUSDT", "DOTUSDT", "TRXUSDT",
+    "BTCUSDT", "ETHUSDT", "XRPUSDT", "ADAUSDT",
+    "DOGEUSDT", "LINKUSDT", "LTCUSDT",
+    # SOLUSDT excluded: near-zero avg rate + 28.5% negative periods (structural drag)
+    # BNBUSDT excluded: negative avg funding overall (costs more than it earns)
+    # AVAXUSDT, DOTUSDT, TRXUSDT: borderline — added back once alt data matures further
 ]
 _ROOT      = os.path.dirname(os.path.abspath(__file__))
 _CANDLE_DIR = os.path.join(_ROOT, "..", "data", "candles")
@@ -51,7 +53,7 @@ _8H_MS          = 8 * 3_600_000
 
 # Loser filter / confidence thresholds
 _FUNDING_FLOOR  = 0.00005       # below this 8h rate a coin can't even qualify
-_ENTRY_SCORE    = 60            # need >= this confidence to OPEN
+_ENTRY_SCORE    = 65            # raised: need conviction to open (cuts noise entries)
 _EXIT_SCORE     = 40            # held position closes if score falls below this
 _EXTREME_FUND   = 0.0010        # 0.10%/8h+ = blow-off top risk → penalise
 _CONSIST_LOOKBK = 21            # 21 × 8h = 7 days for consistency score
@@ -59,8 +61,8 @@ _FUND_EMA_FAST  = 3             # periods
 _FUND_EMA_SLOW  = 9             # periods
 
 # ─── Fee-control discipline (anti-churn) ─────────────────────────────────────
-_REBAL_PERIODS  = 21            # only re-pick the book weekly (21 × 8h)
-_MIN_HOLD       = 9             # a position can't be dropped for ~3 days …
+_REBAL_PERIODS  = 42            # re-pick every 2 weeks (42 × 8h) — fee control
+_MIN_HOLD       = 21            # minimum 7-day hold before rotation allowed
 _EMERGENCY_EXIT = 0.0           # … unless funding turns negative (true loss leg)
 _SMA50_LEN      = 50            # daily price regime
 _SMA200_LEN     = 200
