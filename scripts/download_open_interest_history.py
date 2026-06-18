@@ -43,6 +43,11 @@ _INTERVAL        = "1h"        # Bybit interval token for 1-hour buckets
 _PAGE_LIMIT      = 200         # Bybit max per request
 _DELAY_S         = 0.25
 _DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT"]
+_ALL_SYMBOLS = [
+    "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT",
+    "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT",
+    "LINKUSDT", "LTCUSDT", "DOTUSDT", "TRXUSDT",
+]
 
 _HEADERS = {
     "User-Agent": "NexFlow/1.0",
@@ -149,9 +154,13 @@ def _save(symbol: str, records: list[dict], out_dir: Path) -> Path:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--symbols", nargs="+", default=_DEFAULT_SYMBOLS)
+    parser.add_argument("--symbols", nargs="+", default=_DEFAULT_SYMBOLS,
+                        help="Symbols to fetch, or 'ALL' for the full 12-coin universe")
     parser.add_argument("--out", default="data/oi")
     args = parser.parse_args()
+
+    if len(args.symbols) == 1 and args.symbols[0].upper() == "ALL":
+        args.symbols = _ALL_SYMBOLS
 
     out_dir = _REPO_ROOT / args.out
     print("Downloading 1H open-interest history from Bybit (no API key required)")

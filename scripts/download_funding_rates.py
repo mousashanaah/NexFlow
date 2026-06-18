@@ -37,16 +37,37 @@ except ImportError:
 _BASE_URL        = "https://fapi.binance.com/fapi/v1/fundingRate"
 _PAGE_SIZE       = 1000       # Binance max per request
 _DELAY_S         = 0.2        # polite delay between pages
+
+# Full V9 / FRF universe (matches run_trio_paper._SYMBOLS)
+_ALL_SYMBOLS = [
+    "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT",
+    "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT",
+    "LINKUSDT", "LTCUSDT", "DOTUSDT", "TRXUSDT",
+]
 _DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT"]
 
-# Earliest funding records on Binance (approximate safe start)
+# Binance USDT-perp funding launch dates (a few days BEFORE the true first
+# record so pagination starts inside live history, never on an empty page).
 _SYMBOL_START_MS: dict[str, int] = {
-    "BTCUSDT": 1568592000000,   # 2019-09-16
-    "ETHUSDT": 1597708800000,   # 2020-08-18
-    "SOLUSDT": 1623024000000,   # 2021-06-07
-    "BNBUSDT":  1597708800000,
+    "BTCUSDT":  1568073600000,   # 2019-09-10
+    "ETHUSDT":  1574812800000,   # 2019-11-27
+    "BNBUSDT":  1581292800000,   # 2020-02-10
+    "XRPUSDT":  1578268800000,   # 2020-01-06
+    "ADAUSDT":  1580428800000,   # 2020-01-31
+    "DOGEUSDT": 1594339200000,   # 2020-07-10
+    "SOLUSDT":  1600041600000,   # 2020-09-14
+    "AVAXUSDT": 1600819200000,   # 2020-09-23
+    "LINKUSDT": 1579132800000,   # 2020-01-16
+    "LTCUSDT":  1578528000000,   # 2020-01-09
+    "DOTUSDT":  1597708800000,   # 2020-08-18
+    "TRXUSDT":  1579046400000,   # 2020-01-15
 }
-_DEFAULT_START_MS = 1609459200000   # 2021-01-01 fallback
+_DEFAULT_START_MS = 1568073600000   # 2019-09-10 fallback (oldest possible)
+
+# Empty-page robustness: if a window returns nothing but we expect more
+# (e.g. start date guessed too early), skip forward this many ms and retry.
+_SKIP_WINDOW_MS = 30 * 24 * 60 * 60 * 1000   # 30 days
+_MAX_EMPTY_SKIPS = 24                          # up to ~2 years of skips
 
 _HEADERS = {
     "User-Agent": "NexFlow/1.0",
@@ -77,22 +98,30 @@ def _download_all(symbol: str) -> list[dict]:
     """Paginate Binance fapi funding history for symbol, return all records."""
     start_ms = _SYMBOL_START_MS.get(symbol, _DEFAULT_START_MS)
     records: list[dict] = []
+    empty_skips = 0
 
     while True:
         try:
             page = _fetch_page(symbol, start_ms)
         except urllib.error.HTTPError as exc:
-            if exc.code == 451:
+            if exc.code in (403, 451):
                 print(
-                    f"\n[ERROR] Binance returned HTTP 451 (geo-blocked).\n"
-                    f"        You are likely running this on a US cloud server.\n"
-                    f"        Run this script on your local machine and commit\n"
+                    f"\n[ERROR] Binance returned HTTP {exc.code} (geo-blocked).\n"
+                    f"        You are likely running this on a US/cloud server.\n"
+                    f"        Run this script on your LOCAL machine and commit\n"
                     f"        the resulting data/funding/{symbol}_funding.parquet."
                 )
                 sys.exit(1)
             raise
 
         if not page:
+            # If we haven't collected anything yet, the start date was likely
+            # guessed too early — skip forward and retry before giving up.
+            if not records and empty_skips < _MAX_EMPTY_SKIPS:
+                empty_skips += 1
+                start_ms += _SKIP_WINDOW_MS
+                time.sleep(_DELAY_S)
+                continue
             break
 
         for row in page:
@@ -147,9 +176,13 @@ def _save(symbol: str, records: list[dict], out_dir: Path) -> Path:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--symbols", nargs="+", default=_DEFAULT_SYMBOLS)
+    parser.add_argument("--symbols", nargs="+", default=_DEFAULT_SYMBOLS,
+                        help="Symbols to fetch, or 'ALL' for the full 12-coin universe")
     parser.add_argument("--out", default="data/funding")
     args = parser.parse_args()
+
+    if len(args.symbols) == 1 and args.symbols[0].upper() == "ALL":
+        args.symbols = _ALL_SYMBOLS
 
     out_dir = _REPO_ROOT / args.out
     print("Downloading full funding-rate history from Binance (no API key required)")
