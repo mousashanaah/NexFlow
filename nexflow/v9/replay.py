@@ -429,6 +429,157 @@ def run_replay(
     return report
 
 
+# ── Daily parity check (production operations mode) ───────────────────────────
+
+@dataclass
+class DailyParityResult:
+    """
+    Result of a single-day parity check run after live signal computation.
+    Intended to be called EVERY DAY as part of normal operations.
+    """
+    date:              str
+    regime_match:      bool
+    crypto_score_match: bool
+    stock_score_match: bool
+    allocation_match:  bool
+    research_state:    dict
+    production_state:  dict
+    passed:            bool
+
+    def summary(self) -> str:
+        status = "PASS" if self.passed else "FAIL !! DIVERGENCE DETECTED !!"
+        lines = [
+            f"  Daily parity [{self.date}]: {status}",
+            f"    Regime:    {'✓' if self.regime_match else '✗'}  "
+            f"research={self.research_state.get('in_bear')}  "
+            f"prod={self.production_state.get('in_bear')}",
+            f"    CryptoSc:  {'✓' if self.crypto_score_match else '✗'}  "
+            f"research={self.research_state.get('c_sc', '?'):.4f}  "
+            f"prod={self.production_state.get('c_sc', '?'):.4f}",
+            f"    StockSc:   {'✓' if self.stock_score_match else '✗'}  "
+            f"research={self.research_state.get('s_sc', '?'):.4f}  "
+            f"prod={self.production_state.get('s_sc', '?'):.4f}",
+            f"    Alloc:     {'✓' if self.allocation_match else '✗'}  "
+            f"research=({self.research_state.get('wc','?'):.0%}C/"
+            f"{self.research_state.get('ws','?'):.0%}S)  "
+            f"prod=({self.production_state.get('wc','?'):.0%}C/"
+            f"{self.production_state.get('ws','?'):.0%}S)",
+        ]
+        return "\n".join(lines)
+
+
+def run_daily_parity(
+    as_of_date:    str,
+    verbose:       bool = False,
+    raise_on_fail: bool = True,
+) -> DailyParityResult:
+    """
+    Run single-day parity check between research and production engines.
+
+    Called EVERY DAY after signal computation, including after deployment.
+    This is the operational guard against RISK 00 (Backtest/Production Logic Drift).
+
+    Args:
+        as_of_date:    ISO date of the bar to check (yesterday in normal ops)
+        verbose:       print result to stdout
+        raise_on_fail: raise ReplayDivergenceError on any mismatch
+
+    Returns:
+        DailyParityResult
+    """
+    from nexflow.v9.core import (
+        crypto_score as _prod_cscore,
+        stock_score_single, stock_score_portfolio,
+        allocate as _prod_alloc,
+        RegimeMachine, sma,
+    )
+    from nexflow.v9.data import load_v9_dataset, DataValidationError
+
+    # Load data
+    try:
+        ds = load_v9_dataset(as_of_date)
+    except DataValidationError as e:
+        raise ReplayDivergenceError(f"Daily parity blocked by data error: {e}") from e
+
+    btc    = _load_btc_history(as_of_date)
+    stocks = {t: _load_stock_history(t, as_of_date) for t in COMBO}
+    last_ts = int(btc["ts"][-1])
+
+    # Research snapshot
+    res = _research_snapshot(btc, stocks, last_ts)
+
+    # Production snapshot
+    prod = _production_snapshot(btc, stocks, last_ts)
+
+    # Regime via production RegimeMachine (full history)
+    btc_cs = ds.btc()
+    machine = RegimeMachine()
+    for i in range(len(btc_cs.ts)):
+        machine.step(
+            float(btc_cs.close[i]),
+            float(btc_cs.sma200[i]) if np.isfinite(btc_cs.sma200[i]) else float(btc_cs.close[i]) * 1.1,
+            float(btc_cs.mom30[i]),
+        )
+
+    # Research regime (re-derived from same data for comparison)
+    from nexflow.v9.core import BEAR_DROP_PCT, BEAR_CONFIRM_DAYS
+    in_bear_r = False; consec_r = 0
+    for i in range(len(btc_cs.ts)):
+        c = float(btc_cs.close[i])
+        s = float(btc_cs.sma200[i]) if np.isfinite(btc_cs.sma200[i]) else c * 1.1
+        m = float(btc_cs.mom30[i])
+        above = c > s
+        if in_bear_r:
+            consec_r = (consec_r + 1) if above else 0
+            if consec_r >= BEAR_CONFIRM_DAYS: in_bear_r = False; consec_r = 0
+        else:
+            if np.isfinite(m) and m < BEAR_DROP_PCT and not above:
+                in_bear_r = True; consec_r = 0
+
+    research_state = {
+        "in_bear": in_bear_r,
+        "c_sc": res["c_sc"],
+        "s_sc": res["s_sc"],
+        "wc":   res["wc"],
+        "ws":   res["ws"],
+    }
+    production_state = {
+        "in_bear": machine.in_bear,
+        "c_sc": prod["c_sc"],
+        "s_sc": prod["s_sc"],
+        "wc":   prod["wc"],
+        "ws":   prod["ws"],
+    }
+
+    regime_match  = research_state["in_bear"] == production_state["in_bear"]
+    cscore_match  = abs(research_state["c_sc"] - production_state["c_sc"]) <= SCORE_TOLERANCE
+    sscore_match  = abs(research_state["s_sc"] - production_state["s_sc"]) <= SCORE_TOLERANCE
+    alloc_match   = (abs(research_state["wc"] - production_state["wc"]) <= WEIGHT_TOLERANCE and
+                     abs(research_state["ws"] - production_state["ws"]) <= WEIGHT_TOLERANCE)
+
+    result = DailyParityResult(
+        date               = as_of_date,
+        regime_match       = regime_match,
+        crypto_score_match = cscore_match,
+        stock_score_match  = sscore_match,
+        allocation_match   = alloc_match,
+        research_state     = research_state,
+        production_state   = production_state,
+        passed             = all([regime_match, cscore_match, sscore_match, alloc_match]),
+    )
+
+    if verbose:
+        print(result.summary())
+
+    if raise_on_fail and not result.passed:
+        raise ReplayDivergenceError(
+            f"Daily parity FAILED on {as_of_date}. Trading BLOCKED.\n"
+            + result.summary()
+        )
+
+    return result
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -441,14 +592,24 @@ def main() -> None:
                         help="Print full report to stdout.")
     parser.add_argument("--no-raise", action="store_true",
                         help="Print result but do not raise on failure (for CI inspection).")
+    parser.add_argument("--daily", action="store_true",
+                        help="Run single-day parity check instead of full replay.")
     args = parser.parse_args()
 
-    report = run_replay(
-        up_to_date    = args.date,
-        verbose       = True,
-        raise_on_fail = not args.no_raise,
-    )
-    sys.exit(0 if report.passed else 1)
+    if args.daily:
+        result = run_daily_parity(
+            as_of_date    = args.date or (date.today() - __import__("datetime").timedelta(days=1)).isoformat(),
+            verbose       = True,
+            raise_on_fail = not args.no_raise,
+        )
+        sys.exit(0 if result.passed else 1)
+    else:
+        report = run_replay(
+            up_to_date    = args.date,
+            verbose       = True,
+            raise_on_fail = not args.no_raise,
+        )
+        sys.exit(0 if report.passed else 1)
 
 
 if __name__ == "__main__":
