@@ -140,6 +140,7 @@ def _load_crypto():
             if above_e[i] and not above_e[i-1]:   ema_long[i]=True
             elif not above_e[i] and above_e[i-1]: ema_long[i]=False
             else:                                   ema_long[i]=ema_long[i-1]
+        import sys, os; sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from scripts.test30_signal_edge import _macd_state
         macd_long=_macd_state(c)
         mom20=np.full(len(c),np.nan); mom30=np.full(len(c),np.nan)
@@ -417,7 +418,8 @@ def run_42(sdata,cdata,stock_ts,stock_dates,stock_ret,tidx):
     for j in range(1,N):
         if j in mstarts or not cur_c: cur_c=crypto_holdings(j)
         if not cur_c: crypto_eq[j]=crypto_eq[j-1]; continue
-        crypto_eq[j]=crypto_eq[j-1]*(1+np.mean(crypto_ret[csym_idx.get(s,0) for s in _CRYPTO if s in csym_idx and csym_idx[s] in cur_c],axis=None if not cur_c else 0))
+        idxs=[csym_idx[s] for s in cur_c if s in csym_idx]
+        crypto_eq[j]=crypto_eq[j-1]*(1+np.mean(crypto_ret[idxs,j]) if idxs else 0)
 
     # Simpler: recompute crypto equity directly
     crypto_eq2=np.full(N,_CAPITAL); cur_c2=[]
@@ -470,7 +472,7 @@ def run_42(sdata,cdata,stock_ts,stock_dates,stock_ret,tidx):
     print(f"\n  Starting capital: ${_CAPITAL:,.0f}")
     print(f"\n  {'Metric':22s}  {'V9 Static Basket':>20s}  {'V9 Dynamic Top-3':>20s}  {'Improvement':>12s}")
     print("  "+"-"*80)
-    for label,val_s,val_d in [
+    for label,val_s,val_d,imp in [
         ("Final equity",    f"${port_static[-1]:,.0f}",    f"${port_dynamic[-1]:,.0f}",  f"${port_dynamic[-1]-port_static[-1]:>+,.0f}"),
         ("CAGR",            f"{_cagr(port_static,nd):.1%}",f"{_cagr(port_dynamic,nd):.1%}",f"{_cagr(port_dynamic,nd)-_cagr(port_static,nd):>+.1%}"),
         ("Sharpe",          f"{_sharpe(port_static):.2f}", f"{_sharpe(port_dynamic):.2f}", f"{_sharpe(port_dynamic)-_sharpe(port_static):>+.2f}"),
@@ -478,7 +480,7 @@ def run_42(sdata,cdata,stock_ts,stock_dates,stock_ret,tidx):
         ("Max DD",          f"{_maxdd(port_static):.1%}",  f"{_maxdd(port_dynamic):.1%}",  f"{_maxdd(port_dynamic)-_maxdd(port_static):>+.1%}"),
         ("Calmar",          f"{_calmar(port_static,nd):.2f}",f"{_calmar(port_dynamic,nd):.2f}",f"{_calmar(port_dynamic,nd)-_calmar(port_static,nd):>+.2f}"),
     ]:
-        print(f"  {label:22s}  {val_s:>20s}  {val_d:>20s}  {val_d:>12s}")
+        print(f"  {label:22s}  {val_s:>20s}  {val_d:>20s}  {imp:>12s}")
 
     print(f"\n  Year-by-year returns:")
     yrs_s=_yr(port_static,stock_dates); yrs_d=_yr(port_dynamic,stock_dates)
@@ -545,7 +547,7 @@ def main():
     cdata=_load_crypto()
 
     run_40(sdata,common_ts,dates,ret,tidx)
-    run_41(sdata,cdata,common_ts,dates,ret,tidx)
+    run_41(sdata,common_ts,dates,ret,tidx,cdata)
     run_42(sdata,cdata,common_ts,dates,ret,tidx)
 
     print("\n"+"="*80)
