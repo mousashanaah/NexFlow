@@ -200,21 +200,68 @@ class RegimeMachine:
 
 # ── Confidence Scoring ────────────────────────────────────────────────────────
 
+def crypto_score_breakdown(
+    btc_close: float,
+    sma200:    float,
+    mom90:     float,
+    mom30:     float,
+    atr14:     float,
+    atr_avg:   float,
+) -> tuple[float, dict]:
+    """
+    BTC crypto confidence score with component breakdown.
+
+    Returns (score, components) where components is a dict with each
+    sub-score so every daily decision is fully auditable.
+    Exactly matches crypto_score() in test_v9_confidence.py.
+    """
+    pts_sma200 = 0.0
+    pts_mom90  = 0.0
+    pts_mom30  = 0.0
+    pts_vol    = 0.0
+    pts_bonus  = 0.0
+
+    if np.isfinite(sma200):
+        pts_sma200 = 2.0 if btc_close > sma200 else 0.0
+
+    if np.isfinite(mom90):
+        pts_mom90 = 1.0 if mom90 > 0 else 0.0
+        if mom90 >  0.30: pts_bonus =  0.5
+        if mom90 < -0.30: pts_bonus = -0.5
+
+    if np.isfinite(mom30):
+        pts_mom30 = 0.5 if mom30 > 0 else 0.0
+
+    if np.isfinite(atr14) and np.isfinite(atr_avg) and atr_avg > 0:
+        pts_vol = 0.5 if atr14 < atr_avg * 1.5 else 0.0
+
+    raw   = pts_sma200 + pts_mom90 + pts_mom30 + pts_vol + pts_bonus
+    score = float(np.clip(raw, 0.0, CRYPTO_SCORE_MAX))
+
+    return score, {
+        "pts_sma200": pts_sma200,
+        "pts_mom90":  pts_mom90,
+        "pts_mom30":  pts_mom30,
+        "pts_vol":    pts_vol,
+        "pts_bonus":  pts_bonus,
+        "raw":        raw,
+    }
+
+
 def crypto_score(
     btc_close: float,
     sma200:    float,
     mom90:     float,
     mom30:     float,
     atr14:     float,
-    atr_avg:   float,   # 60d avg of atr14
+    atr_avg:   float,
 ) -> float:
     """
     BTC crypto confidence score.  Range 0–4.
-
-    Exactly matches crypto_score() in test_v9_confidence.py.
-    SMA200 carries 2 pts so bear regimes never trigger CRYPTO DOMINANT.
+    Thin wrapper around crypto_score_breakdown().
     """
-    sc = 0.0
+    score, _ = crypto_score_breakdown(btc_close, sma200, mom90, mom30, atr14, atr_avg)
+    return score
 
     if np.isfinite(sma200):
         sc += 2.0 if btc_close > sma200 else 0.0
@@ -233,6 +280,42 @@ def crypto_score(
     return float(np.clip(sc, 0.0, CRYPTO_SCORE_MAX))
 
 
+def stock_score_single_breakdown(
+    close: float,
+    s200:  float,
+    mom90: float,
+    ema_f: float,
+    ema_s: float,
+) -> tuple[float, dict]:
+    """
+    Per-ticker stock score with component breakdown.  Range 0–3.
+    Returns (score, components).
+    Matches per-ticker logic inside stock_score() in test_v9_confidence.py.
+    """
+    pts_sma200 = 0.0
+    pts_mom90  = 0.0
+    pts_bonus  = 0.0
+    pts_ema    = 0.0
+
+    if np.isfinite(s200) and np.isfinite(close):
+        pts_sma200 = 1.0 if close > s200 else 0.0
+
+    if np.isfinite(mom90):
+        pts_mom90 = 1.0 if mom90 > 0 else 0.0
+        if mom90 > 0.20: pts_bonus = 0.5
+
+    if np.isfinite(ema_f) and np.isfinite(ema_s):
+        pts_ema = 0.5 if ema_f > ema_s else 0.0
+
+    score = pts_sma200 + pts_mom90 + pts_bonus + pts_ema
+    return score, {
+        "pts_sma200": pts_sma200,
+        "pts_mom90":  pts_mom90,
+        "pts_bonus":  pts_bonus,
+        "pts_ema":    pts_ema,
+    }
+
+
 def stock_score_single(
     close: float,
     s200:  float,
@@ -240,23 +323,9 @@ def stock_score_single(
     ema_f: float,
     ema_s: float,
 ) -> float:
-    """
-    Per-ticker stock score.  Range 0–3.
-    Matches per-ticker logic inside stock_score() in test_v9_confidence.py.
-    """
-    sc = 0.0
-
-    if np.isfinite(s200) and np.isfinite(close):
-        sc += 1.0 if close > s200 else 0.0
-
-    if np.isfinite(mom90):
-        sc += 1.0 if mom90 > 0    else 0.0
-        if mom90 > 0.20: sc += 0.5
-
-    if np.isfinite(ema_f) and np.isfinite(ema_s):
-        sc += 0.5 if ema_f > ema_s else 0.0
-
-    return sc
+    """Per-ticker stock score.  Thin wrapper around stock_score_single_breakdown()."""
+    score, _ = stock_score_single_breakdown(close, s200, mom90, ema_f, ema_s)
+    return score
 
 
 def stock_score_portfolio(ticker_scores: list[float]) -> float:
@@ -304,3 +373,19 @@ REBALANCE_DAYS = 21   # trading days between rebalances
 
 def should_rebalance(trading_days_since_last: int) -> bool:
     return trading_days_since_last >= REBALANCE_DAYS
+
+
+def allocation_regime_name(c_sc: float, s_sc: float) -> str:
+    """Human-readable label for the allocation regime — for logging only."""
+    cn = c_sc / CRYPTO_SCORE_MAX
+    sn = s_sc / STOCK_SCORE_MAX
+    if   cn >= BOTH_HOT_THRESHOLD and sn >= BOTH_HOT_THRESHOLD:
+        return "BOTH_HOT"
+    elif cn >= BOTH_HOT_THRESHOLD:
+        return "CRYPTO_DOMINANT"
+    elif sn >= BOTH_HOT_THRESHOLD:
+        return "STOCK_DOMINANT"
+    elif cn < BOTH_COLD_THRESHOLD and sn < BOTH_COLD_THRESHOLD:
+        return "DEFENSIVE"
+    else:
+        return "NEUTRAL"
