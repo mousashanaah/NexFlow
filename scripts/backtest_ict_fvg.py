@@ -81,7 +81,10 @@ def _load_candles() -> list[dict]:
         t["high"].to_pylist(), t["low"].to_pylist(),
         t["close"].to_pylist(), t["volume"].to_pylist()
     ):
-        candles.append({"ts": int(ot), "o": float(o), "h": float(h),
+        # Normalise timestamps to milliseconds regardless of source format
+        ts_raw = int(ot)
+        ts_ms = ts_raw * 1000 if ts_raw < 2_000_000_000 else ts_raw
+        candles.append({"ts": ts_ms, "o": float(o), "h": float(h),
                          "l": float(l), "c": float(c), "v": float(v)})
     candles.sort(key=lambda x: x["ts"])
     return candles
