@@ -69,6 +69,10 @@ class AllocationChangeRecord:
     new_ws:               float
     reason:               str
     trading_days_elapsed: int
+    # Forensic context — why the allocation changed
+    crypto_score:         float = 0.0
+    stock_score:          float = 0.0
+    in_bear:              bool  = False
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -78,7 +82,8 @@ class AllocationChangeRecord:
 
     @classmethod
     def from_dict(cls, d: dict) -> "AllocationChangeRecord":
-        return cls(**d)
+        known = {f.name for f in cls.__dataclass_fields__.values()}
+        return cls(**{k: v for k, v in d.items() if k in known})
 
     @classmethod
     def from_json(cls, s: str) -> "AllocationChangeRecord":
@@ -132,11 +137,29 @@ class RunnerSnapshot:
                 pass
             raise
 
+    def validate(self) -> None:
+        """Enforce state machine invariants. Raises AllocationRunnerError on violation."""
+        if self.runner_state == RunnerState.REBALANCE_PENDING:
+            if self.pending_wc is None or self.pending_ws is None:
+                raise AllocationRunnerError(
+                    "Corrupt snapshot: REBALANCE_PENDING requires pending_wc and pending_ws."
+                )
+            if self.pending_reason is None or self.pending_date is None:
+                raise AllocationRunnerError(
+                    "Corrupt snapshot: REBALANCE_PENDING requires pending_reason and pending_date."
+                )
+        if self.runner_state == RunnerState.IDLE:
+            if self.pending_wc is not None or self.pending_ws is not None:
+                raise AllocationRunnerError(
+                    "Corrupt snapshot: IDLE state must not carry pending weights. "
+                    "State file may have been manually edited."
+                )
+
     @classmethod
     def load(cls, path: Path) -> "RunnerSnapshot":
         with open(path) as f:
             d = json.load(f)
-        return cls(
+        snap = cls(
             runner_state   = RunnerState(d["runner_state"]),
             pending_wc     = d.get("pending_wc"),
             pending_ws     = d.get("pending_ws"),
@@ -144,6 +167,8 @@ class RunnerSnapshot:
             pending_date   = d.get("pending_date"),
             version        = d.get("version", _SNAPSHOT_VERSION),
         )
+        snap.validate()
+        return snap
 
 
 # ── Audit log helpers ─────────────────────────────────────────────────────────
@@ -262,6 +287,9 @@ class AllocationRunner:
         snapshot_path:        Path,
         trading_days_elapsed: int,
         audit_path:           Optional[Path] = None,
+        crypto_score:         float = 0.0,
+        stock_score:          float = 0.0,
+        in_bear:              bool  = False,
     ) -> AllocationChangeRecord:
         """
         REBALANCE_PENDING → IDLE.
@@ -279,6 +307,9 @@ class AllocationRunner:
             new_ws               = executed_ws,
             reason               = self._snap.pending_reason or "rebalance",
             trading_days_elapsed = trading_days_elapsed,
+            crypto_score         = crypto_score,
+            stock_score          = stock_score,
+            in_bear              = in_bear,
         )
 
         # Update system state (persists allocation weights)
@@ -340,6 +371,9 @@ class AllocationRunner:
         snapshot_path:        Path,
         trading_days_elapsed: int,
         audit_path:           Optional[Path] = None,
+        crypto_score:         float = 0.0,
+        stock_score:          float = 0.0,
+        in_bear:              bool  = False,
     ) -> AllocationChangeRecord:
         """
         RECOVERY_REQUIRED → IDLE.
@@ -357,6 +391,9 @@ class AllocationRunner:
             new_ws               = executed_ws,
             reason               = f"recovery — {reason}",
             trading_days_elapsed = trading_days_elapsed,
+            crypto_score         = crypto_score,
+            stock_score          = stock_score,
+            in_bear              = in_bear,
         )
 
         system_state.update_allocation(
@@ -415,3 +452,65 @@ class AllocationRunner:
         self._snap.pending_reason = None
         self._snap.pending_date  = None
         self._snap.save(snapshot_path)
+
+
+# ── Forensic reconstruction ───────────────────────────────────────────────────
+
+from dataclasses import dataclass as _dc
+
+
+@_dc
+class AllocationHistory:
+    """Complete reconstructable record of all allocation decisions."""
+    current_wc:          float
+    current_ws:          float
+    current_cash:        float
+    previous_wc:         float
+    previous_ws:         float
+    last_rebalance_date: str
+    total_rebalances:    int
+    records:             list  # list[AllocationChangeRecord]
+
+    def last_record(self) -> Optional[AllocationChangeRecord]:
+        return self.records[-1] if self.records else None
+
+
+def reconstruct_history(state_path: Path, audit_path: Path) -> AllocationHistory:
+    """
+    Reconstruct the full allocation history from state.json + audit log.
+
+    Provides:
+      - current_wc / current_ws: live allocation from state file
+      - previous_wc / previous_ws: allocation before the last change
+      - last_rebalance_date: from state file
+      - total_rebalances: count of audit records
+      - records: ordered list of every AllocationChangeRecord ever written
+
+    This is the forensic entry point.  Given only these two files the
+    complete history of every portfolio change is reconstructable.
+    """
+    state   = SystemState.load(state_path)
+    records = load_audit_log(audit_path)
+
+    if records:
+        last     = records[-1]
+        prev_wc  = last.prev_wc
+        prev_ws  = last.prev_ws
+    else:
+        prev_wc  = state.allocation.wc
+        prev_ws  = state.allocation.ws
+
+    wc   = state.allocation.wc
+    ws   = state.allocation.ws
+    cash = round(1.0 - wc - ws, 10)
+
+    return AllocationHistory(
+        current_wc          = wc,
+        current_ws          = ws,
+        current_cash        = cash,
+        previous_wc         = prev_wc,
+        previous_ws         = prev_ws,
+        last_rebalance_date = state.allocation.last_rebalance_date,
+        total_rebalances    = len(records),
+        records             = records,
+    )

@@ -159,7 +159,15 @@ class TestRunnerSnapshot:
     def test_all_states_round_trip(self, tmp_path):
         for state in RunnerState:
             path = tmp_path / f"{state.value}.json"
-            snap = RunnerSnapshot(runner_state=state)
+            # PENDING requires pending fields; others do not
+            if state == RunnerState.REBALANCE_PENDING:
+                snap = RunnerSnapshot(
+                    runner_state=state,
+                    pending_wc=0.65, pending_ws=0.35,
+                    pending_reason="test", pending_date="2024-01-01",
+                )
+            else:
+                snap = RunnerSnapshot(runner_state=state)
             snap.save(path)
             loaded = RunnerSnapshot.load(path)
             assert loaded.runner_state == state
@@ -191,6 +199,7 @@ class TestAllocationChangeRecord:
         assert set(d.keys()) == {
             "date", "prev_wc", "prev_ws", "new_wc", "new_ws",
             "reason", "trading_days_elapsed",
+            "crypto_score", "stock_score", "in_bear",
         }
 
 
