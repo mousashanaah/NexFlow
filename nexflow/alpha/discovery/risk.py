@@ -128,6 +128,8 @@ def check_risk(token_address: str, chain_id: str) -> RiskResult:
     score = 20  # start clean, deduct for risk factors
 
     # ── GoPlus ────────────────────────────────────────────────────────────────
+    is_hp = None   # defined here so final check always has a value
+
     gp = {}
     try:
         gp = _goplus_check(token_address, chain_id)
