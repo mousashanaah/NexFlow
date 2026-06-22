@@ -66,6 +66,7 @@ def refresh(
     max_age_hours:   float,
     min_liquidity:   float,
     chains:          list[str] | None,
+    verbose:         bool = False,
 ) -> int:
     """Fetch new pools, run risk gate, store results. Returns count of new pools."""
     print("Fetching new pools from DexScreener...")
@@ -73,6 +74,7 @@ def refresh(
         max_age_hours    = max_age_hours,
         min_liquidity    = min_liquidity,
         supported_chains = chains,
+        verbose          = verbose,
     )
     print(f"  Found {len(pools)} pools")
 
@@ -172,8 +174,10 @@ def main() -> int:
                         help="Comma-separated chains, e.g. ethereum,bsc,base")
     parser.add_argument("--max-age",       type=float, default=48.0,
                         help="Max pool age in hours (default: 48)")
-    parser.add_argument("--min-liquidity", type=float, default=5_000.0,
-                        help="Min liquidity USD (default: 5000)")
+    parser.add_argument("--min-liquidity", type=float, default=1_000.0,
+                        help="Min liquidity USD (default: 1000)")
+    parser.add_argument("--verbose", "-v", action="store_true",
+                        help="Show detailed fetch progress")
     args = parser.parse_args()
 
     chains = [c.strip() for c in args.chains.split(",")] if args.chains else None
@@ -181,7 +185,7 @@ def main() -> int:
     init_db(_DB_PATH)
 
     if args.refresh:
-        count = refresh(args.max_age, args.min_liquidity, chains)
+        count = refresh(args.max_age, args.min_liquidity, chains, verbose=args.verbose)
         print(f"\n  Processed {count} pools\n")
 
     display_board(

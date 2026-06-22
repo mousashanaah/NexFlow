@@ -2,24 +2,24 @@
 DexScreener client — new pool discovery.
 
 Two sources:
-  - /token-profiles/latest/v1   : recently created token profiles
-  - /token-boosts/latest/v1     : recently boosted/promoted tokens
+  - /token-profiles/latest/v1   : recently created token profiles (30 items)
+  - /token-boosts/latest/v1     : recently boosted/promoted tokens (30 items)
 
 Both are free, no auth required.
-Rate limit: ~1 req/sec safe; we sleep between calls.
+Rate limit: ~1 req/sec safe.
 """
 from __future__ import annotations
 
 import json
 import time
 import urllib.request
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
 from typing import Optional
 
 
-_BASE = "https://api.dexscreener.com"
-_TIMEOUT = 10
+_BASE    = "https://api.dexscreener.com"
+_TIMEOUT = 15
+_HEADERS = {"Accept": "application/json", "User-Agent": "Mozilla/5.0"}
 
 
 @dataclass
@@ -34,10 +34,10 @@ class DexPool:
     liquidity_usd:   Optional[float]
     volume_24h:      Optional[float]
     market_cap:      Optional[float]
-    pair_created_at: Optional[int]   # unix ms
+    pair_created_at: Optional[int]    # unix ms
     age_hours:       Optional[float]
     url:             str
-    source:          str             # "profiles" or "boosts"
+    source:          str              # "profiles" or "boosts"
 
     @property
     def age_label(self) -> str:
@@ -51,24 +51,22 @@ class DexPool:
 
 
 def _get(path: str) -> dict | list:
-    url = f"{_BASE}{path}"
-    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    url = f"{_BASE}{path}" if path.startswith("/") else path
+    req = urllib.request.Request(url, headers=_HEADERS)
     with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
         return json.loads(resp.read().decode())
 
 
 def _parse_pair(pair: dict, source: str) -> Optional[DexPool]:
-    """Extract a DexPool from a DexScreener pair object."""
     try:
-        base = pair.get("baseToken", {})
-        liq  = pair.get("liquidity", {})
-        vol  = pair.get("volume", {})
+        base = pair.get("baseToken") or {}
+        liq  = pair.get("liquidity") or {}
+        vol  = pair.get("volume") or {}
 
         created_at = pair.get("pairCreatedAt")
         age_hours  = None
         if created_at:
-            now_ms    = time.time() * 1000
-            age_hours = (now_ms - created_at) / 3_600_000
+            age_hours = (time.time() * 1000 - created_at) / 3_600_000
 
         price_str = pair.get("priceUsd")
         price     = float(price_str) if price_str else None
@@ -93,100 +91,152 @@ def _parse_pair(pair: dict, source: str) -> Optional[DexPool]:
         return None
 
 
-def fetch_new_profiles(max_age_hours: float = 48.0) -> list[DexPool]:
-    """
-    Fetch recently created token profiles from DexScreener.
-    Returns pools younger than max_age_hours.
-    """
-    pools: list[DexPool] = []
+def _fetch_pairs_for_token(token_address: str, chain_id: str) -> list[dict]:
+    """Fetch all pairs for a token address. Returns raw pair dicts."""
     try:
-        data = _get("/token-profiles/latest/v1")
-        items = data if isinstance(data, list) else data.get("pairs", [])
-        for item in items:
-            # token-profiles returns profile objects, not pair objects
-            # we need to fetch the actual pair data for each
-            token_addr = item.get("tokenAddress", "")
-            chain_id   = item.get("chainId", "")
-            if not token_addr or not chain_id:
-                continue
-            try:
-                pair_data = _get(f"/latest/dex/tokens/{token_addr}")
-                pairs     = pair_data.get("pairs") or []
-                # take the pair with highest liquidity
-                pairs = [p for p in pairs if p.get("chainId") == chain_id]
-                if not pairs:
-                    continue
-                best = max(pairs, key=lambda p: p.get("liquidity", {}).get("usd") or 0)
-                pool = _parse_pair(best, "profiles")
-                if pool and (pool.age_hours is None or pool.age_hours <= max_age_hours):
-                    pools.append(pool)
-                time.sleep(0.3)
-            except Exception:
-                continue
+        data  = _get(f"/latest/dex/tokens/{token_address}")
+        pairs = data.get("pairs") or []
+        # Keep only pairs on the expected chain
+        return [p for p in pairs if p.get("chainId") == chain_id]
     except Exception:
-        pass
+        return []
+
+
+def fetch_new_profiles(
+    max_age_hours: float = 48.0,
+    verbose:       bool  = False,
+) -> list[DexPool]:
+    """Fetch pools from token-profiles endpoint."""
+    pools: list[DexPool] = []
+    errors: list[str]    = []
+
+    try:
+        items = _get("/token-profiles/latest/v1")
+        if not isinstance(items, list):
+            items = []
+    except Exception as exc:
+        if verbose:
+            print(f"  [profiles] fetch failed: {exc}")
+        return []
+
+    if verbose:
+        print(f"  [profiles] {len(items)} profile items")
+
+    for item in items:
+        token_addr = item.get("tokenAddress", "")
+        chain_id   = item.get("chainId", "")
+        if not token_addr or not chain_id:
+            continue
+
+        pairs = _fetch_pairs_for_token(token_addr, chain_id)
+        if not pairs:
+            errors.append(f"no_pairs:{token_addr[:12]}")
+            time.sleep(0.2)
+            continue
+
+        # Best pair = highest liquidity
+        best = max(pairs, key=lambda p: (p.get("liquidity") or {}).get("usd") or 0)
+        pool = _parse_pair(best, "profiles")
+        if pool:
+            if pool.age_hours is None or pool.age_hours <= max_age_hours:
+                pools.append(pool)
+            elif verbose:
+                print(f"  [profiles] skip {pool.token_symbol}: age {pool.age_hours:.0f}h > {max_age_hours}h")
+        time.sleep(0.25)
+
+    if verbose and errors:
+        print(f"  [profiles] {len(errors)} tokens had no pairs")
     return pools
 
 
-def fetch_boosted_pools(max_age_hours: float = 48.0) -> list[DexPool]:
-    """
-    Fetch recently boosted tokens from DexScreener.
-    """
+def fetch_boosted_pools(
+    max_age_hours: float = 48.0,
+    verbose:       bool  = False,
+) -> list[DexPool]:
+    """Fetch pools from token-boosts endpoint."""
     pools: list[DexPool] = []
+    errors: list[str]    = []
+
     try:
-        data  = _get("/token-boosts/latest/v1")
-        items = data if isinstance(data, list) else []
-        for item in items:
-            token_addr = item.get("tokenAddress", "")
-            chain_id   = item.get("chainId", "")
-            if not token_addr or not chain_id:
-                continue
-            try:
-                pair_data = _get(f"/latest/dex/tokens/{token_addr}")
-                pairs     = pair_data.get("pairs") or []
-                pairs     = [p for p in pairs if p.get("chainId") == chain_id]
-                if not pairs:
-                    continue
-                best = max(pairs, key=lambda p: p.get("liquidity", {}).get("usd") or 0)
-                pool = _parse_pair(best, "boosts")
-                if pool and (pool.age_hours is None or pool.age_hours <= max_age_hours):
-                    pools.append(pool)
-                time.sleep(0.3)
-            except Exception:
-                continue
-    except Exception:
-        pass
+        items = _get("/token-boosts/latest/v1")
+        if not isinstance(items, list):
+            items = []
+    except Exception as exc:
+        if verbose:
+            print(f"  [boosts] fetch failed: {exc}")
+        return []
+
+    if verbose:
+        print(f"  [boosts] {len(items)} boost items")
+
+    for item in items:
+        token_addr = item.get("tokenAddress", "")
+        chain_id   = item.get("chainId", "")
+        if not token_addr or not chain_id:
+            continue
+
+        pairs = _fetch_pairs_for_token(token_addr, chain_id)
+        if not pairs:
+            errors.append(f"no_pairs:{token_addr[:12]}")
+            time.sleep(0.2)
+            continue
+
+        best = max(pairs, key=lambda p: (p.get("liquidity") or {}).get("usd") or 0)
+        pool = _parse_pair(best, "boosts")
+        if pool:
+            if pool.age_hours is None or pool.age_hours <= max_age_hours:
+                pools.append(pool)
+        time.sleep(0.25)
+
+    if verbose and errors:
+        print(f"  [boosts] {len(errors)} tokens had no pairs")
     return pools
 
 
 def fetch_new_pools(
-    max_age_hours:   float = 48.0,
-    min_liquidity:   float = 5_000.0,
+    max_age_hours:    float = 48.0,
+    min_liquidity:    float = 1_000.0,
     supported_chains: list[str] | None = None,
+    verbose:          bool = False,
 ) -> list[DexPool]:
     """
-    Unified new pool discovery.
-
-    Fetches from both profiles and boosts endpoints, deduplicates by
-    pair_address, filters by age and minimum liquidity.
+    Unified new pool discovery from profiles + boosts.
+    Deduplicates by pair_address, filters by age and liquidity.
     """
     if supported_chains is None:
-        supported_chains = ["ethereum", "bsc", "base", "solana", "polygon",
-                            "arbitrum", "optimism", "avalanche"]
+        supported_chains = [
+            "ethereum", "bsc", "base", "solana", "polygon",
+            "arbitrum", "optimism", "avalanche",
+        ]
 
-    seen:  set[str]    = set()
+    seen:  set[str]      = set()
     pools: list[DexPool] = []
 
-    for pool in fetch_new_profiles(max_age_hours) + fetch_boosted_pools(max_age_hours):
+    all_pools = (
+        fetch_new_profiles(max_age_hours, verbose=verbose)
+        + fetch_boosted_pools(max_age_hours, verbose=verbose)
+    )
+
+    if verbose:
+        print(f"  [merge] {len(all_pools)} total before dedup/filter")
+
+    for pool in all_pools:
         if pool.pair_address in seen:
             continue
         if pool.chain_id not in supported_chains:
+            if verbose:
+                print(f"  [filter] skip {pool.token_symbol}: chain {pool.chain_id} not in supported list")
             continue
         if pool.liquidity_usd is not None and pool.liquidity_usd < min_liquidity:
+            if verbose:
+                print(f"  [filter] skip {pool.token_symbol}: liq ${pool.liquidity_usd:.0f} < ${min_liquidity:.0f}")
             continue
         seen.add(pool.pair_address)
         pools.append(pool)
 
-    # Sort: newest first
     pools.sort(key=lambda p: p.pair_created_at or 0, reverse=True)
+
+    if verbose:
+        print(f"  [merge] {len(pools)} pools after dedup/filter")
+
     return pools
