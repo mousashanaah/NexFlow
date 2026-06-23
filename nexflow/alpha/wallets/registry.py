@@ -306,11 +306,15 @@ def token_wallet_summary(token_address: str, path: Path) -> dict:
     """
     Return wallet intelligence summary for a single token.
     Used by the Alpha Board to show wallet score + explanation.
+
+    wallet_score is None and outcome_backed=False when no outcome data exists —
+    the board must NOT display a numeric score in that case.
     """
     with _connect(path) as conn:
         appearances = conn.execute("""
             SELECT wa.wallet_address, wa.pct_held, wa.holder_rank,
-                   ws.score, ws.wins, ws.rugs, ws.appearances, ws.flags
+                   ws.score, ws.wins, ws.rugs, ws.appearances,
+                   ws.outcomes_known, ws.flags
             FROM wallet_appearances wa
             LEFT JOIN wallet_scores ws ON wa.wallet_address = ws.wallet_address
             WHERE wa.token_address = ?
@@ -318,37 +322,52 @@ def token_wallet_summary(token_address: str, path: Path) -> dict:
         """, (token_address,)).fetchall()
 
     if not appearances:
-        return {"token_address": token_address, "wallet_score": None, "explanation": "No wallet data"}
+        return {
+            "token_address":  token_address,
+            "wallet_score":   None,
+            "outcome_backed": False,
+            "explanation":    "no wallet data",
+        }
 
     rows = [dict(r) for r in appearances]
 
     scored = [r for r in rows if r["score"] is not None]
-    farm_count    = sum(1 for r in scored if "FARM_CLUSTER" in (r.get("flags") or ""))
-    repeat_count  = sum(1 for r in scored if "REPEAT_WINNER" in (r.get("flags") or ""))
+    farm_count   = sum(1 for r in scored if "FARM_CLUSTER" in (r.get("flags") or ""))
+    repeat_count = sum(1 for r in scored if "REPEAT_WINNER" in (r.get("flags") or ""))
     known_wallets = len(scored)
 
-    # Composite token wallet score = average of top-5 wallet scores (highest liquidity holders)
-    top_scores = sorted([r["score"] for r in scored if r["score"] is not None], reverse=True)[:5]
-    token_wallet_score = int(sum(top_scores) / len(top_scores)) if top_scores else None
+    # Only wallets that have at least one resolved outcome contribute to the score
+    outcome_wallets = [r for r in scored if (r.get("outcomes_known") or 0) > 0]
+    outcome_backed  = len(outcome_wallets) > 0
 
-    # Build explanation parts
+    if outcome_backed:
+        top_scores = sorted(
+            [r["score"] for r in outcome_wallets if r["score"] is not None],
+            reverse=True,
+        )[:5]
+        token_wallet_score = int(sum(top_scores) / len(top_scores)) if top_scores else None
+    else:
+        token_wallet_score = None   # suppress — not evidence-backed
+
+    # Build explanation
     parts: list[str] = []
     if known_wallets:
-        parts.append(f"{known_wallets} known wallet{'s' if known_wallets != 1 else ''}")
+        parts.append(f"{known_wallets} wallet{'s' if known_wallets != 1 else ''} tracked")
     if repeat_count:
         parts.append(f"{repeat_count} repeat winner{'s' if repeat_count != 1 else ''}")
     if farm_count:
-        parts.append(f"{farm_count} farm cluster{'s' if farm_count != 1 else ''} detected")
-    if not scored:
-        parts.append("no history yet")
+        parts.append(f"{farm_count} farm cluster{'s' if farm_count != 1 else ''}")
+    if not outcome_backed:
+        parts.append("awaiting outcomes")
 
     return {
-        "token_address":    token_address,
-        "wallet_score":     token_wallet_score,
-        "known_wallets":    known_wallets,
-        "repeat_winners":   repeat_count,
-        "farm_clusters":    farm_count,
-        "explanation":      " | ".join(parts) if parts else "insufficient data",
+        "token_address":  token_address,
+        "wallet_score":   token_wallet_score,
+        "outcome_backed": outcome_backed,
+        "known_wallets":  known_wallets,
+        "repeat_winners": repeat_count,
+        "farm_clusters":  farm_count,
+        "explanation":    " | ".join(parts) if parts else "insufficient data",
     }
 
 

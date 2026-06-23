@@ -47,6 +47,10 @@ from nexflow.alpha.wallets.registry import (
     init_wallet_registry, record_appearances, recompute_wallet_score,
     token_wallet_summary, registry_stats,
 )
+from nexflow.alpha.narrative.categorizer import categorize
+from nexflow.alpha.narrative.store import (
+    init_narrative_store, upsert_narrative, load_narrative, narrative_stats,
+)
 
 _DB_PATH = Path(os.environ.get("NEXFLOW_ALPHA_DB", "/var/nexflow/alpha.db"))
 
@@ -123,6 +127,14 @@ def refresh(
                 if addr:
                     recompute_wallet_score(addr, _DB_PATH)
 
+        # Narrative categorization (instant, no API call)
+        narrative = categorize(
+            token_name   = pool.token_name,
+            token_symbol = pool.token_symbol,
+            token_address= pool.token_address,
+        )
+        upsert_narrative(narrative, _DB_PATH)
+
         print(_color(risk.risk_label, risk.risk_label))
         time.sleep(0.3)
 
@@ -141,14 +153,14 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
         print("\nNo pools found. Run with --refresh to fetch new pools.")
         return
 
-    w = 132
+    w = 148
     print(f"\n{'─'*w}")
     print(f"{'NEXFLOW ALPHA BOARD':^{w}}")
     print(f"{'─'*w}")
     print(
         f"{'#':<3}  {'SYMBOL':<10}  {'CHAIN':<9}  {'AGE':<7}  "
         f"{'LIQUIDITY':<11}  {'VOLUME 24H':<11}  {'MCAP':<11}  "
-        f"{'RISK':<11}  {'WSCORE':<7}  WALLET INTEL / FLAGS"
+        f"{'RISK':<11}  {'WSCORE':<7}  {'NARRATIVE':<13}  WALLET INTEL / FLAGS"
     )
     print(f"{'─'*w}")
 
@@ -171,17 +183,35 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
 
         # Wallet intelligence
         try:
-            wsummary = token_wallet_summary(row["token_address"], _DB_PATH)
-            wscore   = wsummary["wallet_score"]
-            wexpl    = wsummary["explanation"]
+            wsummary      = token_wallet_summary(row["token_address"], _DB_PATH)
+            wscore        = wsummary["wallet_score"]
+            outcome_backed= wsummary.get("outcome_backed", False)
+            wexpl         = wsummary["explanation"]
         except Exception:
-            wscore = None
-            wexpl  = ""
+            wscore        = None
+            outcome_backed= False
+            wexpl         = ""
 
-        wscore_str = f"{wscore:>3}" if wscore is not None else "  —"
+        # Only show numeric score when backed by resolved outcomes
+        if wscore is not None and outcome_backed:
+            wscore_str = f"{wscore:>3}"
+        elif wsummary.get("known_wallets", 0) > 0:
+            wscore_str = "---"   # tracked but no outcomes yet
+        else:
+            wscore_str = "  —"
 
-        # Combine wallet explanation + risk flags
-        detail = wexpl if wexpl and wexpl != "No wallet data" else flags_str
+        # Wallet explanation line (suppress "awaiting outcomes" noise when no wallets tracked)
+        if wexpl and "no wallet data" not in wexpl.lower():
+            detail = wexpl
+        else:
+            detail = flags_str
+
+        # Narrative tag
+        try:
+            ntag = load_narrative(row["token_address"], _DB_PATH)
+            narr_str = (ntag["category"] if ntag else "")[:12]
+        except Exception:
+            narr_str = ""
 
         symbol = (row.get("token_symbol") or "")[:9]
         chain  = (row.get("chain_id")     or "")[:9]
@@ -190,7 +220,7 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
             f"{_fmt_usd(row.get('liquidity_usd')):<11}  "
             f"{_fmt_usd(row.get('volume_24h')):<11}  "
             f"{_fmt_usd(row.get('market_cap')):<11}  "
-            f"{risk_label:<11}  {wscore_str:<7}  {detail}"
+            f"{risk_label:<11}  {wscore_str:<7}  {narr_str:<13}  {detail}"
         )
         print(_color(line, risk_label))
 
@@ -203,6 +233,7 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
         f"  {len(rows)} pools  |  {passed} clean/caution/risky  |  "
         f"{blocked} blocked  |  {unverified} unverified"
     )
+    print(f"  WSCORE: numeric = outcome-backed evidence  |  --- = wallets tracked, awaiting outcomes  |  — = no wallet data")
 
     # Alpha Memory summary
     try:
@@ -215,6 +246,15 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
             if parts:
                 print(f"  ({', '.join(parts)})", end="")
         print()
+    except Exception:
+        pass
+
+    # Narrative summary
+    try:
+        nstats = narrative_stats(_DB_PATH)
+        if nstats:
+            parts = [f"{k}={v}" for k, v in nstats.items()]
+            print(f"  Narratives: {', '.join(parts)}")
     except Exception:
         pass
 
@@ -250,6 +290,7 @@ def main() -> int:
     init_db(_DB_PATH)
     init_memory(_DB_PATH)
     init_wallet_registry(_DB_PATH)
+    init_narrative_store(_DB_PATH)
 
     if args.refresh:
         count = refresh(args.max_age, args.min_liquidity, chains, verbose=args.verbose)

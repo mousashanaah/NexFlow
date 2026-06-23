@@ -33,6 +33,7 @@ sys.path.insert(0, str(_REPO))
 
 from nexflow.alpha.store.memory import init_memory
 from nexflow.alpha.wallets.registry import init_wallet_registry
+from nexflow.alpha.narrative.store import init_narrative_store, narrative_win_rates
 
 _DB_PATH = Path(os.environ.get("NEXFLOW_ALPHA_DB", "/var/nexflow/alpha.db"))
 
@@ -195,6 +196,25 @@ def run_report(weeks_back: int | None, write_csv: bool) -> None:
             f"{w_row['failures'] or 0:>9}"
         )
 
+    # ── Narrative Win Rates ───────────────────────────────────────────────────
+    try:
+        nar_rows = narrative_win_rates(_DB_PATH)
+        if nar_rows:
+            print(f"\n{'─'*w}")
+            print("  BY NARRATIVE")
+            print(f"{'─'*w}")
+            print(f"  {'CATEGORY':<14}  {'TOTAL':>6}  {'CLASSED':>8}  {'WIN%':>6}  {'AVG 7D':>8}  {'WINS':>5}  {'RUGS':>5}")
+            print(f"  {'─'*14}  {'─'*6}  {'─'*8}  {'─'*6}  {'─'*8}  {'─'*5}  {'─'*5}")
+            for nr in nar_rows:
+                win_pct = f"{nr['win_rate']*100:5.1f}%" if nr.get("win_rate") is not None else "    —"
+                avg_7d  = _fmt_ret(nr.get("avg_ret_7d"))
+                print(
+                    f"  {nr['category']:<14}  {nr['total']:>6}  {nr['classified'] or 0:>8}  "
+                    f"{win_pct:>6}  {avg_7d:>8}  {nr['winners'] or 0:>5}  {nr['rugs'] or 0:>5}"
+                )
+    except Exception:
+        pass
+
     # ── Wallet Registry ───────────────────────────────────────────────────────
     try:
         with _connect(_DB_PATH) as conn:
@@ -268,6 +288,7 @@ def main() -> int:
 
     init_memory(_DB_PATH)
     init_wallet_registry(_DB_PATH)
+    init_narrative_store(_DB_PATH)
     run_report(weeks_back=args.weeks, write_csv=args.csv)
     return 0
 
