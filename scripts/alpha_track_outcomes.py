@@ -40,6 +40,9 @@ sys.path.insert(0, str(_REPO))
 from nexflow.alpha.store.memory import (
     init_memory, load_untracked, update_outcome, summary_stats,
 )
+from nexflow.alpha.wallets.registry import (
+    init_wallet_registry, update_wallet_outcomes, recompute_all_scores,
+)
 
 _DB_PATH = Path(os.environ.get("NEXFLOW_ALPHA_DB", "/var/nexflow/alpha.db"))
 
@@ -216,6 +219,14 @@ def run_tracker(
                     period         = period,
                     classification = classification,
                 )
+            # Back-fill wallet outcomes when a classification is assigned
+            if classification:
+                token_addr = row.get("token_address", "")
+                ret_7d = row.get("return_7d") or (
+                    (current_price / row["initial_price"])
+                    if current_price and row.get("initial_price") else None
+                )
+                update_wallet_outcomes(token_addr, classification, ret_7d, _DB_PATH)
 
         updated += 1
         if classification == "Rug":
@@ -242,6 +253,10 @@ def run_tracker(
         if parts:
             print(", ".join(parts), end="")
         print()
+        # Recompute wallet scores after outcome updates
+        n_scored = recompute_all_scores(_DB_PATH)
+        if n_scored:
+            print(f"Wallet scores recomputed: {n_scored} wallets updated")
 
 
 def main() -> int:
@@ -255,6 +270,7 @@ def main() -> int:
     args = parser.parse_args()
 
     init_memory(_DB_PATH)
+    init_wallet_registry(_DB_PATH)
     run_tracker(
         min_age_hours = args.min_age,
         max_age_days  = args.max_age,

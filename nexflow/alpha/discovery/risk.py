@@ -53,7 +53,7 @@ class RiskResult:
     buy_tax:             Optional[float] = None
     sell_tax:            Optional[float] = None
     creator_percent:     Optional[float] = None
-    top10_percent:       Optional[float] = None   # Solana: top-10 holder concentration
+    top10_percent:       Optional[float] = None   # Solana: top-10 holder concentration (0-100 scale, e.g. 57.14 = 57.14%)
 
     # Honeypot.is (EVM only)
     honeypot_is_flag:    Optional[bool]  = None
@@ -64,6 +64,7 @@ class RiskResult:
     rugcheck_score:      Optional[int]   = None   # raw RugCheck score (higher = more risk)
     rugcheck_risks:      list            = field(default_factory=list)
     already_rugged:      Optional[bool]  = None
+    top_holders_raw:     list            = field(default_factory=list)  # raw topHolders list for wallet registry
 
     # Summary
     risk_score:          int             = 0      # 0–20, higher = safer
@@ -280,18 +281,20 @@ def _check_solana(token_address: str, result: RiskResult) -> tuple[int, list, li
         result.has_freeze_authority = False
 
     # Top holders concentration
+    # RugCheck returns pct on a 0-100 scale (e.g. 57.14 means 57.14%), not 0-1.
     top_holders = rc.get("topHolders") or []
+    result.top_holders_raw = top_holders          # preserve for wallet registry
     if top_holders:
         top10_pct = sum(
             float(h.get("pct") or 0)
             for h in top_holders[:10]
         )
-        result.top10_percent = top10_pct
-        if top10_pct > 0.80:
-            flags.append(f"TOP10_HOLDS:{top10_pct:.0%}")
+        result.top10_percent = top10_pct          # stored as 0-100
+        if top10_pct > 80:
+            flags.append(f"TOP10_HOLDS:{top10_pct:.1f}%")
             score -= 5
-        elif top10_pct > 0.60:
-            flags.append(f"TOP10_HOLDS:{top10_pct:.0%}")
+        elif top10_pct > 60:
+            flags.append(f"TOP10_HOLDS:{top10_pct:.1f}%")
             score -= 3
 
     # LP lock via markets

@@ -43,6 +43,10 @@ from nexflow.alpha.discovery.dexscreener import fetch_new_pools
 from nexflow.alpha.discovery.risk import check_risk
 from nexflow.alpha.store.db import init_db, load_board, upsert_pool, upsert_risk
 from nexflow.alpha.store.memory import init_memory, record_discovery, summary_stats
+from nexflow.alpha.wallets.registry import (
+    init_wallet_registry, record_appearances, recompute_wallet_score,
+    token_wallet_summary, registry_stats,
+)
 
 _DB_PATH = Path(os.environ.get("NEXFLOW_ALPHA_DB", "/var/nexflow/alpha.db"))
 
@@ -105,6 +109,20 @@ def refresh(
         # Write to Alpha Memory (permanent record)
         record_discovery(pool, risk, _DB_PATH)
 
+        # Register top holders in wallet intelligence layer
+        if risk.top_holders_raw:
+            n = record_appearances(
+                token_address = pool.token_address,
+                pair_address  = pool.pair_address,
+                chain_id      = pool.chain_id,
+                top_holders   = risk.top_holders_raw,
+                path          = _DB_PATH,
+            )
+            for h in risk.top_holders_raw:
+                addr = h.get("address") or h.get("owner") or ""
+                if addr:
+                    recompute_wallet_score(addr, _DB_PATH)
+
         print(_color(risk.risk_label, risk.risk_label))
         time.sleep(0.3)
 
@@ -123,14 +141,14 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
         print("\nNo pools found. Run with --refresh to fetch new pools.")
         return
 
-    w = 115
+    w = 132
     print(f"\n{'─'*w}")
     print(f"{'NEXFLOW ALPHA BOARD':^{w}}")
     print(f"{'─'*w}")
     print(
         f"{'#':<3}  {'SYMBOL':<10}  {'CHAIN':<9}  {'AGE':<7}  "
         f"{'LIQUIDITY':<11}  {'VOLUME 24H':<11}  {'MCAP':<11}  "
-        f"{'RISK':<11}  FLAGS"
+        f"{'RISK':<11}  {'WSCORE':<7}  WALLET INTEL / FLAGS"
     )
     print(f"{'─'*w}")
 
@@ -138,7 +156,7 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
         risk_label = row.get("risk_label") or "UNVERIFIED"
         flags_raw  = row.get("risk_flags")
         flags_list = json.loads(flags_raw) if flags_raw else []
-        flags_str  = ", ".join(flags_list[:3]) if flags_list else ""
+        flags_str  = ", ".join(flags_list[:2]) if flags_list else ""
 
         age_h = row.get("age_hours")
         if age_h is not None:
@@ -151,6 +169,20 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
         else:
             age_str = "—"
 
+        # Wallet intelligence
+        try:
+            wsummary = token_wallet_summary(row["token_address"], _DB_PATH)
+            wscore   = wsummary["wallet_score"]
+            wexpl    = wsummary["explanation"]
+        except Exception:
+            wscore = None
+            wexpl  = ""
+
+        wscore_str = f"{wscore:>3}" if wscore is not None else "  —"
+
+        # Combine wallet explanation + risk flags
+        detail = wexpl if wexpl and wexpl != "No wallet data" else flags_str
+
         symbol = (row.get("token_symbol") or "")[:9]
         chain  = (row.get("chain_id")     or "")[:9]
         line = (
@@ -158,7 +190,7 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
             f"{_fmt_usd(row.get('liquidity_usd')):<11}  "
             f"{_fmt_usd(row.get('volume_24h')):<11}  "
             f"{_fmt_usd(row.get('market_cap')):<11}  "
-            f"{risk_label:<11}  {flags_str}"
+            f"{risk_label:<11}  {wscore_str:<7}  {detail}"
         )
         print(_color(line, risk_label))
 
@@ -186,6 +218,19 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
     except Exception:
         pass
 
+    # Wallet registry summary
+    try:
+        ws = registry_stats(_DB_PATH)
+        print(
+            f"  Wallet Registry: {ws['total_wallets']} wallets  |  "
+            f"{ws['total_appearances']} appearances  |  "
+            f"{ws['wallets_with_outcomes']} with outcomes  |  "
+            f"{ws['repeat_winners']} repeat winners  |  "
+            f"{ws['farm_clusters']} farm clusters"
+        )
+    except Exception:
+        pass
+
     print(f"{'─'*w}\n")
 
 
@@ -204,6 +249,7 @@ def main() -> int:
 
     init_db(_DB_PATH)
     init_memory(_DB_PATH)
+    init_wallet_registry(_DB_PATH)
 
     if args.refresh:
         count = refresh(args.max_age, args.min_liquidity, chains, verbose=args.verbose)
