@@ -50,7 +50,13 @@ from nexflow.alpha.wallets.registry import (
 from nexflow.alpha.narrative.categorizer import categorize
 from nexflow.alpha.narrative.store import (
     init_narrative_store, upsert_narrative, load_narrative, narrative_stats,
+    narrative_win_rates,
 )
+from nexflow.alpha.store.attribution import (
+    init_attribution, record_snapshot, attribution_stats,
+    compute_opportunity_score,
+)
+from nexflow.alpha.tradability.fomo import is_fomo_tradable
 
 _DB_PATH = Path(os.environ.get("NEXFLOW_ALPHA_DB", "/var/nexflow/alpha.db"))
 
@@ -135,35 +141,63 @@ def refresh(
         )
         upsert_narrative(narrative, _DB_PATH)
 
-        print(_color(risk.risk_label, risk.risk_label))
+        # FOMO tradability check (Solana only — FOMO routes through Jupiter)
+        fomo_ok, fomo_err = is_fomo_tradable(pool.token_address, pool.chain_id)
+        if verbose and fomo_err and fomo_err != "evm_not_supported":
+            print(f"  [fomo] {fomo_err}", end="  ")
+
+        # Wallet summary for attribution
+        try:
+            wsummary = token_wallet_summary(pool.token_address, _DB_PATH)
+            wscore_attr   = wsummary["wallet_score"]
+            wbacked_attr  = wsummary.get("outcome_backed", False)
+            wtracked_attr = wsummary.get("known_wallets", 0)
+        except Exception:
+            wscore_attr = None; wbacked_attr = False; wtracked_attr = 0
+
+        # Narrative win rate for attribution scoring
+        try:
+            nwr_rows   = narrative_win_rates(_DB_PATH)
+            nwr_lookup = {r["category"]: r.get("win_rate") for r in nwr_rows}
+            nwr        = nwr_lookup.get(narrative.category)
+        except Exception:
+            nwr = None
+
+        # Record attribution snapshot (freezes all signal values at discovery)
+        from datetime import datetime, timezone as _tz
+        disc_ts = datetime.now(_tz.utc).isoformat()
+        record_snapshot(
+            pair_address          = pool.pair_address,
+            token_address         = pool.token_address,
+            token_symbol          = pool.token_symbol or "",
+            chain_id              = pool.chain_id,
+            discovery_ts          = disc_ts,
+            risk_score            = risk.risk_score,
+            risk_label            = risk.risk_label,
+            risk_passed           = risk.passed,
+            liquidity_usd         = pool.liquidity_usd,
+            volume_24h            = pool.volume_24h,
+            market_cap            = pool.market_cap,
+            age_hours             = pool.age_hours,
+            wallet_score          = wscore_attr,
+            wallet_outcome_backed = wbacked_attr,
+            wallets_tracked       = wtracked_attr,
+            narrative_category    = narrative.category,
+            narrative_confidence  = narrative.confidence,
+            narrative_win_rate    = nwr,
+            fomo_available        = fomo_ok,
+            path                  = _DB_PATH,
+        )
+
+        fomo_indicator = " \033[92m[FOMO✓]\033[0m" if fomo_ok else ""
+        print(_color(risk.risk_label, risk.risk_label) + fomo_indicator)
         time.sleep(0.3)
 
     return len(pools)
 
 
-def display_board(passed_only: bool, max_age_hours: float) -> None:
-    rows = load_board(
-        path          = _DB_PATH,
-        passed_only   = passed_only,
-        max_age_hours = max_age_hours,
-        limit         = 100,
-    )
-
-    if not rows:
-        print("\nNo pools found. Run with --refresh to fetch new pools.")
-        return
-
-    w = 148
-    print(f"\n{'─'*w}")
-    print(f"{'NEXFLOW ALPHA BOARD':^{w}}")
-    print(f"{'─'*w}")
-    print(
-        f"{'#':<3}  {'SYMBOL':<10}  {'CHAIN':<9}  {'AGE':<7}  "
-        f"{'LIQUIDITY':<11}  {'VOLUME 24H':<11}  {'MCAP':<11}  "
-        f"{'RISK':<11}  {'WSCORE':<7}  {'NARRATIVE':<13}  WALLET INTEL / FLAGS"
-    )
-    print(f"{'─'*w}")
-
+def _print_rows(rows: list[dict], w: int) -> None:
+    """Render a single section of board rows."""
     for i, row in enumerate(rows, 1):
         risk_label = row.get("risk_label") or "UNVERIFIED"
         flags_raw  = row.get("risk_flags")
@@ -181,6 +215,14 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
         else:
             age_str = "—"
 
+        # Opportunity score
+        opp = row.get("opportunity_score")
+        opp_str = f"{opp:>3}" if opp is not None else "  —"
+
+        # FOMO indicator
+        fomo_ok = row.get("fomo_available")
+        fomo_str = "✓" if fomo_ok else " "
+
         # Wallet intelligence
         try:
             wsummary      = token_wallet_summary(row["token_address"], _DB_PATH)
@@ -188,19 +230,15 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
             outcome_backed= wsummary.get("outcome_backed", False)
             wexpl         = wsummary["explanation"]
         except Exception:
-            wscore        = None
-            outcome_backed= False
-            wexpl         = ""
+            wscore = None; outcome_backed = False; wexpl = ""
 
-        # Only show numeric score when backed by resolved outcomes
         if wscore is not None and outcome_backed:
             wscore_str = f"{wscore:>3}"
         elif wsummary.get("known_wallets", 0) > 0:
-            wscore_str = "---"   # tracked but no outcomes yet
+            wscore_str = "---"
         else:
             wscore_str = "  —"
 
-        # Wallet explanation line (suppress "awaiting outcomes" noise when no wallets tracked)
         if wexpl and "no wallet data" not in wexpl.lower():
             detail = wexpl
         else:
@@ -208,7 +246,7 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
 
         # Narrative tag
         try:
-            ntag = load_narrative(row["token_address"], _DB_PATH)
+            ntag     = load_narrative(row["token_address"], _DB_PATH)
             narr_str = (ntag["category"] if ntag else "")[:12]
         except Exception:
             narr_str = ""
@@ -220,20 +258,68 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
             f"{_fmt_usd(row.get('liquidity_usd')):<11}  "
             f"{_fmt_usd(row.get('volume_24h')):<11}  "
             f"{_fmt_usd(row.get('market_cap')):<11}  "
-            f"{risk_label:<11}  {wscore_str:<7}  {narr_str:<13}  {detail}"
+            f"{risk_label:<11}  {opp_str:<5}  {fomo_str:<3}  "
+            f"{wscore_str:<7}  {narr_str:<13}  {detail}"
         )
         print(_color(line, risk_label))
+
+
+def display_board(passed_only: bool, max_age_hours: float) -> None:
+    rows = load_board(
+        path          = _DB_PATH,
+        passed_only   = passed_only,
+        max_age_hours = max_age_hours,
+        limit         = 100,
+    )
+
+    if not rows:
+        print("\nNo pools found. Run with --refresh to fetch new pools.")
+        return
+
+    # Split into ACTIONABLE (FOMO-ready) and WATCHLIST (not yet tradable)
+    actionable = [r for r in rows if r.get("fomo_available")]
+    watchlist  = [r for r in rows if not r.get("fomo_available")]
+
+    w = 160
+    _HDR = (
+        f"{'#':<3}  {'SYMBOL':<10}  {'CHAIN':<9}  {'AGE':<7}  "
+        f"{'LIQUIDITY':<11}  {'VOLUME 24H':<11}  {'MCAP':<11}  "
+        f"{'RISK':<11}  {'OPP':>4}  {'F':>2}  {'W':>5}  {'NARRATIVE':<13}  SIGNALS"
+    )
+
+    print(f"\n{'═'*w}")
+    print(f"{'NEXFLOW ALPHA BOARD':^{w}}")
+    print(f"{'═'*w}")
+    print(f"  Ranked by Opportunity Score  |  OPP=opportunity(0-105)  |  F=FOMO tradable  |  W=wallet score")
+    print(f"  WSCORE: numeric=outcome-backed | ---=awaiting outcomes | —=no data")
+
+    if actionable:
+        print(f"\n{'─'*w}")
+        print(f"  ▶  ACTIONABLE — available on FOMO right now  ({len(actionable)} pools)")
+        print(f"{'─'*w}")
+        print(_HDR)
+        print(f"{'─'*w}")
+        _print_rows(actionable, w)
+
+    if watchlist:
+        label = "ALL POOLS" if not actionable else "WATCHLIST — not yet on FOMO"
+        print(f"\n{'─'*w}")
+        print(f"  ◎  {label}  ({len(watchlist)} pools)")
+        print(f"{'─'*w}")
+        print(_HDR)
+        print(f"{'─'*w}")
+        _print_rows(watchlist, w)
 
     passed     = sum(1 for r in rows if r.get("passed"))
     blocked    = sum(1 for r in rows if r.get("risk_label") == "BLOCKED")
     unverified = sum(1 for r in rows if r.get("risk_label") in ("UNVERIFIED", None))
 
-    print(f"{'─'*w}")
+    print(f"\n{'─'*w}")
     print(
-        f"  {len(rows)} pools  |  {passed} clean/caution/risky  |  "
-        f"{blocked} blocked  |  {unverified} unverified"
+        f"  {len(rows)} pools  |  {passed} passed risk gate  |  "
+        f"{blocked} blocked  |  {unverified} unverified  |  "
+        f"{len(actionable)} FOMO-tradable  |  {len(watchlist)} watchlist"
     )
-    print(f"  WSCORE: numeric = outcome-backed evidence  |  --- = wallets tracked, awaiting outcomes  |  — = no wallet data")
 
     # Alpha Memory summary
     try:
@@ -291,6 +377,7 @@ def main() -> int:
     init_memory(_DB_PATH)
     init_wallet_registry(_DB_PATH)
     init_narrative_store(_DB_PATH)
+    init_attribution(_DB_PATH)
 
     if args.refresh:
         count = refresh(args.max_age, args.min_liquidity, chains, verbose=args.verbose)

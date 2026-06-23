@@ -43,6 +43,8 @@ from nexflow.alpha.store.memory import (
 from nexflow.alpha.wallets.registry import (
     init_wallet_registry, update_wallet_outcomes, recompute_all_scores,
 )
+from nexflow.alpha.store.attribution import init_attribution, update_snapshot_outcome
+from nexflow.alpha.narrative.store import init_narrative_store
 
 _DB_PATH = Path(os.environ.get("NEXFLOW_ALPHA_DB", "/var/nexflow/alpha.db"))
 
@@ -227,6 +229,15 @@ def run_tracker(
                     if current_price and row.get("initial_price") else None
                 )
                 update_wallet_outcomes(token_addr, classification, ret_7d, _DB_PATH)
+                # Back-fill attribution snapshot outcomes
+                update_snapshot_outcome(
+                    pair_address   = pair_addr,
+                    return_1d      = row.get("return_1d"),
+                    return_7d      = ret_7d,
+                    return_30d     = row.get("return_30d"),
+                    classification = classification,
+                    path           = _DB_PATH,
+                )
 
         updated += 1
         if classification == "Rug":
@@ -271,6 +282,8 @@ def main() -> int:
 
     init_memory(_DB_PATH)
     init_wallet_registry(_DB_PATH)
+    init_narrative_store(_DB_PATH)
+    init_attribution(_DB_PATH)
     run_tracker(
         min_age_hours = args.min_age,
         max_age_days  = args.max_age,

@@ -163,11 +163,14 @@ def load_board(
                 p.market_cap, p.age_hours, p.url, p.source,
                 r.passed, r.risk_score, r.risk_label, r.risk_flags,
                 r.is_honeypot, r.has_mint_function, r.sell_tax,
-                r.creator_percent, r.checked_at
+                r.creator_percent, r.checked_at,
+                ss.opportunity_score, ss.fomo_available, ss.volume_liq_ratio
             FROM pools p
-            LEFT JOIN risk_results r ON p.token_address = r.token_address
+            LEFT JOIN risk_results r  ON p.token_address = r.token_address
+            LEFT JOIN signal_snapshots ss ON p.pair_address = ss.pair_address
             {where}
-            ORDER BY p.liquidity_usd DESC NULLS LAST
+            ORDER BY COALESCE(ss.opportunity_score, 0) DESC,
+                     p.liquidity_usd DESC NULLS LAST
             LIMIT ?
         """, params + [limit]).fetchall()
 
