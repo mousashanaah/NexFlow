@@ -292,6 +292,8 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
     print(f"{'═'*w}")
     print(f"  Ranked by Opportunity Score  |  OPP=opportunity(0-105)  |  F=FOMO tradable  |  W=wallet score")
     print(f"  WSCORE: numeric=outcome-backed | ---=awaiting outcomes | —=no data")
+    print(f"  SIGNAL STATUS:  [EVIDENCE] risk gate, liquidity, volume/liq ratio, age")
+    print(f"                  [HYPOTHESIS] wallet score (0 outcomes), narrative bonus (0 outcomes), opp score formula")
 
     if actionable:
         print(f"\n{'─'*w}")
@@ -349,11 +351,29 @@ def display_board(passed_only: bool, max_age_hours: float) -> None:
         ws = registry_stats(_DB_PATH)
         print(
             f"  Wallet Registry: {ws['total_wallets']} wallets  |  "
-            f"{ws['total_appearances']} appearances  |  "
             f"{ws['wallets_with_outcomes']} with outcomes  |  "
             f"{ws['repeat_winners']} repeat winners  |  "
             f"{ws['farm_clusters']} farm clusters"
         )
+    except Exception:
+        pass
+
+    # Attribution / signal quality summary
+    try:
+        astat = attribution_stats(_DB_PATH)
+        classified = astat["classified"]
+        total_snap  = astat["total_snapshots"]
+        needed_30   = max(0, 30 - classified)
+        needed_100  = max(0, 100 - classified)
+        if classified == 0:
+            qlabel = f"signal quality untested — need {needed_30} classified outcomes for first test"
+        elif classified < 30:
+            qlabel = f"signal quality untested — need {needed_30} more classified outcomes"
+        elif classified < 100:
+            qlabel = f"signal quality: first results available, need {needed_100} more for significance"
+        else:
+            qlabel = f"signal quality: statistically meaningful ({classified} outcomes)"
+        print(f"  Attribution: {total_snap} snapshots  |  {classified} classified  |  {qlabel}")
     except Exception:
         pass
 
