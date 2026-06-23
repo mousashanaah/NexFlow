@@ -211,7 +211,9 @@ def backfill(verbose: bool) -> None:
     print(f"\n  Results: {tradable} tradable  |  {not_tradable} no route  |  {errors} errors")
     print(f"  Tradable tokens are now shown in ACTIONABLE section of the board.")
     if errors:
-        print(f"  {errors} errors may indicate network issues — re-run if needed.")
+        print(f"  {errors} ERRORS (not no_route). If ALL failed with")
+        print(f"  'all_endpoints_failed', every Jupiter endpoint was unreachable —")
+        print(f"  run `python scripts/alpha_fomo_trace.py` to see the exact cause.")
 
 
 def main() -> int:
