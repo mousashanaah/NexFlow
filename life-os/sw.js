@@ -1,4 +1,4 @@
-const CACHE = 'nexflow-v1';
+const CACHE = 'caddy-v1';
 const ASSETS = ['./app.html', './manifest.json'];
 
 self.addEventListener('install', e => {
